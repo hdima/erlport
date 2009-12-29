@@ -29,7 +29,7 @@ On the Erlang side you can call hello() function like this:
                 binary_to_term(Data)
         end.
 
-Test it in Erlang shell:
+Test it in the Erlang shell:
 
     1> c(hello).
     {ok,hello}
