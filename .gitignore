@@ -1,0 +1,3 @@
+*.swp
+*.pyc
+/src/*.egg-info

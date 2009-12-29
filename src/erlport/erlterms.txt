@@ -1,0 +1,134 @@
+Erlang terms
+============
+
+Function encode() can encode Python types to Erlang external term format:
+
+    >>> from erlport.erlterms import encode, Atom, String
+
+Binary strings:
+
+    >>> encode("")
+    '\x83m\x00\x00\x00\x00'
+    >>> encode("test")
+    '\x83m\x00\x00\x00\x04test'
+
+Atoms:
+
+    >>> encode(Atom(""))
+    '\x83d\x00\x00'
+    >>> encode(Atom("test"))
+    '\x83d\x00\x04test'
+
+Integer values:
+
+    >>> encode(0)
+    '\x83a\x00'
+    >>> encode(255)
+    '\x83a\xff'
+    >>> encode(256)
+    '\x83b\x00\x00\x01\x00'
+
+Unicode strings:
+
+    >>> encode(u"")
+    '\x83j'
+    >>> encode(u"test")
+    '\x83k\x00\x04test'
+    >>> encode(unicode("тест", "utf-8"))
+    '\x83l\x00\x00\x00\x04b\x00\x00\x04Bb\x00\x00\x045b\x00\x00\x04Ab\x00\x00\x04Bj'
+    >>> encode(u"X" * 65536) # doctest: +ELLIPSIS
+    '\x83l\x00\x01\x00\x00aXaX...aXaXj'
+    >>> encode(unicode("А", "utf-8") * 65536) # doctest: +ELLIPSIS
+    '\x83l\x00\x01\x00\x00b\x00\x00\x04\x10...b\x00\x00\x04\x10j'
+
+    >>> encode(String(u""))
+    '\x83j'
+
+Lists:
+
+    >>> encode([])
+    '\x83j'
+    >>> encode([1])
+    '\x83l\x00\x00\x00\x01a\x01j'
+    >>> encode([[Atom("test")], "test"])
+    '\x83l\x00\x00\x00\x02l\x00\x00\x00\x01d\x00\x04testjm\x00\x00\x00\x04testj'
+
+Tuples:
+
+    >>> encode(())
+    '\x83h\x00'
+    >>> encode((1,))
+    '\x83h\x01a\x01'
+    >>> encode((("test",), Atom("test")))
+    '\x83h\x02h\x01m\x00\x00\x00\x04testd\x00\x04test'
+    >>> encode((1,) * 256) # doctest: +ELLIPSIS
+    '\x83i\x00\x00\x01\x00a\x01...a\x01'
+
+
+Function decode() can decode Erlang external term format to Python types:
+
+    >>> from erlport.erlterms import decode
+
+Binary strings:
+
+    >>> decode('\x83m\x00\x00\x00\x00')
+    ('', '')
+    >>> decode('\x83m\x00\x00\x00\x04test')
+    ('test', '')
+
+Atoms:
+
+    >>> decode('\x83d\x00\x00')
+    (atom(), '')
+    >>> decode('\x83d\x00\x04test')
+    (atom(test), '')
+
+Integer values:
+
+    >>> decode('\x83a\x00')
+    (0, '')
+    >>> decode('\x83a\xff')
+    (255, '')
+    >>> decode('\x83b\x00\x00\x01\x00')
+    (256, '')
+
+Unicode strings:
+
+    >>> decode('\x83j')
+    (string(u''), '')
+    >>> s, t = decode('\x83k\x00\x04test')
+    >>> s, t
+    (string(u'test'), '')
+    >>> s.getList()
+    [116, 101, 115, 116]
+    >>> s, t = decode('\x83l\x00\x00\x00\x04b\x00\x00\x04Bb\x00\x00\x045b\x00\x00\x04Ab\x00\x00\x04Bj')
+    >>> s, t
+    (string(u'\u0442\u0435\u0441\u0442'), '')
+    >>> s.getList()
+    [1090, 1077, 1089, 1090]
+
+    >>> s, t = decode('\x83l\x00\x01\x00\x00' + 'aX' * 65536 + 'j')
+    >>> s, t # doctest: +ELLIPSIS
+    (string(u'XX...XX'), '')
+    >>> s.getList() # doctest: +ELLIPSIS
+    [88, 88, ... 88, 88]
+
+Lists:
+
+    >>> decode('\x83j')
+    (string(u''), '')
+    >>> decode('\x83l\x00\x00\x00\x01a\x01j')
+    (string(u'\x01'), '')
+    >>> decode('\x83l\x00\x00\x00\x02l\x00\x00\x00\x01d\x00\x04testjm\x00\x00\x00\x04testj')
+    ([[atom(test)], 'test'], '')
+
+Tuples:
+
+    >>> decode('\x83h\x00')
+    ((), '')
+    >>> decode('\x83h\x01a\x01')
+    ((1,), '')
+    >>> decode('\x83h\x02h\x01m\x00\x00\x00\x04testd\x00\x04test')
+    ((('test',), atom(test)), '')
+    >>> decode('\x83i\x00\x00\x01\x00' + 'a\x01' * 256) # doctest: +ELLIPSIS
+    ((1, 1, ... 1, 1), '')

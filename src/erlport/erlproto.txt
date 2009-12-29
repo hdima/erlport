@@ -1,0 +1,22 @@
+Erlang port protocol
+====================
+
+
+    >>> import os
+    >>> from erlport.erlproto import PortProtocol
+    >>> from erlport.erlterms import Atom, encode, decode
+
+    >>> class TestProto(object):
+    ...     def test(self, value):
+    ...         return Atom("return"), value
+
+    >>> r, w = os.pipe()
+    >>> os.dup2(r, 3)
+    >>> os.dup2(w, 4)
+
+    >>> proto = PortProtocol(TestProto())
+    >>> os.write(4, encode((Atom("test"), u"value")))
+    18
+    >>> result = os.read(3, 1024)
+    >>> decode(result)
+    ((atom(test), string(u'value')), '')
