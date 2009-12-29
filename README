@@ -2,7 +2,7 @@ Erlang port protocol for Python
 ===============================
 
 Erlang port protocol for Python simplify interoperability between Erlang and
-Python. On the Python side you write a processor object and pass it to
+Python. On the Python side write a processor object and pass it to
 ``erlport.PortProtocol`` like this::
 
     from erlport import PortProtocol
@@ -15,7 +15,7 @@ Python. On the Python side you write a processor object and pass it to
     if __name__ == "__main__":
         PortProtocol(Processor()).start()
 
-On the Erlang side you can call ``hello()`` function like this::
+On the Erlang side function ``hello()`` can be called like this::
 
     -module(hello).
     -export([hello/1]).
