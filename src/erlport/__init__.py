@@ -28,3 +28,5 @@
 """Erlang port protocol."""
 
 __author__ = "Dmitry Vasiliev <dima@hlabs.spb.ru>"
+
+from erlport.erlproto import PortProtocol

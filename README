@@ -1,0 +1,37 @@
+Erlang port protocol for Python
+===============================
+
+Erlang port protocol for Python simplified writing Python programs which expose
+functions for Erlang using ports. On the Python side you write a processor
+object and pass it to erlport.PortProtocol like this:
+
+    from erlport import PortProtocol
+
+    class Processor(object):
+
+        def hello(self, name):
+            return "Hello, %s" % name
+
+    if __name__ == "__main__":
+        PortProtocol(Processor()).start()
+
+On the Erlang side you can call hello() function like this:
+
+    -module(hello).
+    -export([hello/1]).
+
+    hello(Name) ->
+        Port = open_port({spawn, "python hello.py"},
+            [{packet, 1}, nouse_stdio, binary]),
+        port_command(Port, term_to_binary({hello, Name})),
+        receive
+            {Port, {data, Data}} ->
+                binary_to_term(Data)
+        end.
+
+Test it in Erlang shell:
+
+    1> c(hello).
+    {ok,hello}
+    2> hello:hello("Bob").
+    "Hello, Bob"
