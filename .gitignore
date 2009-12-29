@@ -1,3 +1,5 @@
 *.swp
 *.pyc
 /src/*.egg-info
+/build
+/dist

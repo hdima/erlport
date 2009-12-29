@@ -15,7 +15,7 @@ setup(
     author="Dmitry Vasiliev",
     author_email="dima@hlabs.spb.ru",
 
-    packages=find_packages("src"),
+    packages=find_packages("src", exclude=["*.tests"]),
     package_dir={"": "src"},
 
     zip_safe = True,
