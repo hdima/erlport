@@ -34,6 +34,7 @@ from setuptools import setup, find_packages
 setup(
     name="erlport",
     version="0.2",
+    url="http://github.com/hdima/erlport",
     description="Erlang port protocol",
     long_description="Erlang port protocol",
     author="Dmitry Vasiliev",
