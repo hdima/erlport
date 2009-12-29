@@ -1,8 +1,8 @@
 Erlang port protocol for Python
 ===============================
 
-Erlang port protocol for Python simplify interoperability between Python and
-Erlang. On the Python side you write a processor object and pass it to
+Erlang port protocol for Python simplify interoperability between Erlang and
+Python. On the Python side you write a processor object and pass it to
 ``erlport.PortProtocol`` like this::
 
     from erlport import PortProtocol
