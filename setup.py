@@ -36,11 +36,12 @@ setup(
     version="0.2",
     url="http://github.com/hdima/erlport",
     description="Erlang port protocol",
-    long_description="Erlang port protocol",
+    long_description=open('README').read(),
     author="Dmitry Vasiliev",
     author_email="dima@hlabs.spb.ru",
     license="BSD",
     platforms="any",
+    keywords="Python Erlang",
 
     packages=find_packages("src", exclude=["*.tests"]),
     package_dir={"": "src"},

@@ -1,0 +1,2 @@
+include LICENSE README TODO .gitignore
+include src/erlport/tests/*.txt
