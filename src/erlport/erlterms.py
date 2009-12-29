@@ -1,6 +1,7 @@
 #
 # Copyrigh (c) 2009, Dmitry Vasiliev <dima@hlabs.spb.ru>
 #
+"""Erlang external term format."""
 
 __author__ = "Dmitry Vasiliev <dima@hlabs.spb.ru>"
 
@@ -13,9 +14,10 @@ from struct import pack, unpack
 
 
 class IncompleteData(ValueError):
-    pass
+    """Need more data."""
 
 class Atom(str):
+    """Erlang atom."""
 
     def __new__(cls, s):
         if len(s) > 255:
@@ -27,6 +29,7 @@ class Atom(str):
 
 
 class String(unicode):
+    """Erlang string or possible list."""
 
     def getList(self):
         return [ord(i) for i in self]
@@ -36,6 +39,7 @@ class String(unicode):
 
 
 def decode(string):
+    """Decode Erlang external term."""
     if len(string) < 1:
         raise IncompleteData("incomplete data: %r" % string)
     version = ord(string[0])
@@ -123,6 +127,7 @@ def decode_term(string):
 
 
 def encode(term):
+    """Encode Erlang external term."""
     return "\x83" + encode_term(term)
 
 def encode_term(term):
