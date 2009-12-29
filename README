@@ -1,9 +1,9 @@
 Erlang port protocol for Python
 ===============================
 
-Erlang port protocol for Python simplified writing Python programs which expose
-functions for Erlang using ports. On the Python side you write a processor
-object and pass it to ``erlport.PortProtocol`` like this::
+Erlang port protocol for Python simplify interoperability between Python and
+Erlang. On the Python side you write a processor object and pass it to
+``erlport.PortProtocol`` like this::
 
     from erlport import PortProtocol
 
