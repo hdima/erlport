@@ -73,7 +73,7 @@ class PortProtocol(object):
         request = self.read_message()
         handler = getattr(self.processor, request[0], None)
         if handler is None:
-            reponse = Atom("error"), Atom("undef")
+            response = Atom("error"), Atom("undef")
         else:
             try:
                 response = handler(*request[1:])
