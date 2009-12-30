@@ -1,2 +1,2 @@
-include LICENSE README TODO .gitignore
+include LICENSE README TODO AUTHORS CHANGES CONTRIBUTORS .gitignore
 include src/erlport/tests/*.txt
