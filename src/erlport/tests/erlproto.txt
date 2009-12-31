@@ -4,37 +4,40 @@ Erlang port protocol
 Setup test modules, classes and functions:
 
     >>> import os
-    >>> from erlport.erlproto import PortProtocol
+    >>> from erlport.erlproto import Port, Protocol
     >>> from erlport.erlterms import Atom, encode, decode
 
-    >>> class TestProcessor(object):
-    ...     def test(self, value):
+    >>> class TestProtocol(Protocol):
+    ...
+    ...     def handle_test(self, value):
     ...         return Atom("return"), value
 
-    >>> def test(*args, **kwargs):
+    >>> def test(proto, *args, **kwargs):
     ...     r, w = os.pipe()
     ...     if "use_stdio" in kwargs:
-    ...         os.dup2(r, 0)
-    ...         os.dup2(w, 1)
+    ...         in_d, out_d = 0, 1
     ...     else:
-    ...         os.dup2(r, 3)
-    ...         os.dup2(w, 4)
-    ...     proto = PortProtocol(*args, **kwargs)
+    ...         in_d, out_d = 3, 4
+    ...     os.dup2(r, in_d)
+    ...     os.dup2(w, out_d)
+    ...
+    ...     port = Port(proto)
     ...     os.write(4, encode((Atom("test"), u"value")))
+    ...     port.connect(*args, **kwargs)
     ...     result = os.read(3, 1024)
-    ...     proto.close()
+    ...     port.close()
     ...     return decode(result)
 
 Test protocol with different options:
 
-    >>> test(TestProcessor())
+    >>> test(TestProtocol())
     ((atom(test), string(u'value')), '')
 
-    >>> test(TestProcessor(), packet=2)
+    >>> test(TestProtocol(), packet=2)
     ((atom(test), string(u'value')), '')
 
-    >>> test(TestProcessor(), packet=4)
+    >>> test(TestProtocol(), packet=4)
     ((atom(test), string(u'value')), '')
 
-    >>> test(TestProcessor(), use_stdio=True)
+    >>> test(TestProtocol(), use_stdio=True)
     ((atom(test), string(u'value')), '')

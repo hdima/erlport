@@ -36,8 +36,39 @@ from struct import pack, unpack
 from erlport.erlterms import Atom, encode, decode
 
 
-class PortProtocol(object):
+class Protocol(object):
     """Erlang port protocol."""
+
+    def connected(self, port):
+        """Port connected."""
+        self.port = port
+
+    def disconnected(self):
+        """Port disconnected."""
+
+    def handle(self, message):
+        """Handle incoming message."""
+        if not (isinstance(message, tuple) and len(message) > 0):
+            response = Atom("error"), Atom("badarg")
+        else:
+            name = message.pop(0)
+            if not isinstance(name, Atom):
+                response = Atom("error"), Atom("badarg")
+            else:
+                handler = getattr(self, "handle_%s" % name, None)
+                if handler is None:
+                    response = Atom("error"), Atom("undef")
+                else:
+                    try:
+                        response = handler(*message)
+                    except TypeError:
+                        # Easy way to check correct number of arguments
+                        response = Atom("error"), Atom("function_clause")
+        self.port.write(response)
+
+
+class Port(object):
+    """Erlang port."""
 
     _formats = {
         1: "B",
@@ -45,56 +76,63 @@ class PortProtocol(object):
         4: ">I",
         }
 
-    def __init__(self, processor, packet=1, use_stdio=False):
+    def __init__(self, proto):
+        self.proto = proto
+        self._connected = False
+
+    def _init(self, packet, use_stdio):
+        """Initialize protocol details."""
         self._format = self._formats.get(packet)
         if self._format is None:
             raise ValueError("invalid packet size value: %s" % packet)
         self.packet = packet
 
         if use_stdio:
-            self._fin = os.fdopen(0, "rb")
-            self._fout = os.fdopen(1, "wb")
+            in_d, out_d = 0, 1
         else:
-            self._fin = os.fdopen(3, "rb")
-            self._fout = os.fdopen(4, "wb")
+            in_d, out_d = 3, 4
+        self._fin = os.fdopen(in_d, "rb")
+        self._fout = os.fdopen(out_d, "wb")
 
-        self.processor = processor
+    def connect(self, packet=1, use_stdio=False):
+        """Connect port and start message processing."""
+        if self._connected:
+            raise RuntimeError("already connected")
+        self._connected = True
+        try:
+            self._init(packet, use_stdio)
+            self.proto.connected(self)
+            while self._connected:
+                try:
+                    message = self.read()
+                    self.proto.handle(message)
+                except EOFError:
+                    break
+        finally:
+            self._connected = False
+            self.close()
+            self.proto.disconnected()
 
-    def start(self):
-        """Start message processing."""
-        while True:
-            try:
-                self.handle_message()
-            except EOFError:
-                break
+    def _read(self, length):
+        try:
+            data = self._fin.read(length)
+        except IOError, why:
+            if why.errno == errno.EPIPE:
+                raise EOFError()
+            raise
+        if not data:
+            raise EOFError()
+        return data
 
-    def handle_message(self):
-        """Handle incoming message."""
-        request = self.read_message()
-        handler = getattr(self.processor, request[0], None)
-        if handler is None:
-            response = Atom("error"), Atom("undef")
-        else:
-            try:
-                response = handler(*request[1:])
-            except TypeError:
-                # FIXME: It's better to check inspect.getargspec() result
-                response = Atom("error"), Atom("function_clause")
-        self.write_result(response)
-
-    def read_message(self):
+    def read(self):
         """Read incoming message."""
-        data = self._fin.read(self.packet)
-        if not data:
-            raise EOFError()
+        data = self._read(self.packet)
         length, = unpack(self._format, data)
-        data = self._fin.read(length)
-        if not data:
-            raise EOFError()
+        data = self._read(length)
         return decode(data)[0]
 
-    def write_result(self, response):
-        """Write outgoing result."""
+    def write(self, response):
+        """Write outgoing message."""
         data = encode(response)
         data = pack(self._format, len(data)) + data
         try:
@@ -106,6 +144,6 @@ class PortProtocol(object):
             raise
 
     def close(self):
-        """Close protocol."""
+        self._connected = False
         self._fin.close()
         self._fout.close()
