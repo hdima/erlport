@@ -10,34 +10,29 @@ Setup test modules, classes and functions:
     >>> class TestProtocol(Protocol):
     ...
     ...     def handle_test(self, value):
-    ...         return Atom("return"), value
+    ...         return value
 
-    >>> def test(proto, *args, **kwargs):
-    ...     r, w = os.pipe()
-    ...     if "use_stdio" in kwargs:
-    ...         in_d, out_d = 0, 1
-    ...     else:
-    ...         in_d, out_d = 3, 4
-    ...     os.dup2(r, in_d)
-    ...     os.dup2(w, out_d)
+    >>> def test(proto, packet=1):
+    ...     r, out_d = os.pipe()
+    ...     in_d, w = os.pipe()
     ...
-    ...     port = Port(proto)
-    ...     os.write(4, encode((Atom("test"), u"value")))
-    ...     port.connect(*args, **kwargs)
-    ...     result = os.read(3, 1024)
-    ...     port.close()
-    ...     return decode(result)
+    ...     port = Port(packet, descriptors=(r, w))
+    ...     port2 = Port(packet, descriptors=(in_d, out_d))
+    ...     proto.connected(port)
+    ...     port2.write((Atom("test"), u"value"))
+    ...     message = port.read()
+    ...     proto.handle(message)
+    ...     result = port2.read()
+    ...     proto.disconnected(EOFError())
+    ...     return result
 
 Test protocol with different options:
 
     >>> test(TestProtocol())
-    ((atom(test), string(u'value')), '')
+    string(u'value')
 
     >>> test(TestProtocol(), packet=2)
-    ((atom(test), string(u'value')), '')
+    string(u'value')
 
     >>> test(TestProtocol(), packet=4)
-    ((atom(test), string(u'value')), '')
-
-    >>> test(TestProtocol(), use_stdio=True)
-    ((atom(test), string(u'value')), '')
+    string(u'value')

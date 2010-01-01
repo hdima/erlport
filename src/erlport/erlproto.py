@@ -43,15 +43,21 @@ class Protocol(object):
         """Port connected."""
         self.port = port
 
-    def disconnected(self):
+    def disconnected(self, reason):
         """Port disconnected."""
 
     def handle(self, message):
         """Handle incoming message."""
-        if not (isinstance(message, tuple) and len(message) > 0):
+        if not (isinstance(message, Atom)
+                or isinstance(message, tuple) and len(message) > 0):
             response = Atom("error"), Atom("badarg")
         else:
-            name = message.pop(0)
+            if isinstance(message, Atom):
+                name = message
+                args = ()
+            else:
+                name = message[0]
+                args = message[1:]
             if not isinstance(name, Atom):
                 response = Atom("error"), Atom("badarg")
             else:
@@ -60,7 +66,7 @@ class Protocol(object):
                     response = Atom("error"), Atom("undef")
                 else:
                     try:
-                        response = handler(*message)
+                        response = handler(*args)
                     except TypeError:
                         # Easy way to check correct number of arguments
                         response = Atom("error"), Atom("function_clause")
@@ -76,74 +82,79 @@ class Port(object):
         4: ">I",
         }
 
-    def __init__(self, proto):
-        self.proto = proto
-        self._connected = False
+    _running = False
 
-    def _init(self, packet, use_stdio):
-        """Initialize protocol details."""
+    def __init__(self, packet=1, use_stdio=False, descriptors=None):
         self._format = self._formats.get(packet)
         if self._format is None:
             raise ValueError("invalid packet size value: %s" % packet)
         self.packet = packet
 
-        if use_stdio:
-            in_d, out_d = 0, 1
+        if descriptors is not None:
+            self.in_d, self.out_d = descriptors
+        elif use_stdio:
+            self.in_d, self.out_d = 0, 1
         else:
-            in_d, out_d = 3, 4
-        self._fin = os.fdopen(in_d, "rb")
-        self._fout = os.fdopen(out_d, "wb")
+            self.in_d, self.out_d = 3, 4
 
-    def connect(self, packet=1, use_stdio=False):
-        """Connect port and start message processing."""
-        if self._connected:
-            raise RuntimeError("already connected")
-        self._connected = True
+    def run(self, proto):
+        """Run processing loop."""
+        if self._running:
+            raise RuntimeError("already running")
+        self._running = True
+        proto.connected(self)
         try:
-            self._init(packet, use_stdio)
-            self.proto.connected(self)
-            while self._connected:
-                try:
+            try:
+                while True:
                     message = self.read()
-                    self.proto.handle(message)
-                except EOFError:
-                    break
+                    proto.handle(message)
+            except EOFError, why:
+                proto.disconnected(why)
+            except Exception, why:
+                proto.disconnected(why)
+                raise
         finally:
-            self._connected = False
+            self._running = False
             self.close()
-            self.proto.disconnected()
 
-    def _read(self, length):
-        try:
-            data = self._fin.read(length)
-        except IOError, why:
-            if why.errno == errno.EPIPE:
+    def _read_data(self, length):
+        data = ""
+        while len(data) != length:
+            try:
+                buf = os.read(self.in_d, length)
+            except IOError, why:
+                if why.errno == errno.EPIPE:
+                    raise EOFError()
+                raise
+            if not buf:
                 raise EOFError()
-            raise
-        if not data:
-            raise EOFError()
+            data += buf
         return data
 
     def read(self):
         """Read incoming message."""
-        data = self._read(self.packet)
+        data = self._read_data(self.packet)
         length, = unpack(self._format, data)
-        data = self._read(length)
+        data = self._read_data(length)
         return decode(data)[0]
 
-    def write(self, response):
+    def write(self, message):
         """Write outgoing message."""
-        data = encode(response)
+        data = encode(message)
         data = pack(self._format, len(data)) + data
-        try:
-            self._fout.write(data)
-            self._fout.flush()
-        except IOError, why:
-            if why.errno == errno.EPIPE:
+        length = len(data)
+        if length != 0:
+            try:
+                n = os.write(self.out_d, data)
+            except IOError, why:
+                if why.errno == errno.EPIPE:
+                    raise EOFError()
+                raise
+            if n == 0:
                 raise EOFError()
-            raise
+            length -= n
 
     def close(self):
-        self._connected = False
-        self._fin.close()
-        self._fout.close()
+        """Close port."""
+        os.close(self.in_d)
+        os.close(self.out_d)
