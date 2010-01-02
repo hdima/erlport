@@ -1,5 +1,6 @@
 *.swp
-*.pyc
+*.py[co]
+*.beam
 /src/*.egg-info
 /build
 /dist
