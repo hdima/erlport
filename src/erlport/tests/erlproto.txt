@@ -18,12 +18,10 @@ Setup test modules, classes and functions:
     ...
     ...     port = Port(packet, descriptors=(r, w))
     ...     port2 = Port(packet, descriptors=(in_d, out_d))
-    ...     proto.connected(port)
     ...     port2.write((Atom("test"), u"value"))
     ...     message = port.read()
-    ...     proto.handle(message)
+    ...     proto.handle(port, message)
     ...     result = port2.read()
-    ...     proto.disconnected(EOFError())
     ...     return result
 
 Test protocol with different options:

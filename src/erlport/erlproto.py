@@ -39,14 +39,16 @@ from erlport.erlterms import Atom, encode, decode
 class Protocol(object):
     """Erlang port protocol."""
 
-    def connected(self, port):
-        """Port connected."""
-        self.port = port
+    def run(self, port):
+        """Run processing loop."""
+        while True:
+            try:
+                message = port.read()
+            except EOFError:
+                break
+            self.handle(port, message)
 
-    def disconnected(self, reason):
-        """Port disconnected."""
-
-    def handle(self, message):
+    def handle(self, port, message):
         """Handle incoming message."""
         if not (isinstance(message, Atom)
                 or isinstance(message, tuple) and len(message) > 0):
@@ -70,7 +72,7 @@ class Protocol(object):
                     except TypeError:
                         # Easy way to check correct number of arguments
                         response = Atom("error"), Atom("function_clause")
-        self.port.write(response)
+        port.write(response)
 
 
 class Port(object):
@@ -81,8 +83,6 @@ class Port(object):
         2: ">H",
         4: ">I",
         }
-
-    _running = False
 
     def __init__(self, packet=1, use_stdio=False, descriptors=None):
         self._format = self._formats.get(packet)
@@ -96,26 +96,6 @@ class Port(object):
             self.in_d, self.out_d = 0, 1
         else:
             self.in_d, self.out_d = 3, 4
-
-    def run(self, proto):
-        """Run processing loop."""
-        if self._running:
-            raise RuntimeError("already running")
-        self._running = True
-        proto.connected(self)
-        try:
-            try:
-                while True:
-                    message = self.read()
-                    proto.handle(message)
-            except EOFError, why:
-                proto.disconnected(why)
-            except Exception, why:
-                proto.disconnected(why)
-                raise
-        finally:
-            self._running = False
-            self.close()
 
     def _read_data(self, length):
         data = ""
