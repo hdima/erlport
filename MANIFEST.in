@@ -1,2 +1,3 @@
-include LICENSE README TODO AUTHORS CHANGES CONTRIBUTORS .gitignore
+include LICENSE README TODO AUTHORS CHANGES CONTRIBUTORS .gitignore Makefile
 include src/erlport/tests/*.txt
+include examples/*.py examples/*.erl
