@@ -1,1 +1,5 @@
-- Add new datatypes (dictionaries, floats, bit integer etc.)
+- Add new datatypes (dictionaries, bit integer etc.)
+
+- Add support for term compression
+
+- Add version and compression keywords to encode() function

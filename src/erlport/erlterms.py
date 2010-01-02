@@ -25,7 +25,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""Erlang external term format."""
+"""Erlang external term format.
+
+See Erlang External Term Format for details:
+    http://www.erlang.org/doc/apps/erts/erl_ext_dist.html
+"""
 
 __author__ = "Dmitry Vasiliev <dima@hlabs.spb.ru>"
 
@@ -141,6 +145,11 @@ def decode_term(string):
             lst.append(term)
             arity -= 1
         return tuple(lst), tail
+    elif tag == 70:
+        term, = unpack(">d", tail[:8])
+        return term, tail[8:]
+    elif tag == 99:
+        return float(tail[:31].split("\x00", 1)[0]), tail[31:]
 
     raise ValueError("unsupported data tag: %i" % tag)
 
@@ -191,5 +200,7 @@ def encode_term(term):
         elif term <= 255:
             return pack(">BB", 97, term)
         return pack(">BI", 98, term)
+    elif isinstance(term, float):
+        return pack(">Bd", 70, term)
 
     raise ValueError("unsupported data type: %s" % type(term))

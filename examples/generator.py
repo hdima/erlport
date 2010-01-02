@@ -8,7 +8,7 @@ class EventGenerator(Protocol):
 
     def handle(self, port, n):
         while n > 0:
-            port.write(tuple(time.localtime()))
+            port.write(time.time())
             n -= 1
         port.write(Atom("stop"))
 

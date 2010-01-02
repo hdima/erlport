@@ -28,6 +28,15 @@ Integer values:
     >>> encode(256)
     '\x83b\x00\x00\x01\x00'
 
+Float values:
+
+    >>> encode(0.0)
+    '\x83F\x00\x00\x00\x00\x00\x00\x00\x00'
+    >>> encode(1.1)
+    '\x83F?\xf1\x99\x99\x99\x99\x99\x9a'
+    >>> encode(10.12345)
+    '\x83F@$?4\xd6\xa1a\xe5'
+
 Unicode strings:
 
     >>> encode(u"")
@@ -91,6 +100,22 @@ Integer values:
     (255, '')
     >>> decode('\x83b\x00\x00\x01\x00')
     (256, '')
+
+Float values:
+
+    >>> decode('\x83F\x00\x00\x00\x00\x00\x00\x00\x00')
+    (0.0, '')
+    >>> decode('\x83F?\xf1\x99\x99\x99\x99\x99\x9a')
+    (1.1000000000000001, '')
+    >>> decode('\x83F@$?4\xd6\xa1a\xe5')
+    (10.12345, '')
+
+    >>> decode('\x83c0.00000000000000000000e+00\x00\x00\x00\x00\x00')
+    (0.0, '')
+    >>> decode('\x83c1.10000000000000008882e+00\x00\x00\x00\x00\x00')
+    (1.1000000000000001, '')
+    >>> decode('\x83c1.01234500000000000597e+01\x00\x00\x00\x00\x00')
+    (10.12345, '')
 
 Unicode strings:
 
