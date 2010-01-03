@@ -28,6 +28,7 @@
 """Erlang port protocol."""
 
 __author__ = "Dmitry Vasiliev <dima@hlabs.spb.ru>"
+__version__ = "0.3"
 
 from erlport.erlproto import Port, Protocol
 from erlport.erlterms import IncompleteData, Atom, String, decode, encode

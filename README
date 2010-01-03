@@ -1,19 +1,73 @@
 Erlang port protocol for Python
 ===============================
 
-Erlang port protocol for Python simplify interoperability between Erlang and
-Python. On the Python side write a processor object and pass it to
-``erlport.PortProtocol`` like this::
+.. contents::
 
-    from erlport import PortProtocol
+Project URLs:
 
-    class Processor(object):
+- http://github.com/hdima/erlport
+- http://pypi.python.org/pypi/erlport/
 
-        def hello(self, name):
+
+Library description
+-------------------
+
+The erlport Python library implements `Erlang external term format
+<http://www.erlang.org/doc/apps/erts/erl_ext_dist.html>`_ and `Erlang port
+protocol <http://erlang.org/doc/man/erlang.html#open_port-2>`_ for easier
+integration Python and Erlang.
+
+The library exports the following classes and functions:
+
+- ``Port(packet=1, use_stdio=False)`` - class implementing port which connects
+  with the corresponding Erlang port. See `open_port/2
+  <http://erlang.org/doc/man/erlang.html#open_port-2>`_ for description of
+  ``packet`` and ``use_stdio`` arguments.
+
+- ``Protocol()`` - class which simplifies creation of request-response
+  protocols.
+
+- ``Atom(str)`` - class which represents an Erlang atom in Python.
+
+- ``String(unicode)`` - class representing an Erlang string which also can be
+  an array of integers.
+
+- ``decode(str)`` - function which convert encoded Erlang term to Python value.
+
+- ``encode(term)`` - function which convert Python value to encoded Erlang
+  term.
+
+- ``IncompleteData`` - exception raised by ``decode()`` in case of incomplete
+  input data.
+
+
+Installation
+------------
+
+To install the library use ``easy_install`` from `setuptools
+<http://pypi.python.org/pypi/setuptools>`_ package like this:
+
+    $ easy_install erlport
+
+
+Examples
+--------
+
+See ``examples`` directory in the source distribution for additional examples.
+
+For simple request-response protocol use ``Port`` and ``Protocol`` on the
+Python side like this::
+
+    from erlport import Port, Protocol
+
+    class HelloProtocol(Protocol):
+
+        def handle_hello(self, name):
             return "Hello, %s" % name
 
     if __name__ == "__main__":
-        PortProtocol(Processor()).start()
+        proto = HelloProtocol()
+        proto.run(Port())
 
 On the Erlang side function ``hello()`` can be called like this::
 
@@ -35,3 +89,15 @@ Test it in the Erlang shell::
     {ok,hello}
     2> hello:hello("Bob").
     "Hello, Bob"
+
+
+Feedback
+--------
+
+Please report bugs, offer suggestions or feedback at:
+
+- Report bugs at http://github.com/hdima/erlport/issues
+
+- Email me at Dmitry Vasiliev <dima@hlabs.spb.ru>
+
+- Write or follow me at http://twitter.com/hdima
