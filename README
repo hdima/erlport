@@ -9,8 +9,8 @@ Project URLs:
 - http://pypi.python.org/pypi/erlport/
 
 
-Library description
--------------------
+Description
+-----------
 
 The erlport Python library implements `Erlang external term format
 <http://www.erlang.org/doc/apps/erts/erl_ext_dist.html>`_ and `Erlang port
@@ -27,15 +27,14 @@ The library exports the following classes and functions:
 - ``Protocol()`` - class which simplifies creation of request-response
   protocols.
 
-- ``Atom(str)`` - class which represents an Erlang atom in Python.
+- ``Atom(str)`` - class which represents an Erlang atom.
 
 - ``String(unicode)`` - class representing an Erlang string which also can be
   an array of integers.
 
-- ``decode(str)`` - function which convert encoded Erlang term to Python value.
+- ``decode(str)`` - function to convert binary data into a term.
 
-- ``encode(term)`` - function which convert Python value to encoded Erlang
-  term.
+- ``encode(term)`` - function to convert a term into the external format.
 
 - ``IncompleteData`` - exception raised by ``decode()`` in case of incomplete
   input data.
@@ -43,6 +42,12 @@ The library exports the following classes and functions:
 
 Installation
 ------------
+
+Prerequisites:
+
+- Erlang >= R11B-4
+
+- Python >= 2.4
 
 To install the library use ``easy_install`` from `setuptools
 <http://pypi.python.org/pypi/setuptools>`_ package like this:
@@ -98,6 +103,6 @@ Please report bugs, offer suggestions or feedback at:
 
 - Report bugs at http://github.com/hdima/erlport/issues
 
-- Email me at Dmitry Vasiliev <dima@hlabs.spb.ru>
+- Email me at dima@hlabs.spb.ru
 
 - Write or follow me at http://twitter.com/hdima
