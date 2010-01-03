@@ -38,7 +38,6 @@ clean:
 	python setup.py clean --all
 
 release:
-	python2.5 setup.py bdist_egg upload; \
-	python2.6 setup.py bdist_egg upload; \
+	python setup.py bdist_egg upload; \
 	python setup.py sdist upload; \
 	python setup.py register

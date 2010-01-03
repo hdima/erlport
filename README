@@ -50,7 +50,7 @@ Prerequisites:
 - Python >= 2.4
 
 To install the library use ``easy_install`` from `setuptools
-<http://pypi.python.org/pypi/setuptools>`_ package like this:
+<http://pypi.python.org/pypi/setuptools>`_ package like this::
 
     $ easy_install erlport
 
