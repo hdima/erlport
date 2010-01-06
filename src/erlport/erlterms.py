@@ -162,7 +162,7 @@ def encode_term(term):
     if isinstance(term, tuple):
         arity = len(term)
         if arity <= 255:
-            header = pack("BB", 104, arity)
+            header = 'h%c' % arity
         elif arity <= 4294967295:
             header = pack(">BI", 105, arity)
         else:
@@ -198,7 +198,7 @@ def encode_term(term):
         if term > 4294967295:
             raise ValueError("invalid integer value")
         elif term <= 255:
-            return pack(">BB", 97, term)
+            return 'a%c' % term
         return pack(">BI", 98, term)
     elif isinstance(term, float):
         return pack(">Bd", 70, term)
