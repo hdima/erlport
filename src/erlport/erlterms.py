@@ -172,7 +172,15 @@ def encode_term(term):
         if not term:
             return "j"
         length = len(term)
-        if length > 4294967295:
+        if length <= 65535:
+            try:
+                bytes = "".join(chr(i) for i in term if isinstance(i, int))
+            except ValueError:
+                pass
+            else:
+                if len(bytes) == length:
+                    return pack(">BH", 107, length) + bytes
+        elif length > 4294967295:
             raise ValueError("invalid list length")
         header = pack(">BI", 108, length)
         return header + "".join(encode_term(t) for t in term) + "j"
@@ -182,11 +190,11 @@ def encode_term(term):
         length = len(term)
         if length <= 65535:
             try:
-                term = term.encode("latin1")
+                bytes = term.encode("latin1")
             except UnicodeEncodeError:
                 pass
             else:
-                return pack(">BH", 107, length) + term
+                return pack(">BH", 107, length) + bytes
         return encode_term([ord(i) for i in term])
     elif isinstance(term, Atom):
         return pack(">BH", 100, len(term)) + term

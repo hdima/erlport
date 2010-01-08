@@ -1,5 +1,7 @@
 Version 0.4 (YYYY-MM-DD)
 
+    - Optimized encoding for lists of bytes (integer in the range 0-255)
+
     - Fixed encoding for small Unicode strings with characters in range 128-255
 
 Version 0.3 (2010-01-03)
