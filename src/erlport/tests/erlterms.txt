@@ -43,6 +43,10 @@ Unicode strings:
     '\x83j'
     >>> encode(u"test")
     '\x83k\x00\x04test'
+    >>> encode(u"\x00\xff")
+    '\x83k\x00\x02\x00\xff'
+    >>> encode(u"\u0100")
+    '\x83l\x00\x00\x00\x01b\x00\x00\x01\x00j'
     >>> encode(unicode("тест", "utf-8"))
     '\x83l\x00\x00\x00\x04b\x00\x00\x04Bb\x00\x00\x045b\x00\x00\x04Ab\x00\x00\x04Bj'
     >>> encode(u"X" * 65536) # doctest: +ELLIPSIS

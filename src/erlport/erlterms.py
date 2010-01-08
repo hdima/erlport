@@ -181,11 +181,12 @@ def encode_term(term):
             return "j"
         length = len(term)
         if length <= 65535:
-            for i in term:
-                if ord(i) > 255:
-                    break
+            try:
+                term = term.encode("latin1")
+            except UnicodeEncodeError:
+                pass
             else:
-                return pack(">BH", 107, length) + str(term)
+                return pack(">BH", 107, length) + term
         return encode_term([ord(i) for i in term])
     elif isinstance(term, Atom):
         return pack(">BH", 100, len(term)) + term

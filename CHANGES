@@ -1,6 +1,6 @@
 Version 0.4 (YYYY-MM-DD)
 
-
+    - Fixed encoding for small Unicode strings with characters in range 128-255
 
 Version 0.3 (2010-01-03)
 

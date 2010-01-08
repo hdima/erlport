@@ -1,3 +1,5 @@
+- Optimize encoding for lists of bytes (integer in the range 0-255)
+
 - Add new datatypes (dictionaries, bit integer etc.)
 
 - Add support for term compression
