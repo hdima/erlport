@@ -36,7 +36,7 @@ setup(
     version="0.3",
     url="http://github.com/hdima/erlport",
     description="Erlang port protocol",
-    long_description=open('README').read(),
+    long_description=open('README.rst').read(),
     author="Dmitry Vasiliev",
     author_email="dima@hlabs.spb.ru",
     license="BSD",
