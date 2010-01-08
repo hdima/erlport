@@ -1,5 +1,8 @@
 Version 0.4 (YYYY-MM-DD)
 
+    - Now decode() doesn't return String objects only lists. Use String as
+      wrapper if you expect Unicode string instead of list.
+
     - Optimized encoding for lists of bytes (integer in the range 0-255)
 
     - Fixed encoding for small Unicode strings with characters in range 128-255

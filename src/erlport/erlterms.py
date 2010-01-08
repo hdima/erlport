@@ -52,10 +52,15 @@ class Atom(str):
 
 
 class String(unicode):
-    """Erlang string or possible list."""
+    """Erlang list/string wrapper."""
 
-    def getList(self):
-        return [ord(i) for i in self]
+    def __new__(cls, s):
+        if isinstance(s, list):
+            # Raise TypeError
+            s = u"".join(unichr(i) for i in s)
+        elif not isinstance(s, unicode):
+            raise TypeError("list or unicode object expected")
+        return super(String, cls).__new__(cls, s)
 
     def __repr__(self):
         return "string(%s)" % unicode.__repr__(self)
@@ -86,7 +91,7 @@ def decode_term(string):
         i, = unpack(">I", tail[:4])
         return i, tail[4:]
     elif tag == 106:
-        return String(""), tail
+        return [], tail
     elif tag == 107:
         if len(tail) < 2:
             raise IncompleteData("incomplete data: %r" % string)
@@ -94,23 +99,18 @@ def decode_term(string):
         tail = tail[2:]
         if len(tail) < length:
             raise IncompleteData("incomplete data: %r" % string)
-        return String(tail[:length]), tail[length:]
+        return [ord(i) for i in tail[:length]], tail[length:]
     elif tag == 108:
         if len(tail) < 4:
             raise IncompleteData("incomplete data: %r" % string)
         length, = unpack(">I", tail[:4])
         tail = tail[4:]
         lst = []
-        is_string = True
         while length > 0:
             term, tail = decode_term(tail)
-            if is_string and not isinstance(term, int):
-                is_string = False
             lst.append(term)
             length -= 1
-        term, tail = decode_term(tail)
-        if is_string:
-            return String(u"".join(unichr(i) for i in lst)), tail
+        ignored, tail = decode_term(tail)
         return lst, tail
     elif tag == 109:
         if len(tail) < 4:

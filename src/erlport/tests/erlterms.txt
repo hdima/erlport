@@ -125,31 +125,32 @@ Float values:
 
 Unicode strings:
 
-    >>> decode('\x83j')
+    >>> u, t = decode('\x83j')
+    >>> String(u), t
     (string(u''), '')
-    >>> s, t = decode('\x83k\x00\x04test')
-    >>> s, t
-    (string(u'test'), '')
-    >>> s.getList()
+    >>> u, t = decode('\x83k\x00\x04test')
+    >>> u
     [116, 101, 115, 116]
-    >>> s, t = decode('\x83l\x00\x00\x00\x04b\x00\x00\x04Bb\x00\x00\x045b\x00\x00\x04Ab\x00\x00\x04Bj')
-    >>> s, t
-    (string(u'\u0442\u0435\u0441\u0442'), '')
-    >>> s.getList()
+    >>> String(u), t
+    (string(u'test'), '')
+    >>> u, t = decode('\x83l\x00\x00\x00\x04b\x00\x00\x04Bb\x00\x00\x045b\x00\x00\x04Ab\x00\x00\x04Bj')
+    >>> u
     [1090, 1077, 1089, 1090]
+    >>> String(u), t
+    (string(u'\u0442\u0435\u0441\u0442'), '')
 
-    >>> s, t = decode('\x83l\x00\x01\x00\x00' + 'aX' * 65536 + 'j')
-    >>> s, t # doctest: +ELLIPSIS
-    (string(u'XX...XX'), '')
-    >>> s.getList() # doctest: +ELLIPSIS
+    >>> u, t = decode('\x83l\x00\x01\x00\x00' + 'aX' * 65536 + 'j')
+    >>> u # doctest: +ELLIPSIS
     [88, 88, ... 88, 88]
+    >>> String(u), t # doctest: +ELLIPSIS
+    (string(u'XX...XX'), '')
 
 Lists:
 
     >>> decode('\x83j')
-    (string(u''), '')
+    ([], '')
     >>> decode('\x83l\x00\x00\x00\x01a\x01j')
-    (string(u'\x01'), '')
+    ([1], '')
     >>> decode('\x83l\x00\x00\x00\x02l\x00\x00\x00\x01d\x00\x04testjm\x00\x00\x00\x04testj')
     ([[atom(test)], 'test'], '')
 
