@@ -1,5 +1,8 @@
 Version 0.4 (YYYY-MM-DD)
 
+    - Added support for Erlang bitstrings whose length in bits is not a
+      multiple of 8
+
     - Updated examples to work on Windows
 
     - Now decode() doesn't return String objects only lists. Use String as

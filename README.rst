@@ -32,6 +32,9 @@ The library exports the following classes and functions:
 - ``String(unicode | list)`` - class representing an Erlang string. Must be
   used as a wrapper if Unicode string expected instead of a list.
 
+- ``BitBinary(str)`` - class representing an Erlang bitstring whose length in
+  bits is not a multiple of 8.
+
 - ``decode(str)`` - function to convert binary data into a term.
 
 - ``encode(term)`` - function to convert a term into the external format.

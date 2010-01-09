@@ -3,7 +3,7 @@ Erlang terms
 
 Function encode() can encode Python types to Erlang external term format:
 
-    >>> from erlport.erlterms import encode, Atom, String
+    >>> from erlport.erlterms import encode, Atom, String, BitBinary
 
 Binary strings:
 
@@ -11,6 +11,13 @@ Binary strings:
     '\x83m\x00\x00\x00\x00'
     >>> encode("test")
     '\x83m\x00\x00\x00\x04test'
+
+Bit binaries:
+
+    >>> encode(BitBinary("", 0))
+    '\x83M\x00\x00\x00\x00\x00'
+    >>> encode(BitBinary("\x80", 4))
+    '\x83M\x00\x00\x00\x01\x04\x80'
 
 Atoms:
 
@@ -90,6 +97,13 @@ Binary strings:
     ('', '')
     >>> decode('\x83m\x00\x00\x00\x04test')
     ('test', '')
+
+Bit binaries:
+
+    >>> decode('\x83M\x00\x00\x00\x00\x00')
+    (bits(0, ''), '')
+    >>> decode('\x83M\x00\x00\x00\x01\x04\x80')
+    (bits(4, '\x80'), '')
 
 Atoms:
 

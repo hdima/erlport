@@ -45,7 +45,7 @@ class Atom(str):
     def __new__(cls, s):
         if len(s) > 255:
             raise ValueError("invalid atom length")
-        return str.__new__(cls, s)
+        return super(Atom, cls).__new__(cls, s)
 
     def __repr__(self):
         return "atom(%s)" % self
@@ -63,7 +63,19 @@ class String(unicode):
         return super(String, cls).__new__(cls, s)
 
     def __repr__(self):
-        return "string(%s)" % unicode.__repr__(self)
+        return "string(%s)" % super(String, self).__repr__()
+
+
+class BitBinary(str):
+    """Erlang bitstring whose length in bits is not a multiple of 8."""
+
+    def __new__(cls, s, bits):
+        obj = super(BitBinary, cls).__new__(cls, s)
+        obj.bits = bits
+        return obj
+
+    def __repr__(self):
+        return "bits(%s, %s)" % (self.bits, super(BitBinary, self).__repr__())
 
 
 def decode(string):
@@ -150,6 +162,14 @@ def decode_term(string):
         return term, tail[8:]
     elif tag == 99:
         return float(tail[:31].split("\x00", 1)[0]), tail[31:]
+    elif tag == 77:
+        if len(tail) < 5:
+            raise IncompleteData("incomplete data: %r" % string)
+        length, bits = unpack(">IB", tail[:5])
+        tail = tail[5:]
+        if len(tail) < length:
+            raise IncompleteData("incomplete daata: %r" % string)
+        return BitBinary(tail[:length], bits), tail[length:]
 
     raise ValueError("unsupported data tag: %i" % tag)
 
@@ -198,6 +218,9 @@ def encode_term(term):
         return encode_term([ord(i) for i in term])
     elif isinstance(term, Atom):
         return pack(">BH", 100, len(term)) + term
+    elif isinstance(term, BitBinary):
+        # Must be before str type
+        return pack(">BIB", 77, len(term), term.bits) + term
     elif isinstance(term, str):
         length = len(term)
         if length > 4294967295:
