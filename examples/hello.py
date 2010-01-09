@@ -9,4 +9,4 @@ class HelloProtocol(Protocol):
 
 if __name__ == "__main__":
     proto = HelloProtocol()
-    proto.run(Port())
+    proto.run(Port(use_stdio=True))

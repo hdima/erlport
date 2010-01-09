@@ -17,4 +17,4 @@ class EventHandler(Protocol):
 
 if __name__ == "__main__":
     proto = EventHandler()
-    proto.run(Port(packet=4))
+    proto.run(Port(packet=4, use_stdio=True))

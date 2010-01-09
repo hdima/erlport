@@ -15,4 +15,4 @@ class EventGenerator(Protocol):
 
 if __name__ == "__main__":
     proto = EventGenerator()
-    proto.run(Port())
+    proto.run(Port(use_stdio=True))
