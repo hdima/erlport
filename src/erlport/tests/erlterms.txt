@@ -36,8 +36,21 @@ Integer values:
     '\x83b\x00\x00\x01\x00'
     >>> encode(2147483647)
     '\x83b\x7f\xff\xff\xff'
+    >>> encode(-2147483648)
+    '\x83b\x80\x00\x00\x00'
     >>> encode(-1)
     '\x83b\xff\xff\xff\xff'
+
+Big integers:
+
+    >>> encode(2147483648)
+    '\x83n\x04\x00\x00\x00\x00\x80'
+    >>> encode(-2147483649)
+    '\x83n\x04\x01\x01\x00\x00\x80'
+    >>> encode(256 ** 256) # doctest: +ELLIPSIS
+    '\x83o\x00\x00\x01\x01\x00\x00...\x00\x00\x01'
+    >>> encode(-256 ** 256) # doctest: +ELLIPSIS
+    '\x83o\x00\x00\x01\x01\x01\x00...\x00\x00\x01'
 
 Float values:
 

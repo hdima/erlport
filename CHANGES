@@ -1,5 +1,7 @@
 Version 0.4 (YYYY-MM-DD)
 
+    - Added support for big integers
+
     - Added support for Erlang bitstrings whose length in bits is not a
       multiple of 8
 

@@ -246,8 +246,25 @@ def encode_term(term):
     elif isinstance(term, (int, long)):
         if 0 <= term <= 255:
             return 'a%c' % term
-        elif term <= 2147483647:
+        elif -2147483648 <= term <= 2147483647:
             return pack(">Bi", 98, term)
+
+        if term >= 0:
+            sign = 0
+        else:
+            sign = 1
+            term = -term
+
+        bytes = []
+        while term > 0:
+            term, i = divmod(term, 256)
+            bytes.append(chr(i))
+
+        length = len(bytes)
+        if length <= 255:
+            return pack(">BBB", 110, length, sign) + "".join(bytes)
+        elif length <= 4294967295:
+            return pack(">BIB", 111, length, sign) + "".join(bytes)
         raise ValueError("invalid integer value")
     elif isinstance(term, float):
         return pack(">Bd", 70, term)
