@@ -12,7 +12,7 @@ Project URLs:
 Description
 -----------
 
-The erlport Python library implements `Erlang external term format
+The ``erlport`` Python library implements `Erlang external term format
 <http://www.erlang.org/doc/apps/erts/erl_ext_dist.html>`_ and `Erlang port
 protocol <http://erlang.org/doc/man/erlang.html#open_port-2>`_ for easier
 integration of Python and Erlang.
@@ -29,8 +29,8 @@ The library exports the following classes and functions:
 
 - ``Atom(str)`` - class which represents an Erlang atom.
 
-- ``String(unicode)`` - class representing an Erlang string which also can be
-  an array of integers.
+- ``String(unicode | list)`` - class representing an Erlang string. Must be
+  used as a wrapper if Unicode string expected instead of a list.
 
 - ``decode(str)`` - function to convert binary data into a term.
 
@@ -72,7 +72,7 @@ Python side like this::
 
     if __name__ == "__main__":
         proto = HelloProtocol()
-        proto.run(Port())
+        proto.run(Port(use_stdio=True))
 
 On the Erlang side function ``hello()`` can be called like this::
 
@@ -80,8 +80,7 @@ On the Erlang side function ``hello()`` can be called like this::
     -export([hello/1]).
 
     hello(Name) ->
-        Port = open_port({spawn, "python hello.py"},
-            [{packet, 1}, nouse_stdio, binary]),
+        Port = open_port({spawn, "python -u hello.py"}, [{packet, 1}, binary]),
         port_command(Port, term_to_binary({hello, Name})),
         receive
             {Port, {data, Data}} ->
@@ -94,6 +93,16 @@ Test it in the Erlang shell::
     {ok,hello}
     2> hello:hello("Bob").
     "Hello, Bob"
+
+
+Notes for Windows users
+-----------------------
+
+- It seems Erlang's ``open_port`` function ignores ``nouse_stdio`` option on
+  Windows. So the ``Port`` class must be instantiated with ``use_stdio=True``
+  argument.
+- Python must be ran with ``-u`` option to open ``stdin``/``stdout`` in binary
+  mode.
 
 
 Feedback
