@@ -34,8 +34,8 @@ Integer values:
     '\x83a\xff'
     >>> encode(256)
     '\x83b\x00\x00\x01\x00'
-    >>> encode(134217727)
-    '\x83b\x07\xff\xff\xff'
+    >>> encode(2147483647)
+    '\x83b\x7f\xff\xff\xff'
     >>> encode(-1)
     '\x83b\xff\xff\xff\xff'
 
@@ -124,10 +124,28 @@ Integer values:
     (255, '')
     >>> decode('\x83b\x00\x00\x01\x00')
     (256, '')
-    >>> decode('\x83b\x07\xff\xff\xff')
-    (134217727, '')
+    >>> decode('\x83b\x7f\xff\xff\xff')
+    (2147483647, '')
     >>> decode('\x83b\xff\xff\xff\xff')
     (-1, '')
+
+Big integers:
+
+    >>> decode('\x83n\x00\x00')
+    (0, '')
+    >>> decode('\x83n\x01\x00\xff')
+    (255, '')
+    >>> decode('\x83n\x04\x00\x00\xca\x9a\x3b')
+    (1000000000, '')
+    >>> decode('\x83n\x04\x00\xff\xff\xff\x7f')
+    (2147483647, '')
+    >>> decode('\x83n\x04\x01\xff\xff\xff\x7f')
+    (-2147483647, '')
+
+    >>> decode('\x83o\x00\x00\x00\x01\x00\xff')
+    (255, '')
+    >>> decode('\x83o\x00\x00\x00\x01\x01\xff')
+    (-255, '')
 
 Float values:
 

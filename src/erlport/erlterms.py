@@ -162,6 +162,23 @@ def decode_term(string):
         return term, tail[8:]
     elif tag == 99:
         return float(tail[:31].split("\x00", 1)[0]), tail[31:]
+    elif tag == 110 or tag == 111:
+        if tag == 110:
+            if len(tail) < 2:
+                raise IncompleteData("incomplete data: %r" % string)
+            length, sign = unpack(">BB", tail[:2])
+            tail = tail[2:]
+        else:
+            if len(tail) < 5:
+                raise IncompleteData("incomplete data: %r" % string)
+            length, sign = unpack(">IB", tail[:5])
+            tail = tail[5:]
+        if len(tail) < length:
+            raise IncompleteData("incomplete data: %r" % string)
+        n = sum(ord(c) << (8 * i) for i, c in enumerate(tail[:length]))
+        if sign:
+            n = -n
+        return n, tail[length:]
     elif tag == 77:
         if len(tail) < 5:
             raise IncompleteData("incomplete data: %r" % string)
@@ -227,11 +244,11 @@ def encode_term(term):
             raise ValueError("invalid binary length")
         return pack(">BI", 109, length) + term
     elif isinstance(term, (int, long)):
-        if term > 134217727:
-            raise ValueError("invalid integer value")
-        elif 0 <= term <= 255:
+        if 0 <= term <= 255:
             return 'a%c' % term
-        return pack(">Bi", 98, term)
+        elif term <= 2147483647:
+            return pack(">Bi", 98, term)
+        raise ValueError("invalid integer value")
     elif isinstance(term, float):
         return pack(">Bd", 70, term)
 
