@@ -1,5 +1,7 @@
 Version 0.4 (YYYY-MM-DD)
 
+    - Updated examples to work on Windows
+
     - Now decode() doesn't return String objects only lists. Use String as
       wrapper if you expect Unicode string instead of list.
 
