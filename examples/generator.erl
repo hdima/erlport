@@ -3,7 +3,7 @@
 
 generate(N) when N >= 0 ->
     Port = open_port({spawn, "python handler.py"},
-        [{packet, 1}, nouse_stdio, binary, {env, [{"PYTHONPATH", "../src"}]}]),
+        [{packet, 4}, nouse_stdio, binary, {env, [{"PYTHONPATH", "../src"}]}]),
     generate(Port, N),
     receive
         {Port, {data, Data}} ->
