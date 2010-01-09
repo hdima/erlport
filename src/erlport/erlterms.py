@@ -100,7 +100,7 @@ def decode_term(string):
     elif tag == 98:
         if len(tail) < 4:
             raise IncompleteData("incomplete data: %r" % string)
-        i, = unpack(">I", tail[:4])
+        i, = unpack(">i", tail[:4])
         return i, tail[4:]
     elif tag == 106:
         return [], tail
@@ -227,11 +227,11 @@ def encode_term(term):
             raise ValueError("invalid binary length")
         return pack(">BI", 109, length) + term
     elif isinstance(term, (int, long)):
-        if term > 4294967295:
+        if term > 134217727:
             raise ValueError("invalid integer value")
-        elif term <= 255:
+        elif 0 <= term <= 255:
             return 'a%c' % term
-        return pack(">BI", 98, term)
+        return pack(">Bi", 98, term)
     elif isinstance(term, float):
         return pack(">Bd", 70, term)
 
