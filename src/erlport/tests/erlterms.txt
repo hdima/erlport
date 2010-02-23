@@ -108,6 +108,17 @@ Compressed terms:
     >>> encode([120] * 15, compressed=True)
     '\x83P\x00\x00\x00\x12x\x9c\xcbf\xe0\xaf@\x05\x00@\xc8\x07\x83'
 
+True and False encoded as atoms:
+
+    >>> encode(True) == encode(Atom('true'))
+    True
+    >>> encode(False) == encode(Atom('false'))
+    True
+
+dict encoded as (Python) ordered proplists:
+
+    >>> encode(dict(a=1,b=2,c=3)) == encode([('a', 1), ('b', 2), ('c', 3)])
+    True
 
 Function decode() can decode Erlang external term format to Python types:
 

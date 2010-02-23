@@ -1,8 +1,14 @@
 Version 0.5 (XXXX-XX-XX)
 
+    - Encode dict as a proplist (ordered by Python sort order, may be
+      used as orddict if keys are all the same type)
+
+    - Encode True, False as true and false
+
     - Added support for encoding and decoding compressed terms
     
-    - Optimized encoding and decoding of big integers
+    - Optimized encoding and decoding of big integers, general encoder
+      optimization hacks (avoid global lookups)
 
 Version 0.4 (2010-01-10)
 

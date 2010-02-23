@@ -233,7 +233,13 @@ def encode(term, compressed=False):
     return "\x83" + encoded_term
 
 
-def encode_term(term):
+def encode_term(term,
+                # Hack to turn globals into locals
+                pack=pack, tuple=tuple, len=len, isinstance=isinstance,
+                list=list, int=int, long=long, array=array, unicode=unicode,
+                Atom=Atom, BitBinary=BitBinary, str=str, float=float, ord=ord,
+                dict=dict, True=True, False=False,
+                ValueError=ValueError, OverflowError=OverflowError):
     if isinstance(term, tuple):
         arity = len(term)
         if arity <= 255:
@@ -242,7 +248,8 @@ def encode_term(term):
             header = pack(">BI", 105, arity)
         else:
             raise ValueError("invalid tuple arity")
-        return header + "".join(encode_term(t) for t in term)
+        _encode_term = encode_term
+        return header + "".join(_encode_term(t) for t in term)
     if isinstance(term, list):
         if not term:
             return "j"
@@ -262,7 +269,8 @@ def encode_term(term):
         elif length > 4294967295:
             raise ValueError("invalid list length")
         header = pack(">BI", 108, length)
-        return header + "".join(encode_term(t) for t in term) + "j"
+        _encode_term = encode_term
+        return header + "".join(_encode_term(t) for t in term) + "j"
     elif isinstance(term, unicode):
         if not term:
             return "j"
@@ -285,6 +293,10 @@ def encode_term(term):
         if length > 4294967295:
             raise ValueError("invalid binary length")
         return pack(">BI", 109, length) + term
+    # must be before int type
+    elif term is True or term is False:
+        term = term and 'true' or 'false'
+        return pack(">BH", 100, len(term)) + term
     elif isinstance(term, (int, long)):
         if 0 <= term <= 255:
             return 'a%c' % term
@@ -310,5 +322,9 @@ def encode_term(term):
         raise ValueError("invalid integer value")
     elif isinstance(term, float):
         return pack(">Bd", 70, term)
+    elif isinstance(term, dict):
+        # encode dict as proplist, but will be orddict compatible if keys
+        # are all of the same type.
+        return encode_term(sorted(term.iteritems()))
 
     raise ValueError("unsupported data type: %s" % type(term))
