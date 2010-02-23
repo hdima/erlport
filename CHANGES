@@ -1,3 +1,9 @@
+Version 0.5 (XXXX-XX-XX)
+
+    - Added support for encoding and decoding compressed terms
+    
+    - Optimized encoding and decoding of big integers
+
 Version 0.4 (2010-01-10)
 
     - Added support for big integers

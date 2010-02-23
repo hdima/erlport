@@ -1,5 +1,3 @@
 - Add new datatypes (None, True, False, references?)
 
-- Add support for term compression
-
-- Add version and compression keywords to encode() function
+- Add version keyword to encode() function

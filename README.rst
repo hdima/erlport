@@ -37,7 +37,9 @@ The library exports the following classes and functions:
 
 - ``decode(str)`` - function to convert binary data into a term.
 
-- ``encode(term)`` - function to convert a term into the external format.
+- ``encode(term, compressed=False)`` - function to convert a term into the
+  external format. compressed is the zlib compression level or True for the
+  default of 6.
 
 - ``IncompleteData`` - exception raised by ``decode()`` in case of incomplete
   input data.
