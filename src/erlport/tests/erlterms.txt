@@ -1,6 +1,9 @@
 Erlang terms
 ============
 
+Encoding
+--------
+
 Function encode() can encode Python types to Erlang external term format:
 
     >>> from erlport.erlterms import encode, Atom, String, BitBinary
@@ -119,6 +122,10 @@ dict encoded as (Python) ordered proplists:
 
     >>> encode(dict(a=1,b=2,c=3)) == encode([('a', 1), ('b', 2), ('c', 3)])
     True
+
+
+Decoding
+--------
 
 Function decode() can decode Erlang external term format to Python types:
 
@@ -239,3 +246,9 @@ Compressed terms:
     >>> decode('\x83P\x00\x00\x00\x12x\x9c\xcbf\xe0\xaf@\x05\x00@\xc8\x07\x83')
     ([120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120], '')
 
+Atoms true and false decoded as True and False:
+
+    >>> decode('\x83d\x00\x04true')
+    (True, '')
+    >>> decode('\x83d\x00\x05false')
+    (False, '')

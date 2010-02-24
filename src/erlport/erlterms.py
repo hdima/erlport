@@ -37,6 +37,7 @@ from struct import pack, unpack
 from array import array
 from zlib import decompress, compress
 
+
 class IncompleteData(ValueError):
     """Need more data."""
 
@@ -159,7 +160,13 @@ def decode_term(string):
         tail = tail[2:]
         if len(tail) < length:
             raise IncompleteData("incomplete data: %r" % string)
-        return Atom(tail[:length]), tail[length:]
+        name = tail[:length]
+        tail = tail[length:]
+        if name == "true":
+            return True, tail
+        elif name == "false":
+            return False, tail
+        return Atom(name), tail
     elif tag == 104 or tag == 105:
         # SMALL_TUPLE_EXT, LARGE_TUPLE_EXT
         if tag == 104:
