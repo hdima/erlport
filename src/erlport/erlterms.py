@@ -90,6 +90,8 @@ def decode(string):
         raise ValueError("unknown protocol version: %i" % version)
     if string[1:2] == '\x50':
         # compressed term
+        if len(string) < 6:
+            raise IncompleteData("incomplete data: %r" % string)
         uncompressed_size = unpack('>I', string[2:6])[0]
         zlib_data = string[6:]
         term_string = decompress(zlib_data)
