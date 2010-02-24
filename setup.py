@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# Copyright (c) 2009, Dmitry Vasiliev <dima@hlabs.spb.ru>
+# Copyright (c) 2009, 2010, Dmitry Vasiliev <dima@hlabs.spb.ru>
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without
