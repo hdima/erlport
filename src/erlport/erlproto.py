@@ -84,13 +84,13 @@ class Port(object):
         4: ">I",
         }
 
-    def __init__(self, packet=1, use_stdio=False, compress=False,
+    def __init__(self, packet=1, use_stdio=False, compressed=False,
             descriptors=None):
         self._format = self._formats.get(packet)
         if self._format is None:
             raise ValueError("invalid packet size value: %s" % packet)
         self.packet = packet
-        self.compress = compress
+        self.compressed = compressed
 
         if descriptors is not None:
             self.in_d, self.out_d = descriptors
@@ -122,7 +122,7 @@ class Port(object):
 
     def write(self, message):
         """Write outgoing message."""
-        data = encode(message, self.compress)
+        data = encode(message, compressed=self.compressed)
         data = pack(self._format, len(data)) + data
         length = len(data)
         if length != 0:

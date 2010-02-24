@@ -35,7 +35,7 @@ __author__ = "Dmitry Vasiliev <dima@hlabs.spb.ru>"
 
 from struct import pack, unpack
 from array import array
-from zlib import decompressobj, compress as zlib_compress
+from zlib import decompressobj, compress
 
 
 class IncompleteData(ValueError):
@@ -233,15 +233,15 @@ def decode_term(string,
     raise ValueError("unsupported data tag: %i" % tag)
 
 
-def encode(term, compress=False):
+def encode(term, compressed=False):
     """Encode Erlang external term."""
     encoded_term = encode_term(term)
     # False and 0 do not attempt compression.
-    if compress:
-        if compress is True:
+    if compressed:
+        if compressed is True:
             # default compression level of 6
-            compress = 6
-        zlib_term = zlib_compress(encoded_term, compress)
+            compressed = 6
+        zlib_term = compress(encoded_term, compressed)
         if len(zlib_term) + 5 <= len(encoded_term):
             # compressed term is smaller
             return '\x83\x50' + pack('>I', len(encoded_term)) + zlib_term

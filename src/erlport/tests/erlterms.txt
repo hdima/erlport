@@ -108,7 +108,7 @@ Tuples:
 
 Compressed terms:
 
-    >>> encode([120] * 15, compress=True)
+    >>> encode([120] * 15, compressed=True)
     '\x83P\x00\x00\x00\x12x\x9c\xcbf\xe0\xaf@\x05\x00@\xc8\x07\x83'
 
 True and False encoded as atoms:

@@ -19,11 +19,11 @@ integration of Python and Erlang.
 
 The library exports the following classes and functions:
 
-- ``Port(packet=1, use_stdio=False, compress=False)`` - class implementing port
-  which connects with the corresponding Erlang port. See `open_port/2
+- ``Port(packet=1, use_stdio=False, compressed=False)`` - class implementing
+  port which connects with the corresponding Erlang port. See `open_port/2
   <http://erlang.org/doc/man/erlang.html#open_port-2>`_ for description of
-  ``packet`` and ``use_stdio`` arguments. ``compress`` is the zlib compression
-  level or True for the default of 6.
+  ``packet`` and ``use_stdio`` arguments. ``compressed`` is the zlib
+  compression level or True for the default of 6.
 
 - ``Protocol()`` - class which simplifies creation of request-response
   protocols.
@@ -38,8 +38,8 @@ The library exports the following classes and functions:
 
 - ``decode(str)`` - function to convert binary data into a term.
 
-- ``encode(term, compress=False)`` - function to convert a term into the
-  external format. ``compress`` is the zlib compression level or True for the
+- ``encode(term, compressed=False)`` - function to convert a term into the
+  external format. ``compressed`` is the zlib compression level or True for the
   default of 6.
 
 - ``IncompleteData`` - exception raised by ``decode()`` in case of incomplete

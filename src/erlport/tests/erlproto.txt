@@ -12,12 +12,12 @@ Setup test modules, classes and functions:
     ...     def handle_test(self, value="test"):
     ...         return value
 
-    >>> def get_test_proto(proto, packet=1, compress=False):
+    >>> def get_test_proto(proto, packet=1, compressed=False):
     ...     def test(request):
     ...         r, out_d = os.pipe()
     ...         in_d, w = os.pipe()
-    ...         port = Port(packet, compress=compress, descriptors=(r, w))
-    ...         port2 = Port(packet, compress=compress, descriptors=(in_d, out_d))
+    ...         port = Port(packet, compressed=compressed, descriptors=(r, w))
+    ...         port2 = Port(packet, compressed=compressed, descriptors=(in_d, out_d))
     ...         port2.write(request)
     ...         proto.handle(port, port.read())
     ...         return port2.read()
@@ -45,10 +45,10 @@ Test protocol with different options:
     >>> test((Atom("test"), "value"))
     'value'
 
-    >>> test = get_test_proto(TestProtocol(), compress=True)
+    >>> test = get_test_proto(TestProtocol(), compressed=True)
     >>> test((Atom("test"), "value"))
     'value'
 
-    >>> test = get_test_proto(TestProtocol(), compress=9)
+    >>> test = get_test_proto(TestProtocol(), compressed=9)
     >>> test((Atom("test"), "value"))
     'value'
