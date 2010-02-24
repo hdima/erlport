@@ -105,7 +105,10 @@ def decode(string):
     return decode_term(string[1:])
 
 
-def decode_term(string):
+def decode_term(string,
+                # Hack to turn globals into locals
+                len=len, ord=ord, unpack=unpack, tuple=tuple, float=float,
+                BitBinary=BitBinary, Atom=Atom):
     if len(string) < 1:
         raise IncompleteData("incomplete data: %r" % string)
     tag = ord(string[0])
