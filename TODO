@@ -1,5 +1,3 @@
-- Return Decompress.unused_data on decompression
-
 - Add new datatypes (None, references?)
 
 - Add version keyword to encode() function

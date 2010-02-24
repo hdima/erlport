@@ -245,6 +245,8 @@ Compressed terms:
 
     >>> decode('\x83P\x00\x00\x00\x12x\x9c\xcbf\xe0\xaf@\x05\x00@\xc8\x07\x83')
     ([120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120], '')
+    >>> decode('\x83P\x00\x00\x00\x12x\x9c\xcbf\xe0\xaf@\x05\x00@\xc8\x07\x83tail')
+    ([120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120], 'tail')
 
 Atoms true and false decoded as True and False:
 

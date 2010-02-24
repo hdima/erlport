@@ -35,7 +35,7 @@ __author__ = "Dmitry Vasiliev <dima@hlabs.spb.ru>"
 
 from struct import pack, unpack
 from array import array
-from zlib import decompress, compress as zlib_compress
+from zlib import decompressobj, compress as zlib_compress
 
 
 class IncompleteData(ValueError):
@@ -92,16 +92,17 @@ def decode(string):
         # compressed term
         if len(string) < 6:
             raise IncompleteData("incomplete data: %r" % string)
-        uncompressed_size = unpack('>I', string[2:6])[0]
+        d = decompressobj()
         zlib_data = string[6:]
-        term_string = decompress(zlib_data)
+        term_string = d.decompress(zlib_data) + d.flush()
+        uncompressed_size = unpack('>I', string[2:6])[0]
         if len(term_string) != uncompressed_size:
             raise ValueError(
                 "invalid compressed tag, "
                 "%d bytes but got %d" % (uncompressed_size, len(term_string)))
-    else:
-        term_string = string[1:]
-    return decode_term(term_string)
+        # tail data returned by decode_term() can be simple ignored
+        return decode_term(term_string)[0], d.unused_data
+    return decode_term(string[1:])
 
 
 def decode_term(string):
