@@ -1,5 +1,7 @@
 Version 0.5 (XXXX-XX-XX)
 
+    - None ecnoded as atom none (Dmitry Vasiliev)
+
     - Encode dict as a proplist (ordered by Python sort order, may be used as
       orddict if keys are all the same type) (Bob Ippolito)
 

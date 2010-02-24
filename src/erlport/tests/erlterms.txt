@@ -123,6 +123,11 @@ dict encoded as (Python) ordered proplists:
     >>> encode(dict(a=1,b=2,c=3)) == encode([('a', 1), ('b', 2), ('c', 3)])
     True
 
+None encoded as atom none:
+
+    >>> encode(None) == encode(Atom('none'))
+    True
+
 
 Decoding
 --------
@@ -254,3 +259,8 @@ Atoms true and false decoded as True and False:
     (True, '')
     >>> decode('\x83d\x00\x05false')
     (False, '')
+
+Atom none decoded as None:
+
+    >>> decode('\x83d\x00\x04none')
+    (None, '')

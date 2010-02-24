@@ -169,6 +169,8 @@ def decode_term(string):
             return True, tail
         elif name == "false":
             return False, tail
+        elif name == "none":
+            return None, tail
         return Atom(name), tail
     elif tag == 104 or tag == 105:
         # SMALL_TUPLE_EXT, LARGE_TUPLE_EXT
@@ -336,5 +338,7 @@ def encode_term(term,
         # encode dict as proplist, but will be orddict compatible if keys
         # are all of the same type.
         return encode_term(sorted(term.iteritems()))
+    elif term is None:
+        return pack(">BH", 100, 4) + "none"
 
     raise ValueError("unsupported data type: %s" % type(term))
