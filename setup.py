@@ -33,7 +33,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="erlport",
-    version="0.5",
+    version="0.6",
     url="http://github.com/hdima/erlport",
     description="Erlang port protocol",
     long_description=open('README.rst').read(),
