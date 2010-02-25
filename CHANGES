@@ -1,8 +1,8 @@
-Version 0.5 (XXXX-XX-XX)
+Version 0.5 (2010-02-25)
 
-    - Added compress keyword argument for Port (Dmitry Vasiliev)
+    - Added 'compressed' keyword argument for Port (Dmitry Vasiliev)
 
-    - None ecnoded as atom none (Dmitry Vasiliev)
+    - Encode None as atom none (Dmitry Vasiliev)
 
     - Encode dict as a proplist (ordered by Python sort order, may be used as
       orddict if keys are all the same type) (Bob Ippolito)
