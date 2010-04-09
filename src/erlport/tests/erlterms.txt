@@ -128,6 +128,14 @@ None encoded as atom none:
     >>> encode(None) == encode(Atom('none'))
     True
 
+datetime objects encoded as a tuple of two tuples:
+
+    >>> from datetime import datetime
+
+    >>> encode(datetime(2010, 4, 1, 10, 20, 30)) == encode(
+    ...     ((2010, 4, 1), (10, 20, 30)))
+    True
+
 
 Decoding
 --------
