@@ -2,6 +2,10 @@ Version 0.6 (YYYY-MM-DD)
 
     - Encode datetime as a tuple of two tuples (mmikulicic)
 
+    - Fixed a bug in the SMALL/LARGE_BIG_EXT decoding where an extra byte was
+      being added to the number if there was any data after the number
+      (Paul Bonser)
+
 Version 0.5 (2010-02-25)
 
     - Added 'compressed' keyword argument for Port (Dmitry Vasiliev)
