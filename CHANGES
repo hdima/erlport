@@ -1,4 +1,4 @@
-Version 0.6 (YYYY-MM-DD)
+Version 0.6 (2010-04-26)
 
     - Encode datetime as a tuple of two tuples (mmikulicic)
 
