@@ -196,6 +196,9 @@ Big integers:
     >>> decode('\x83o\x00\x00\x00\x01\x01\xff')
     (-255, '')
 
+    >>> decode('\x83h\x02n\x04\x00\xbe!\x0e\rn\x04\x00^/\x0e\r')
+    ((219029950, 219033438), '')
+
 Float values:
 
     >>> decode('\x83F\x00\x00\x00\x00\x00\x00\x00\x00')

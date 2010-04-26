@@ -216,7 +216,7 @@ def decode_term(string,
         if len(tail) < length:
             raise IncompleteData("incomplete data: %r" % string)
         n = 0
-        for i in array('B', tail[length::-1]):
+        for i in array('B', tail[length-1::-1]):
             n = (n << 8) | i
         if sign:
             n = -n
