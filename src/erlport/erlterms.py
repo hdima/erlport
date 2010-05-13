@@ -1,4 +1,4 @@
-# Copyright (c) 2009, 2010, Dmitry Vasiliev <dima@hlabs.spb.ru>
+# Copyright (c) 2009, 2010, Dmitry Vasiliev <dima@hlabs.org>
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,7 @@ See Erlang External Term Format for details:
     http://www.erlang.org/doc/apps/erts/erl_ext_dist.html
 """
 
-__author__ = "Dmitry Vasiliev <dima@hlabs.spb.ru>"
+__author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 
 from struct import pack, unpack
 from array import array

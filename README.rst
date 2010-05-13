@@ -123,6 +123,6 @@ Please report bugs, offer suggestions or feedback at:
 
 - Report bugs at http://github.com/hdima/erlport/issues
 
-- Email me at <dima at hlabs.spb.ru>
+- Email me at <dima at hlabs.org>
 
 - Write or follow me at http://twitter.com/hdima

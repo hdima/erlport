@@ -1,4 +1,4 @@
-# Copyright (c) 2009, 2010, Dmitry Vasiliev <dima@hlabs.spb.ru>
+# Copyright (c) 2009, 2010, Dmitry Vasiliev <dima@hlabs.org>
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without

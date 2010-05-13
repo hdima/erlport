@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# Copyright (c) 2009, 2010, Dmitry Vasiliev <dima@hlabs.spb.ru>
+# Copyright (c) 2009, 2010, Dmitry Vasiliev <dima@hlabs.org>
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__author__ = "Dmitry Vasiliev <dima@hlabs.spb.ru>"
+__author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 
 from setuptools import setup, find_packages
 
@@ -38,7 +38,7 @@ setup(
     description="Erlang port protocol",
     long_description=open('README.rst').read(),
     author="Dmitry Vasiliev",
-    author_email="dima@hlabs.spb.ru",
+    author_email="dima@hlabs.org",
     license="BSD",
     platforms="any",
     keywords="Python Erlang",
