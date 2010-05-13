@@ -80,6 +80,11 @@ Python side like this::
         proto = HelloProtocol()
         proto.run(Port(use_stdio=True))
 
+Note that if you are sending a string from Erlang (which is actually just a
+list of integers and can't be recognized as a string at the protocol level),
+then in Python you must wrap the received data in the ``erlport.String`` class,
+as shown in the example above.
+
 On the Erlang side function ``hello()`` can be called like this::
 
     -module(hello).
@@ -99,8 +104,6 @@ Test it in the Erlang shell::
     {ok,hello}
     2> hello:hello("Bob").
     "Hello, Bob"
-
-Note that if you are sending a string from erlang in binary mode, then in python you must wrap the received data in the ``erlport.String`` class, as shown in the example above.
 
 
 Notes for Windows users
