@@ -69,12 +69,12 @@ See ``examples`` directory in the source distribution for additional examples.
 For simple request-response protocol use ``Port`` and ``Protocol`` on the
 Python side like this::
 
-    from erlport import Port, Protocol
+    from erlport import Port, Protocol, String
 
     class HelloProtocol(Protocol):
 
         def handle_hello(self, name):
-            return "Hello, %s" % name
+            return "Hello, %s" % String(name)
 
     if __name__ == "__main__":
         proto = HelloProtocol()
@@ -99,6 +99,8 @@ Test it in the Erlang shell::
     {ok,hello}
     2> hello:hello("Bob").
     "Hello, Bob"
+
+Note that if you are sending a string from erlang in binary mode, then in python you must wrap the received data in the ``erlport.String`` class, as shown in the example above.
 
 
 Notes for Windows users
