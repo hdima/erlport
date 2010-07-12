@@ -11,6 +11,9 @@ Setup test modules, classes and functions:
     ...
     ...     def handle_test(self, value="test"):
     ...         return value
+    ...
+    ...     def handle_crash(self):
+    ...         raise ValueError("error")
 
     >>> def get_test_proto(proto, packet=1, compressed=False):
     ...     def test(request):
@@ -30,12 +33,6 @@ Test protocol with different options:
     'value'
     >>> test(Atom("test"))
     'test'
-    >>> test("unknown")
-    (atom(error), atom(badarg))
-    >>> test(Atom("unknown"))
-    (atom(error), atom(undef))
-    >>> test((Atom("test"), 1, 2))
-    (atom(error), atom(function_clause))
 
     >>> test = get_test_proto(TestProtocol(), packet=2)
     >>> test((Atom("test"), "value"))
@@ -52,3 +49,25 @@ Test protocol with different options:
     >>> test = get_test_proto(TestProtocol(), compressed=9)
     >>> test((Atom("test"), "value"))
     'value'
+
+Some common errors:
+
+    >>> test = get_test_proto(TestProtocol())
+
+    >>> test("unknown")
+    (atom(error), atom(badarg))
+    >>> test(Atom("unknown"))
+    (atom(error), atom(undef))
+
+Exceptions must return type, value and reversed traceback:
+
+    >>> test((Atom("test"), 1, 2)) # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
+    (atom(error), (atom(exception), (atom(exceptions.TypeError),
+        'handle_test() takes at most 2 arguments (3 given)',
+        [('.../erlproto.py', 73, 'handle', 'response = handler(*args)')])))
+
+    >>> test(Atom("crash")) # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
+    (atom(error), (atom(exception), (atom(exceptions.ValueError), 'error',
+        [('<doctest erlproto.txt[3]>', 7, 'handle_crash',
+            'raise ValueError("error")'),
+        ('.../erlproto.py', 73, 'handle', 'response = handler(*args)')])))

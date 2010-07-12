@@ -30,7 +30,9 @@
 __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 
 import os
+import sys
 import errno
+import traceback
 from struct import pack, unpack
 
 from erlport.erlterms import Atom, encode, decode
@@ -69,10 +71,16 @@ class Protocol(object):
                 else:
                     try:
                         response = handler(*args)
-                    except TypeError:
-                        # Easy way to check correct number of arguments
-                        response = Atom("error"), Atom("function_clause")
+                    except:
+                        response = self._handle_error(sys.exc_info())
         port.write(response)
+
+    def _handle_error(self, exception):
+        t, val, tb = exception
+        exc = Atom("%s.%s" % (t.__module__, t.__name__))
+        exc_tb = traceback.extract_tb(tb)
+        exc_tb.reverse()
+        return Atom("error"), (Atom("exception"), (exc, str(val), exc_tb))
 
 
 class Port(object):
