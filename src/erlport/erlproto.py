@@ -80,7 +80,7 @@ class Protocol(object):
         exc = Atom("%s.%s" % (t.__module__, t.__name__))
         exc_tb = traceback.extract_tb(tb)
         exc_tb.reverse()
-        return Atom("error"), (Atom("exception"), (exc, str(val), exc_tb))
+        return Atom("error"), (Atom("exception"), (exc, unicode(val), exc_tb))
 
 
 class Port(object):
