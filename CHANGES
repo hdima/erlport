@@ -1,5 +1,7 @@
 Version 0.7 (2010-MM-DD)
 
+    - Added erlport.org sources (Dmitry Vasiliev)
+
     - Added exception handling (Dmitry Vasiliev)
 
     - Updated README.rst with note about erlport.String class (Jacob Perkins)
