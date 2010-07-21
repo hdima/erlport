@@ -1,0 +1,35 @@
+%(head_prefix)s
+<meta name="keywords" content="erlport erlang python" />
+%(head)s
+%(stylesheet)s
+%(body_prefix)s
+%(body_pre_docinfo)s
+<a href="http://github.com/hdima/erlport"><img style="position: absolute;
+  top: 0; right: 0; border: 0;"
+  src="http://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png"
+  alt="Fork me on GitHub" /></a>
+%(docinfo)s
+%(body)s
+<div id="footer"> 
+  <div>Email: <a 
+    href="mailto:dima%%20AT%%20hlabs.org">Dmitry Vasiliev</a></div> 
+  <div>Twitter: <a 
+    href="http://twitter.com/hdima">http://twitter.com/hdima</a></div> 
+  <div>Web: <a href="http://hlabs.org">http://hlabs.org</a></div> 
+</div> 
+ 
+<script type="text/javascript"> 
+ 
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-1672853-8']);
+  _gaq.push(['_setDomainName', '.erlport.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+ 
+</script>
+%(body_suffix)s
