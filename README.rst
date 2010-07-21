@@ -3,10 +3,7 @@ Erlang port protocol for Python
 
 .. contents::
 
-Project URLs:
-
-- http://github.com/hdima/erlport
-- http://pypi.python.org/pypi/erlport/
+Project URL: http://erlport.org
 
 
 Description
