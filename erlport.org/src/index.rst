@@ -1,60 +1,76 @@
 ErlPort - Erlang port protocol for Python
 =========================================
 
+Download
+--------
+
+- `ErlPort at GitHub <http://github.com/hdima/erlport>`_
+- `ErlPort at PyPi <http://pypi.python.org/pypi/erlport>`_
+
 About
 -----
 
-The **erlport** is a `Python <http://python.org>`_ library which implements
-`Erlang external term format
+`ErlPort <index.html>`_ is a `Python <http://python.org>`_ library which
+implements `Erlang external term format
 <http://www.erlang.org/doc/apps/erts/erl_ext_dist.html>`_ and `Erlang port
 protocol <http://erlang.org/doc/man/erlang.html#open_port-2>`_ for easier
 integration of `Erlang <http://erlang.org>`_ and `Python <http://python.org>`_.
 
-Download
---------
+Check out the following topics:
 
-* `ErlPort at GitHub <http://github.com/hdima/erlport>`_
-* `ErlPort at PyPi <http://pypi.python.org/pypi/erlport>`_
+- `Internals <internals.html>`_ - How Erlang and Python integration works
+- `Recipes <recipes.html>`_ - ErlPort recipes
+- `Contributors <contributors.html>`_ - ErlPort contributors
 
 Example
 -------
 
-.. container::
+Erlang module (hello.erl):
 
-    Python code (hello.py)::
+.. sourcecode:: erlang
 
-        from erlport import Port, Protocol, String
+    -module(hello).
+    -export([hello/1]).
 
-        class HelloProtocol(Protocol):
+    hello(Name) ->
+        % Spawn hello.py script and open communication channels
+        Port = open_port({spawn, "python -u hello.py"}, [{packet, 1}, binary]),
+        % Convert tuple {hello, Name} to external term format
+        Data = term_to_binary({hello, Name}),
+        % Send binary data to hello.py script
+        port_command(Port, Data),
+        % Wait for reply from hello.py script
+        receive
+            {Port, {data, Data}} ->
+                binary_to_term(Data)
+        end.
 
-            def handle_hello(self, name):
-                return "Hello, %s" % String(name)
+Python module (hello.py):
 
-        if __name__ == "__main__":
-            proto = HelloProtocol()
-            proto.run(Port(use_stdio=True))
+.. sourcecode:: python
 
-.. container::
+    from erlport import Port, Protocol, String
 
-    Erlang code (hello.erl)::
+    # Inherit custom protocol from erlport.Protocol
+    class HelloProtocol(Protocol):
 
-        -module(hello).
-        -export([hello/1]).
+        # Function handle_NAME will be called for tuple {NAME, ...}
+        def handle_hello(self, name):
+            # String wrapper forces name to be a string instead of a list
+            return "Hello, %s" % String(name)
 
-        hello(Name) ->
-            Port = open_port({spawn, "python -u hello.py"},
-                [{packet, 1}, binary]),
-            port_command(Port, term_to_binary({hello, Name})),
-            receive
-                {Port, {data, Data}} ->
-                    binary_to_term(Data)
-            end.
+    if __name__ == "__main__":
+        proto = HelloProtocol()
+        # Run protocol with port open on STDIO
+        proto.run(Port(use_stdio=True))
 
-.. container::
+Test the modules above in Erlang shell:
 
-    Test in Erlang shell::
+.. sourcecode:: erlang
 
-        1> c(hello).
-        {ok,hello}
-        2> hello:hello("Bob").
-        "Hello, Bob"
+    1> % Compile hello.erl module
+    1> c(hello).
+    {ok,hello}
+    2> % Call hello:hello() -> HelloProtocol.handle_hello()
+    2> hello:hello("Bob").
+    "Hello, Bob"

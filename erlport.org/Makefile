@@ -25,7 +25,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-RST2HTML = /usr/bin/rst2html
+RST2HTML = ./rst2html
 R2HOPTIONS = --template template.txt --link-stylesheet \
 			 --stylesheet default.css --cloak-email-addresses \
 			 --initial-header-level 2 --traceback
@@ -36,7 +36,7 @@ DATA_SOURCES = src/default.css src/robots.txt
 DATA = $(patsubst src/%,$(DEST)/%,$(DATA_SOURCES))
 
 
-generate: $(DEST) $(DATA) $(HTML)
+build: $(DEST) $(DATA) $(HTML)
 
 $(DEST):
 	mkdir -p $(DEST)

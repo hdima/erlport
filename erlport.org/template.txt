@@ -6,17 +6,21 @@
 %(body_pre_docinfo)s
 <a href="http://github.com/hdima/erlport"><img style="position: absolute;
   top: 0; right: 0; border: 0;"
-  src="http://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png"
+  src="http://s3.amazonaws.com/github/ribbons/forkme_right_green_007200.png"
   alt="Fork me on GitHub" /></a>
+<ul id="menu">
+  <li><a href="index.html">Home</a></li>
+  <li><a href="internals.html">Internals</a></li>
+  <li><a href="recipes.html">Recipes</a></li>
+  <li><a href="contributors.html">Contributors</a></li>
+</ul>
 %(docinfo)s
 %(body)s
-<div id="footer"> 
-  <div>Email: <a 
-    href="mailto:dima%%20AT%%20hlabs.org">Dmitry Vasiliev</a></div> 
-  <div>Twitter: <a 
-    href="http://twitter.com/hdima">http://twitter.com/hdima</a></div> 
-  <div>Web: <a href="http://hlabs.org">http://hlabs.org</a></div> 
-</div> 
+<ul id="footer"> 
+  <li><a href="mailto:dima%%20at%%20hlabs.org">Dmitry Vasiliev</a></li> 
+  <li><a href="http://twitter.com/hdima">@hdima</a></li> 
+  <li><a href="http://hlabs.org">http://hlabs.org</a></li> 
+</ul> 
  
 <script type="text/javascript"> 
  
