@@ -72,7 +72,7 @@ Python module (hello.py):
         # Run protocol with port open on STDIO
         proto.run(Port(use_stdio=True))
 
-Test the modules above in Erlang shell:
+Test the modules above in the Erlang shell:
 
 .. sourcecode:: erlang
 
