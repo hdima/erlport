@@ -66,7 +66,7 @@ ul {
     float: right;
     padding: 0 4em 2em 2em;
     margin-left: 2em;
-    background-color: #cfc;
+    background: url("r_down_right.png") right bottom scroll no-repeat #cfc;
     border-left: 7px solid #050;
 }
 
@@ -78,7 +78,7 @@ pre {
     border-left: 7px solid #050;
     margin: 0 4em 0 2em;
     padding: 1em 2em;
-    background-color: #eee;
+    background: url("r_down_right.png") right bottom scroll no-repeat #eee;
 }
 
 .sourcecode .c {

@@ -32,7 +32,7 @@ R2HOPTIONS = --template template.txt --link-stylesheet \
 
 DEST ?= html
 HTML = $(patsubst src/%.rst,$(DEST)/%.html,$(wildcard src/*.rst))
-DATA_SOURCES = src/default.css src/robots.txt
+DATA_SOURCES = src/default.css src/robots.txt $(wildcard src/*.png)
 DATA = $(patsubst src/%,$(DEST)/%,$(DATA_SOURCES))
 
 
