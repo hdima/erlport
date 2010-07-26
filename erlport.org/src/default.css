@@ -94,7 +94,7 @@ pre {
     color: #008000;
 }
 
-.sourcecode .s {
+.sourcecode .s, .sourcecode .si {
     color: #f00;
 }
 
