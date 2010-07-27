@@ -1,26 +1,49 @@
 ErlPort - Erlang port protocol for Python
 =========================================
 
-Download
---------
+Installation
+------------
 
-- `ErlPort at GitHub <http://github.com/hdima/erlport>`_
-- `ErlPort at PyPi <http://pypi.python.org/pypi/erlport>`_
+Easiest method to install **ErlPort** is to use ``easy_install`` tool from
+`setuptools <http://pypi.python.org/pypi/setuptools>`_ package::
+
+    $ easy_install erlport
+
+Main prerequisites:
+
+- `Erlang <http://erlang.org>`_ >= R11B-4
+- `Python <http://python.org>`_ >= 2.4
+
+Also source code of the library can be obtained from `GitHub
+<http://github.com/hdima/erlport>`_ or `PyPi
+<http://pypi.python.org/pypi/erlport>`_.
 
 About
 -----
 
-`ErlPort <index.html>`_ is a `Python <http://python.org>`_ library which
-implements `Erlang external term format
-<http://www.erlang.org/doc/apps/erts/erl_ext_dist.html>`_ and `Erlang port
-protocol <http://erlang.org/doc/man/erlang.html#open_port-2>`_ for easier
-integration of `Erlang <http://erlang.org>`_ and `Python <http://python.org>`_.
+**ErlPort** is a `Python <http://python.org>`_ library which implements `Erlang
+external term format <http://www.erlang.org/doc/apps/erts/erl_ext_dist.html>`_
+and `Erlang port protocol <http://erlang.org/doc/man/erlang.html#open_port-2>`_
+for easier integration of `Erlang <http://erlang.org>`_ and `Python
+<http://python.org>`_.
 
 Check out the following topics:
 
 - `Internals <internals.html>`_ - How Erlang and Python integration works
-- `Recipes <recipes.html>`_ - ErlPort recipes
-- `Contributors <contributors.html>`_ - ErlPort contributors
+- `Recipes <recipes.html>`_ - **ErlPort** recipes
+- `Contributors <contributors.html>`_ - **ErlPort** contributors
+
+Feedback
+--------
+
+Please report bugs, offer suggestions or feedback at:
+
+- Report bugs at `GitHub issue tracker
+  <http://github.com/hdima/erlport/issues>`_
+
+- `Email me <mailto:dima%20at%20hlabs.org>`_
+
+- Write or follow me at `@hdima <http://twitter.com/hdima>`_
 
 Example
 -------
@@ -82,3 +105,8 @@ Test the modules above in the Erlang shell:
     2> % Call hello:hello() -> HelloProtocol.handle_hello()
     2> hello:hello("Bob").
     {ok,"Hello, Bob"}
+
+.. |date| date::
+.. container:: date
+
+    Updated on |date|

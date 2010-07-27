@@ -61,17 +61,17 @@ ul {
     padding-top: 0;
 }
 
-#download {
-    width: 200px;
+#installation {
+    width: 400px;
     float: right;
-    padding: 0 4em 2em 2em;
-    margin-left: 2em;
+    padding: 0 1em 1em 1em;
+    margin-left: 1em;
     background: url("r_down_right.png") right bottom scroll no-repeat #cfc;
     border-left: 7px solid #050;
 }
 
-#example {
-    clear: left;
+#installation pre {
+    background: #eee;
 }
 
 pre {
@@ -100,6 +100,13 @@ pre {
 
 .sourcecode .mi {
     color: #00f;
+}
+
+.date {
+    text-align: right;
+    margin: 1em;
+    font-size: 80%;
+    font-style: italic;
 }
 
 #footer {

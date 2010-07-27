@@ -9,3 +9,8 @@ ErlPort - Erlang port protocol for Python
 - `Jacob Perkins <http://github.com/japerk>`_
 - `mmikulicic <http://github.com/mmikulicic>`_
 - `Paul Bonser <http://github.com/pib>`_
+
+.. |date| date::
+.. container:: date
+
+    Updated on |date|
