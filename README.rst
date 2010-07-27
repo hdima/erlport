@@ -68,13 +68,19 @@ Python side like this::
 
     from erlport import Port, Protocol, String
 
+
+    # Inherit custom protocol from erlport.Protocol
     class HelloProtocol(Protocol):
 
+        # Function handle_NAME will be called for incoming tuple {NAME, ...}
         def handle_hello(self, name):
+            # String wrapper forces name to be a string instead of a list
             return "Hello, %s" % String(name)
+
 
     if __name__ == "__main__":
         proto = HelloProtocol()
+        # Run protocol with port open on STDIO
         proto.run(Port(use_stdio=True))
 
 Note that if you are sending a string from Erlang (which is actually just a
@@ -87,20 +93,33 @@ On the Erlang side function ``hello()`` can be called like this::
     -module(hello).
     -export([hello/1]).
 
+
     hello(Name) ->
-        Port = open_port({spawn, "python -u hello.py"}, [{packet, 1}, binary]),
-        port_command(Port, term_to_binary({hello, Name})),
+        % Spawn hello.py script and open communication channels
+        Port = open_port({spawn, "python -u hello.py"},
+            [{packet, 1}, binary, use_stdio]),
+        % Convert tuple {hello, Name} to external term format
+        ReqData = term_to_binary({hello, Name}),
+        % Send binary data to hello.py script
+        port_command(Port, ReqData),
+        % Wait for reply from hello.py script
         receive
-            {Port, {data, Data}} ->
-                binary_to_term(Data)
+            {Port, {data, RespData}} ->
+                % Convert binary data to term
+                {ok, binary_to_term(RespData)}
+        after
+            5000 ->
+                {error, timeout}
         end.
 
 Test it in the Erlang shell::
 
+    1> % Compile hello.erl module
     1> c(hello).
     {ok,hello}
+    2> % Call hello:hello() -> HelloProtocol.handle_hello()
     2> hello:hello("Bob").
-    "Hello, Bob"
+    {ok,"Hello, Bob"}
 
 
 Notes for Windows users
