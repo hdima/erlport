@@ -85,5 +85,5 @@ Exceptions must return type, value and reversed traceback:
         [('<doctest erlproto.txt[3]>', 10, 'handle_unicode_crash',
             'raise ValueError(unicode("\xd1\x82\xd0\xb5\xd1\x81\xd1\x82",
             "utf-8"))'),
-        ('/home/hdima/src/my/erlport/src/erlport/erlproto.py', 73,
+        ('.../erlproto.py', 73,
             'handle', 'response = handler(*args)')])))
