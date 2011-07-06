@@ -109,7 +109,7 @@ class Port(object):
 
     def _read_data(self, length):
         data = ""
-        while len(data) != length:
+        while length > 0:
             try:
                 buf = os.read(self.in_d, length)
             except IOError, why:
@@ -119,6 +119,7 @@ class Port(object):
             if not buf:
                 raise EOFError()
             data += buf
+            length -= len(buf)
         return data
 
     def read(self):
