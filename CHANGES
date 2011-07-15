@@ -1,4 +1,7 @@
-Version 0.7 (2010-MM-DD)
+Version 0.7 (2011-MM-DD)
+
+    - Fixed "Port._read_data() may read excess data"
+      (https://github.com/hdima/erlport/issues/2) (reported by Ivan Glushkov)
 
     - Added erlport.org sources (Dmitry Vasiliev)
 
@@ -8,7 +11,7 @@ Version 0.7 (2010-MM-DD)
 
 Version 0.6 (2010-04-26)
 
-    - Encode datetime as a tuple of two tuples (mmikulicic)
+    - Encode datetime as a tuple of two tuples (Marko Mikulicic)
 
     - Fixed a bug in the SMALL/LARGE_BIG_EXT decoding where an extra byte was
       being added to the number if there was any data after the number
