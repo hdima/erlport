@@ -10,10 +10,10 @@
   alt="Fork me on GitHub" /></a>
 <ul id="menu">
   <li><g:plusone></g:plusone></li>
-  <li><a href="index.html">Home</a></li>
-  <li><a href="internals.html">Internals</a></li>
-  <li><a href="recipes.html">Recipes</a></li>
-  <li><a href="contributors.html">Contributors</a></li>
+  <li><a href="/">Home</a></li>
+  <li><a href="/internals.html">Internals</a></li>
+  <li><a href="/recipes.html">Recipes</a></li>
+  <li><a href="/contributors.html">Contributors</a></li>
 </ul>
 %(docinfo)s
 %(body)s
