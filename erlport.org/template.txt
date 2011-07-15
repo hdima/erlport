@@ -9,7 +9,7 @@
   src="http://s3.amazonaws.com/github/ribbons/forkme_right_green_007200.png"
   alt="Fork me on GitHub" /></a>
 <ul id="menu">
-  <li><g:plusone count="false"></g:plusone></li>
+  <li><g:plusone></g:plusone></li>
   <li><a href="index.html">Home</a></li>
   <li><a href="internals.html">Internals</a></li>
   <li><a href="recipes.html">Recipes</a></li>
