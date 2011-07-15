@@ -9,6 +9,7 @@
   src="http://s3.amazonaws.com/github/ribbons/forkme_right_green_007200.png"
   alt="Fork me on GitHub" /></a>
 <ul id="menu">
+  <li><g:plusone count="false"></g:plusone></li>
   <li><a href="index.html">Home</a></li>
   <li><a href="internals.html">Internals</a></li>
   <li><a href="recipes.html">Recipes</a></li>
@@ -16,14 +17,14 @@
 </ul>
 %(docinfo)s
 %(body)s
-<ul id="footer"> 
-  <li><a href="mailto:dima%%20at%%20hlabs.org">Dmitry Vasiliev</a></li> 
-  <li><a href="http://twitter.com/hdima">@hdima</a></li> 
-  <li><a href="http://hlabs.org">http://hlabs.org</a></li> 
-</ul> 
+<ul id="footer">
+  <li><a href="mailto:dima%%20at%%20hlabs.org">Dmitry Vasiliev</a></li>
+  <li><a href="http://twitter.com/hdima">@hdima</a></li>
+  <li><a href="http://hlabs.org">http://hlabs.org</a></li>
+</ul>
  
-<script type="text/javascript"> 
- 
+<script type="text/javascript">
+
   var _gaq = _gaq || [];
   _gaq.push(['_setAccount', 'UA-1672853-8']);
   _gaq.push(['_setDomainName', '.erlport.org']);
@@ -36,4 +37,5 @@
   })();
  
 </script>
+<script type="text/javascript" src="https://apis.google.com/js/plusone.js"></script>
 %(body_suffix)s

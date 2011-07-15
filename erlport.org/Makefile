@@ -46,3 +46,6 @@ $(DEST)/%.html: src/%.rst
 
 $(DEST)/%: src/%
 	cp $< $@
+
+clean:
+	rm -r $(DEST)
