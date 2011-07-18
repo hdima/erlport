@@ -1,5 +1,5 @@
-ErlPort - Erlang port protocol for Python
-=========================================
+Contributors
+------------
 
 `ErlPort <index.html>`_ contributors:
 

@@ -10,10 +10,11 @@ body {
     width: 990px;
 }
 
-h1 {
+#title {
     text-align: center;
     font-size: 250%;
     color: #333;
+    border: 0;
     border-bottom: solid 7px #050;
     padding: 0 0 0.5em 0;
     margin-bottom: 0;
@@ -35,6 +36,10 @@ p {
     margin-right: 3em;
 }
 
+#menu li#gplus {
+    margin-right: 1em;
+}
+
 #menu li a {
     text-decoration: none;
     font-size: 200%;
@@ -46,7 +51,7 @@ p {
     color: white;
 }
 
-h2 {
+h1 {
     color: #333;
     padding-left: 10px;
     border-left: 1em solid #00b;
@@ -133,4 +138,18 @@ pre {
 
 #footer li a:hover {
     color: #333;
+}
+
+.align-right {
+    float: right;
+    margin: 1em 0 1em 1em;
+}
+
+table {
+    border: 1px solid #aaa;
+}
+
+table td, table th {
+    padding: 0.5em 1em;
+    border: 1px solid #aaa;
 }

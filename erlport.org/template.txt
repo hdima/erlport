@@ -1,15 +1,18 @@
 %(head_prefix)s
 <meta name="keywords" content="erlport erlang python" />
-%(head)s
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<title>ErlPort - Erlang port protocol for Python</title>
 %(stylesheet)s
 %(body_prefix)s
-%(body_pre_docinfo)s
+<h1 id="title">ErlPort - Erlang port protocol for Python</h1>
 <a href="http://github.com/hdima/erlport"><img style="position: absolute;
   top: 0; right: 0; border: 0;"
   src="http://s3.amazonaws.com/github/ribbons/forkme_right_green_007200.png"
   alt="Fork me on GitHub" /></a>
 <ul id="menu">
-  <li><g:plusone></g:plusone></li>
+  <li id="gplus"><g:plusone></g:plusone></li>
   <li><a href="/">Home</a></li>
   <li><a href="/internals.html">Internals</a></li>
   <li><a href="/recipes.html">Recipes</a></li>

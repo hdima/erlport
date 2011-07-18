@@ -28,20 +28,25 @@
 RST2HTML = ./rst2html
 R2HOPTIONS = --template template.txt --link-stylesheet \
 			 --stylesheet default.css --cloak-email-addresses \
-			 --initial-header-level 2 --traceback
+			 --traceback
 
 DEST ?= html
 HTML = $(patsubst src/%.rst,$(DEST)/%.html,$(wildcard src/*.rst))
-DATA_SOURCES = src/default.css src/robots.txt $(wildcard src/*.png)
+HTML_TESTS = $(patsubst ../src/erlport/tests/%.txt,$(DEST)/%_test.html,\
+	$(wildcard ../src/erlport/tests/*.txt))
+DATA_SOURCES = src/default.css src/robots.txt src/favicon.ico $(wildcard src/*.png)
 DATA = $(patsubst src/%,$(DEST)/%,$(DATA_SOURCES))
 
 
-build: $(DEST) $(DATA) $(HTML)
+build: $(DEST) $(DATA) $(HTML) $(HTML_TESTS)
 
 $(DEST):
 	mkdir -p $(DEST)
 
 $(DEST)/%.html: src/%.rst 
+	$(RST2HTML) $(R2HOPTIONS) $< $@
+
+$(DEST)/%_test.html: ../src/erlport/tests/%.txt
 	$(RST2HTML) $(R2HOPTIONS) $< $@
 
 $(DEST)/%: src/%

@@ -1,6 +1,3 @@
-ErlPort - Erlang port protocol for Python
-=========================================
-
 Installation
 ------------
 
