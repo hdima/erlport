@@ -7,6 +7,8 @@
 How ErlPort works
 -----------------
 
+Make sure you read `README <README.html>`_ first.
+
 When ErlPort based Python script is running with the BIF `open_port/2
 <http://www.erlang.org/doc/man/erlang.html#open_port-2>`_ the `port
 <http://www.erlang.org/doc/tutorial/c_port.html>`_ which communicate with the

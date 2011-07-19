@@ -32,16 +32,20 @@ R2HOPTIONS = --template template.txt --link-stylesheet \
 
 DEST ?= html
 HTML = $(patsubst src/%.rst,$(DEST)/%.html,$(wildcard src/*.rst))
+HTML_README = $(DEST)/README.html
 HTML_TESTS = $(patsubst ../src/erlport/tests/%.txt,$(DEST)/%_test.html,\
 	$(wildcard ../src/erlport/tests/*.txt))
 DATA_SOURCES = src/default.css src/robots.txt src/favicon.ico $(wildcard src/*.png)
 DATA = $(patsubst src/%,$(DEST)/%,$(DATA_SOURCES))
 
 
-build: $(DEST) $(DATA) $(HTML) $(HTML_TESTS)
+build: $(DEST) $(DATA) $(HTML) $(HTML_TESTS) $(HTML_README)
 
 $(DEST):
 	mkdir -p $(DEST)
+
+$(DEST)/README.html: ../README.rst
+	$(RST2HTML) $(R2HOPTIONS) $< $@
 
 $(DEST)/%.html: src/%.rst 
 	$(RST2HTML) $(R2HOPTIONS) $< $@

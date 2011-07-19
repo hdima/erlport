@@ -13,11 +13,12 @@
   alt="Fork me on GitHub" /></a>
 <ul id="menu">
   <li id="gplus"><g:plusone></g:plusone></li>
-  <li><a href="/">Home</a></li>
-  <li><a href="/internals.html">Internals</a></li>
-  <li><a href="/recipes.html">Recipes</a></li>
-  <li><a href="/contributors.html">Contributors</a></li>
+  <li><a href="./">Home</a></li>
+  <li><a href="internals.html">Internals</a></li>
+  <li><a href="recipes.html">Recipes</a></li>
+  <li><a href="contributors.html">Contributors</a></li>
 </ul>
+%(body_pre_docinfo)s
 %(docinfo)s
 %(body)s
 <ul id="footer">

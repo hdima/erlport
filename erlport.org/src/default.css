@@ -66,8 +66,8 @@ ul {
     padding-top: 0;
 }
 
-#installation {
-    width: 400px;
+.sidebar {
+    width: 300px;
     float: right;
     padding: 0 1em 1em 1em;
     margin-left: 1em;
@@ -75,15 +75,11 @@ ul {
     border-left: 7px solid #050;
 }
 
-#installation pre {
-    background: #eee;
-}
-
 pre {
     border-left: 7px solid #050;
     margin: 0 4em 0 2em;
     padding: 1em 2em;
-    background: url("r_down_right.png") right bottom scroll no-repeat #eee;
+    background: #eee;
 }
 
 .sourcecode .c {
