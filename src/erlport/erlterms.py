@@ -82,6 +82,30 @@ class BitBinary(str):
         return "bits(%s, %s)" % (self.bits, super(BitBinary, self).__repr__())
 
 
+class Pid(object):
+
+    def __init__(self, node, id, serial, creation):
+        self.node = node
+        self.id = id
+        self.serial = serial
+        self.creation = creation
+
+    def __repr__(self):
+        return "pid(%s, %r, %r, %r)" % (self.node, self.id, self.serial,
+            self.creation)
+
+
+class Reference(object):
+    
+    def __init__(self, node, id, creation):
+        self.node = node
+        self.id = id
+        self.creation = creation
+
+    def __repr__(self):
+        return "ref(%s, %r, %r)" % (self.node, self.id, self.creation)
+
+
 def decode(string):
     """Decode Erlang external term."""
     if len(string) < 1:
@@ -230,6 +254,29 @@ def decode_term(string,
         if len(tail) < length:
             raise IncompleteData("incomplete daata: %r" % string)
         return BitBinary(tail[:length], bits), tail[length:]
+    elif tag == 103:
+        node, tail = decode_term(tail)
+        if len(tail) < 9:
+            raise IncompleteData("incomplete data: %r" % string)
+        id, serial, creation = unpack(">IIB", tail[:9])
+        return Pid(node, id, serial, creation), tail[9:]
+    elif tag == 101:
+        node, tail = decode_term(tail)
+        if len(tail) < 5:
+            raise IncompleteData("incomplete data: %r" % string)
+        id, creation = unpack(">IB", tail[:5])
+        return Reference(node, id, creation), tail[5:]
+    elif tag == 114:
+        if len(tail) < 2:
+            raise IncompleteData("incomplete data: %r" % string)
+        num, = unpack(">H", tail[:2])
+        length = num * 4
+        node, tail = decode_term(tail[2:])
+        if len(tail) < 1 + length:
+            raise IncompleteData("incomplete data: %r" % string)
+        creation = ord(tail[0])
+        id = tail[1:length + 1]
+        return Reference(node, id, creation), tail[length + 1:]
 
     raise ValueError("unsupported data tag: %i" % tag)
 
@@ -347,5 +394,12 @@ def encode_term(term,
     elif isinstance(term, datetime):
         return encode_term(((term.year, term.month, term.day),
             (term.hour, term.minute, term.second)))
+    elif isinstance(term, Pid):
+        node = encode_term(term.node)
+        return "g" + node + pack(">IIB", term.id, term.serial, term.creation)
+    elif isinstance(term, Reference):
+        node = encode_term(term.node)
+        num = len(term.id) // 4
+        return "r" + pack(">H", num) + node + chr(term.creation) + term.id
 
     raise ValueError("unsupported data type: %s" % type(term))
