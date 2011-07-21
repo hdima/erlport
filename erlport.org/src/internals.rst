@@ -43,46 +43,68 @@ expression (see `port messages
 and converted to the term with the BIF `binary_to_term/1
 <http://www.erlang.org/doc/man/erlang.html#binary_to_term-1>`_.
 
+See also rendered ErlPort documentation tests:
+
+ - `erlproto.txt <erlproto_test.html>`_
+ - `erlterms.txt <erlterms_test.html>`_
+
 Data type mapping
 -----------------
 
 Erlang to Python data type mapping as defined by `erlterms.decode()
 <https://github.com/hdima/erlport/blob/master/src/erlport/erlterms.py#L85>`_:
 
-=========== ======
-Erlang      Python
-=========== ======
-integer()   int()
-list()      list()/String()
-binary()    str()
-atom()      Atom()
-tuple()     tuple()
-float()     float()
-bitstring() BitBinary()
-=========== ======
++---------------+------------------------------------------------------------+
+|Erlang         | Python                                                     |
++===============+============================================================+
+|integer()      | int()                                                      |
++---------------+------------------------------------------------------------+
+|list()/string()| list()/`String()`_                                         |
+|               | *Note: There is no distinction between lists and strings   |
+|               | in Erlang so on the Python side lists known to be strings  |
+|               | must be explicitly converted with the String() class*      |
++---------------+------------------------------------------------------------+
+|binary()       | str()                                                      |
++---------------+------------------------------------------------------------+
+|atom()         | `Atom()`_                                                  |
++---------------+------------------------------------------------------------+
+|tuple()        | tuple()                                                    |
++---------------+------------------------------------------------------------+
+|float()        | float()                                                    |
++---------------+------------------------------------------------------------+
+|bitstring()    | `BitBinary()`_                                             |
++---------------+------------------------------------------------------------+
 
 Python to Erlang data type mapping as defined by `erlterms.encode()
 <https://github.com/hdima/erlport/blob/master/src/erlport/erlterms.py#L237>`_:
 
-=================== ======
-Python              Erlang
-=================== ======
-tuple()             tuple()
-list()              list()
-unicode()           list()
-Atom()              atom()
-BitBinary()         bitstring()
-str()               binary()
-True                'true'
-False               'false'
-int()               integer()
-float()             float()
-dict()              proplist()
-None                'none'
-datetime.datetime() calendar:t_datetime()
-=================== ======
+====================== ======
+Python                 Erlang
+====================== ======
+tuple()                tuple()
+list()                 list()
+unicode()/`String()`_  list()
+`Atom()`_              atom()
+`BitBinary()`_         bitstring()
+str()                  binary()
+True                   'true'
+False                  'false'
+int()                  integer()
+float()                float()
+dict()                 `proplist()`_/`orddict()`_
+None                   'none'
+`datetime.datetime()`_ `calendar:t_datetime()`_
+====================== ======
 
 .. |date| date::
 .. container:: date
 
     Updated on |date|
+
+.. _Atom(): https://github.com/hdima/erlport/blob/master/src/erlport/erlterms.py#L46
+.. _BitBinary(): https://github.com/hdima/erlport/blob/master/src/erlport/erlterms.py#L73
+.. _String(): https://github.com/hdima/erlport/blob/master/src/erlport/erlterms.py#L58
+.. _calendar:t_datetime(): http://www.erlang.org/doc/man/calendar.html#type-t_datetime
+.. _datetime.datetime(): http://docs.python.org/library/datetime.html#datetime-objects
+.. _proplist(): http://www.erlang.org/doc/man/proplists.html
+.. _orddict(): http://www.erlang.org/doc/man/orddict.html
