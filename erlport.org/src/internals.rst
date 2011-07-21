@@ -43,7 +43,7 @@ expression (see `port messages
 and converted to the term with the BIF `binary_to_term/1
 <http://www.erlang.org/doc/man/erlang.html#binary_to_term-1>`_.
 
-See also rendered ErlPort documentation tests:
+See also rendered ErlPort doctests:
 
  - `erlproto.txt <erlproto_test.html>`_
  - `erlterms.txt <erlterms_test.html>`_
