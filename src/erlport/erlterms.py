@@ -83,6 +83,7 @@ class BitBinary(str):
 
 
 class Pid(object):
+    """Erlang process identifier."""
 
     __slots__ = "node", "id", "serial", "creation"
 
@@ -98,6 +99,7 @@ class Pid(object):
 
 
 class Reference(object):
+    """Erlang reference."""
 
     __slots__ = "node", "id", "creation"
 
@@ -263,14 +265,17 @@ def decode_term(string,
         node, tail = decode_term(tail)
         if len(tail) < 9:
             raise IncompleteData("incomplete data: %r" % string)
-        id, serial, creation = unpack(">IIB", tail[:9])
+        id = tail[:4]
+        serial = tail[4:8]
+        creation = ord(tail[8])
         return Pid(node, id, serial, creation), tail[9:]
     elif tag == 101:
         # REFERENCE_EXT
         node, tail = decode_term(tail)
         if len(tail) < 5:
             raise IncompleteData("incomplete data: %r" % string)
-        id, creation = unpack(">IB", tail[:5])
+        id = tail[:4]
+        creation = ord(tail[4])
         return Reference(node, id, creation), tail[5:]
     elif tag == 114:
         # NEW_REFERENCE_EXT
@@ -403,7 +408,7 @@ def encode_term(term,
             (term.hour, term.minute, term.second)))
     elif isinstance(term, Pid):
         node = encode_term(term.node)
-        return "g" + node + pack(">IIB", term.id, term.serial, term.creation)
+        return "g" + node + term.id + term.serial + chr(term.creation)
     elif isinstance(term, Reference):
         node = encode_term(term.node)
         num = len(term.id) // 4

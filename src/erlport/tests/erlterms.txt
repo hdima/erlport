@@ -6,7 +6,8 @@ Encoding
 
 Function encode() can encode Python types to Erlang external term format:
 
-    >>> from erlport.erlterms import encode, Atom, String, BitBinary
+    >>> from erlport.erlterms import encode
+    >>> from erlport.erlterms import Atom, String, BitBinary, Pid, Reference
 
 Binary strings:
 
@@ -105,6 +106,16 @@ Tuples:
     '\x83h\x02h\x01m\x00\x00\x00\x04testd\x00\x04test'
     >>> encode((1,) * 256) # doctest: +ELLIPSIS
     '\x83i\x00\x00\x01\x00a\x01...a\x01'
+
+Pids:
+
+    >>> encode(Pid(Atom('nonode@nohost'), '\x00\x00\x00 ', '\x00\x00\x00\x00', 0))
+    '\x83gd\x00\rnonode@nohost\x00\x00\x00 \x00\x00\x00\x00\x00'
+
+References:
+
+    >>> encode(Reference(Atom('nonode@nohost'), '\x00\x00\x00\x1d\x00\x00\x00\x00\x00\x00\x00\x00', 0))
+    '\x83r\x00\x03d\x00\rnonode@nohost\x00\x00\x00\x00\x1d\x00\x00\x00\x00\x00\x00\x00\x00'
 
 Compressed terms:
 
@@ -257,6 +268,18 @@ Tuples:
     ((('test',), atom('test')), '')
     >>> decode('\x83i\x00\x00\x01\x00' + 'a\x01' * 256) # doctest: +ELLIPSIS
     ((1, 1, ... 1, 1), '')
+
+Pids:
+
+    >>> decode("\x83\x67\x64\x00\x0D\x6E\x6F\x6E\x6F\x64\x65\x40\x6E\x6F\x68\x6F\x73\x74\x00\x00\x00\x20\x00\x00\x00\x00\x00")
+    (pid(atom('nonode@nohost'), '\x00\x00\x00 ', '\x00\x00\x00\x00', 0), '')
+
+References:
+
+    >>> decode("\x83\x72\x00\x03\x64\x00\x0D\x6E\x6F\x6E\x6F\x64\x65\x40\x6E\x6F\x68\x6F\x73\x74\x00\x00\x00\x00\x1D\x00\x00\x00\x00\x00\x00\x00\x00")
+    (ref(atom('nonode@nohost'), '\x00\x00\x00\x1d\x00\x00\x00\x00\x00\x00\x00\x00', 0), '')
+    >>> decode("\x83\x65\x64\x00\x0D\x6E\x6F\x6E\x6F\x64\x65\x40\x6E\x6F\x68\x6F\x73\x74\x00\x00\x00\x1D\x00")
+    (ref(atom('nonode@nohost'), '\x00\x00\x00\x1d', 0), '')
 
 Compressed terms:
 
