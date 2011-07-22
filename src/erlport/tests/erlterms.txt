@@ -7,7 +7,8 @@ Encoding
 Function encode() can encode Python types to Erlang external term format:
 
     >>> from erlport.erlterms import encode
-    >>> from erlport.erlterms import Atom, String, BitBinary, Pid, Reference
+    >>> from erlport.erlterms import Atom, String, BitBinary
+    >>> from erlport.erlterms import Pid, Reference, Port
 
 Binary strings:
 
@@ -116,6 +117,11 @@ References:
 
     >>> encode(Reference(Atom('nonode@nohost'), '\x00\x00\x00\x1d\x00\x00\x00\x00\x00\x00\x00\x00', 0))
     '\x83r\x00\x03d\x00\rnonode@nohost\x00\x00\x00\x00\x1d\x00\x00\x00\x00\x00\x00\x00\x00'
+
+Ports:
+
+    >>> encode(Port(Atom('nonode@nohost'), '\x00\x00\x01\xe6', 0))
+    '\x83fd\x00\rnonode@nohost\x00\x00\x01\xe6\x00'
 
 Compressed terms:
 
@@ -280,6 +286,11 @@ References:
     (ref(atom('nonode@nohost'), '\x00\x00\x00\x1d\x00\x00\x00\x00\x00\x00\x00\x00', 0), '')
     >>> decode("\x83\x65\x64\x00\x0D\x6E\x6F\x6E\x6F\x64\x65\x40\x6E\x6F\x68\x6F\x73\x74\x00\x00\x00\x1D\x00")
     (ref(atom('nonode@nohost'), '\x00\x00\x00\x1d', 0), '')
+
+Ports:
+
+    >>> decode("\x83\x66\x64\x00\x0D\x6E\x6F\x6E\x6F\x64\x65\x40\x6E\x6F\x68\x6F\x73\x74\x00\x00\x01\xE6\x00")
+    (port(atom('nonode@nohost'), '\x00\x00\x01\xe6', 0), '')
 
 Compressed terms:
 

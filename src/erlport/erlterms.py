@@ -112,6 +112,20 @@ class Reference(object):
         return "ref(%r, %r, %r)" % (self.node, self.id, self.creation)
 
 
+class Port(object):
+    """Erlang port."""
+
+    __slots__ = "node", "id", "creation"
+
+    def __init__(self, node, id, creation):
+        self.node = node
+        self.id = id
+        self.creation = creation
+
+    def __repr__(self):
+        return "port(%r, %r, %r)" % (self.node, self.id, self.creation)
+
+
 def decode(string):
     """Decode Erlang external term."""
     if len(string) < 1:
@@ -277,6 +291,14 @@ def decode_term(string,
         id = tail[:4]
         creation = ord(tail[4])
         return Reference(node, id, creation), tail[5:]
+    elif tag == 102:
+        # PORT_EXT
+        node, tail = decode_term(tail)
+        if len(tail) < 5:
+            raise IncompleteData("incomplete data: %r" % string)
+        id = tail[:4]
+        creation = ord(tail[4])
+        return Port(node, id, creation), tail[5:]
     elif tag == 114:
         # NEW_REFERENCE_EXT
         if len(tail) < 2:
@@ -408,10 +430,17 @@ def encode_term(term,
             (term.hour, term.minute, term.second)))
     elif isinstance(term, Pid):
         node = encode_term(term.node)
+        if len(term.serial) != 4:
+            raise ValueError("invalid pid serial field")
         return "g" + node + term.id + term.serial + chr(term.creation)
     elif isinstance(term, Reference):
         node = encode_term(term.node)
         num = len(term.id) // 4
         return "r" + pack(">H", num) + node + chr(term.creation) + term.id
+    elif isinstance(term, Port):
+        node = encode_term(term.node)
+        if len(term.id) != 4:
+            raise ValueError("invalid port id field")
+        return "f" + node + term.id + chr(term.creation)
 
     raise ValueError("unsupported data type: %s" % type(term))
