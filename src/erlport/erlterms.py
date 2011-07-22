@@ -126,6 +126,20 @@ class Port(object):
         return "port(%r, %r, %r)" % (self.node, self.id, self.creation)
 
 
+class Export(object):
+    """Erlang function export fun M:F/A."""
+
+    __slots__ = "module", "function", "arity"
+
+    def __init__(self, module, function, arity):
+        self.module = module
+        self.function = function
+        self.arity = arity
+
+    def __repr__(self):
+        return "export(%r, %r, %r)" % (self.module, self.function, self.arity)
+
+
 def decode(string):
     """Decode Erlang external term."""
     if len(string) < 1:
@@ -311,6 +325,12 @@ def decode_term(string,
         creation = ord(tail[0])
         id = tail[1:length + 1]
         return Reference(node, id, creation), tail[length + 1:]
+    elif tag == 113:
+        # EXPORT_EXT
+        module, tail = decode_term(tail)
+        function, tail = decode_term(tail)
+        arity, tail = decode_term(tail)
+        return Export(module, function, arity), tail
 
     raise ValueError("unsupported data tag: %i" % tag)
 
@@ -442,5 +462,10 @@ def encode_term(term,
         if len(term.id) != 4:
             raise ValueError("invalid port id field")
         return "f" + node + term.id + chr(term.creation)
+    elif isinstance(term, Export):
+        module = encode_term(term.module)
+        function = encode_term(term.function)
+        arity = encode_term(term.arity)
+        return "q" + module + function + arity
 
     raise ValueError("unsupported data type: %s" % type(term))

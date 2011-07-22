@@ -8,7 +8,7 @@ Function encode() can encode Python types to Erlang external term format:
 
     >>> from erlport.erlterms import encode
     >>> from erlport.erlterms import Atom, String, BitBinary
-    >>> from erlport.erlterms import Pid, Reference, Port
+    >>> from erlport.erlterms import Pid, Reference, Port, Export
 
 Binary strings:
 
@@ -122,6 +122,11 @@ Ports:
 
     >>> encode(Port(Atom('nonode@nohost'), '\x00\x00\x01\xe6', 0))
     '\x83fd\x00\rnonode@nohost\x00\x00\x01\xe6\x00'
+
+Function exports:
+
+    >>> encode(Export(Atom('erlang'), Atom('term_to_binary'), 1))
+    '\x83qd\x00\x06erlangd\x00\x0eterm_to_binarya\x01'
 
 Compressed terms:
 
@@ -291,6 +296,11 @@ Ports:
 
     >>> decode("\x83\x66\x64\x00\x0D\x6E\x6F\x6E\x6F\x64\x65\x40\x6E\x6F\x68\x6F\x73\x74\x00\x00\x01\xE6\x00")
     (port(atom('nonode@nohost'), '\x00\x00\x01\xe6', 0), '')
+
+Function exports:
+
+    >>> decode("\x83\x71\x64\x00\x06\x65\x72\x6C\x61\x6E\x67\x64\x00\x0E\x74\x65\x72\x6D\x5F\x74\x6F\x5F\x62\x69\x6E\x61\x72\x79\x61\x01")
+    (export(atom('erlang'), atom('term_to_binary'), 1), '')
 
 Compressed terms:
 

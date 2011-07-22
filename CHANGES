@@ -1,5 +1,7 @@
 Version 0.7 (2011-MM-DD)
 
+    - Added encoding/decoding for fun M:F/A
+
     - Added Port class and encoding/decoding for port() Erlang type
 
     - Added python.erl Erlang module
