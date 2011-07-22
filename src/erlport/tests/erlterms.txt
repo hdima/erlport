@@ -161,9 +161,9 @@ Bit binaries:
 Atoms:
 
     >>> decode('\x83d\x00\x00')
-    (atom(), '')
+    (atom(''), '')
     >>> decode('\x83d\x00\x04test')
-    (atom(test), '')
+    (atom('test'), '')
 
 Integer values:
 
@@ -203,15 +203,16 @@ Float values:
 
     >>> decode('\x83F\x00\x00\x00\x00\x00\x00\x00\x00')
     (0.0, '')
-    >>> decode('\x83F?\xf1\x99\x99\x99\x99\x99\x9a')
-    (1.1000000000000001, '')
+    >>> decode('\x83F?\xf1\x99\x99\x99\x99\x99\x9a') # doctest: +ELLIPSIS
+    (1.1..., '')
     >>> decode('\x83F@$?4\xd6\xa1a\xe5')
     (10.12345, '')
 
     >>> decode('\x83c0.00000000000000000000e+00\x00\x00\x00\x00\x00')
     (0.0, '')
     >>> decode('\x83c1.10000000000000008882e+00\x00\x00\x00\x00\x00')
-    (1.1000000000000001, '')
+    ... # doctest: +ELLIPSIS
+    (1.1..., '')
     >>> decode('\x83c1.01234500000000000597e+01\x00\x00\x00\x00\x00')
     (10.12345, '')
 
@@ -244,7 +245,7 @@ Lists:
     >>> decode('\x83l\x00\x00\x00\x01a\x01j')
     ([1], '')
     >>> decode('\x83l\x00\x00\x00\x02l\x00\x00\x00\x01d\x00\x04testjm\x00\x00\x00\x04testj')
-    ([[atom(test)], 'test'], '')
+    ([[atom('test')], 'test'], '')
 
 Tuples:
 
@@ -253,7 +254,7 @@ Tuples:
     >>> decode('\x83h\x01a\x01')
     ((1,), '')
     >>> decode('\x83h\x02h\x01m\x00\x00\x00\x04testd\x00\x04test')
-    ((('test',), atom(test)), '')
+    ((('test',), atom('test')), '')
     >>> decode('\x83i\x00\x00\x01\x00' + 'a\x01' * 256) # doctest: +ELLIPSIS
     ((1, 1, ... 1, 1), '')
 

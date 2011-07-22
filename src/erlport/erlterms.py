@@ -52,7 +52,7 @@ class Atom(str):
         return super(Atom, cls).__new__(cls, s)
 
     def __repr__(self):
-        return "atom(%s)" % self
+        return "atom(%s)" % super(Atom, self).__repr__()
 
 
 class String(unicode):
@@ -84,6 +84,8 @@ class BitBinary(str):
 
 class Pid(object):
 
+    __slots__ = "node", "id", "serial", "creation"
+
     def __init__(self, node, id, serial, creation):
         self.node = node
         self.id = id
@@ -91,19 +93,21 @@ class Pid(object):
         self.creation = creation
 
     def __repr__(self):
-        return "pid(%s, %r, %r, %r)" % (self.node, self.id, self.serial,
+        return "pid(%r, %r, %r, %r)" % (self.node, self.id, self.serial,
             self.creation)
 
 
 class Reference(object):
-    
+
+    __slots__ = "node", "id", "creation"
+
     def __init__(self, node, id, creation):
         self.node = node
         self.id = id
         self.creation = creation
 
     def __repr__(self):
-        return "ref(%s, %r, %r)" % (self.node, self.id, self.creation)
+        return "ref(%r, %r, %r)" % (self.node, self.id, self.creation)
 
 
 def decode(string):
@@ -255,18 +259,21 @@ def decode_term(string,
             raise IncompleteData("incomplete daata: %r" % string)
         return BitBinary(tail[:length], bits), tail[length:]
     elif tag == 103:
+        # PID_EXT
         node, tail = decode_term(tail)
         if len(tail) < 9:
             raise IncompleteData("incomplete data: %r" % string)
         id, serial, creation = unpack(">IIB", tail[:9])
         return Pid(node, id, serial, creation), tail[9:]
     elif tag == 101:
+        # REFERENCE_EXT
         node, tail = decode_term(tail)
         if len(tail) < 5:
             raise IncompleteData("incomplete data: %r" % string)
         id, creation = unpack(">IB", tail[:5])
         return Reference(node, id, creation), tail[5:]
     elif tag == 114:
+        # NEW_REFERENCE_EXT
         if len(tail) < 2:
             raise IncompleteData("incomplete data: %r" % string)
         num, = unpack(">H", tail[:2])
