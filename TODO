@@ -6,8 +6,6 @@ python.erl
 
 - Python shell support for debugging. Is it possible at all?
 
-- Use 'exit_status' option to return exit status for python:stop()?
-
 
 erlport.erlterms
 ================
