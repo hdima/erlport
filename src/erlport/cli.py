@@ -58,7 +58,9 @@ class CallProtocol(object):
         port.write((Atom("error"), Atom("badarg")))
 
     def call(self, module, function, args):
-        m = __import__(module, {}, {}, [function])
+        m = sys.modules.get(module)
+        if m is None:
+            m = __import__(module, {}, {}, [function])
         f = getattr(m, function)
         return f(*args)
 

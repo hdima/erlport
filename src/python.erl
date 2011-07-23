@@ -50,13 +50,16 @@
     port :: port()
     }).
 
+-define(START_TIMEOUT, 15000).
+-define(CALL_TIMEOUT, 15000).
+
 
 start() ->
-    gen_server:start(?MODULE, undefined, []).
+    gen_server:start(?MODULE, undefined, [{timeout, ?START_TIMEOUT}]).
 
 
 start_link() ->
-    gen_server:start_link(?MODULE, undefined, []).
+    gen_server:start_link(?MODULE, undefined, [{timeout, ?START_TIMEOUT}]).
 
 
 stop(InstanceId) when is_pid(InstanceId) ->
@@ -65,6 +68,8 @@ stop(InstanceId) when is_pid(InstanceId) ->
 
 call(InstanceId, Module, Function, Args) when is_pid(InstanceId),
         is_atom(Module), is_atom(Function), is_list(Args) ->
+    % TODO: We need to distinguish server errors, function errors and function
+    % results
     gen_server:call(InstanceId, {call, Module, Function, Args}).
 
 
@@ -85,9 +90,9 @@ init(undefined) ->
 
 handle_call({call, Module, Function, Args}, From, State=#state{port=Port})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
-    Request = {'S', From, Module, Function, Args},
+    Timer = erlang:send_after(?CALL_TIMEOUT, self(), {timeout, From}),
+    Request = {'S', {From, Timer}, Module, Function, Args},
     true = port_command(Port, term_to_binary(Request)),
-    % TODO: Need timeout
     {noreply, State};
 handle_call(Request, From, State) ->
     {reply, {error, {badarg, ?MODULE, Request, From}}, State}.
@@ -105,12 +110,18 @@ handle_cast(_Request, State) ->
 
 
 handle_info({Port, {data, Data}}, State=#state{port=Port}) ->
-    % TODO: Check binary_to_term errors
-    case binary_to_term(Data) of
-        {'R', From, Result} ->
+    try binary_to_term(Data) of
+        {'R', {From, Timer}, Result} ->
+            erlang:cancel_timer(Timer),
             gen_server:reply(From, Result),
             {noreply, State}
+    catch
+        error:badarg ->
+            {noreply, State}
     end;
+handle_info({timeout, From}, State) ->
+    gen_server:reply(From, {error, timeout}),
+    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
 
