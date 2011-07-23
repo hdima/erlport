@@ -26,6 +26,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import sys
+from optparse import OptionParser, OptionValueError
 
 from erlport import Port, Atom
 
@@ -65,11 +66,29 @@ class CallProtocol(object):
         return f(*args)
 
 
+def get_option_parser():
+    def packet_option_handler(option, opt_str, value, parser):
+        if value not in (1, 2, 4):
+            raise OptionValueError("Valid values for --packet are 1, 2, or 4")
+        setattr(parser.values, option.dest, value)
+    parser = OptionParser()
+    parser.add_option("--packet", action="callback", type="int",
+        help="Message length sent in N bytes. Valid values are 1, 2, or 4",
+        metavar="N", callback=packet_option_handler, default=4)
+    parser.add_option("--nouse_stdio", action="store_false",
+        dest="stdio", default=True,
+        help="Use file descriptors 3 and 4 for communication with Erlang")
+    parser.add_option("--use_stdio", action="store_true", dest="stdio",
+        default=True,
+        help="Use file descriptors 0 and 1 for communication with Erlang")
+    return parser
+
+
 def main(args=None):
-    if args is None:
-        args = sys.argv[1:]
+    parser = get_option_parser()
+    options, args = parser.parse_args(args)
     proto = CallProtocol()
-    proto.start(Port(use_stdio=True, packet=4))
+    proto.start(Port(use_stdio=options.stdio, packet=options.packet))
 
 
 if __name__ == "__main__":

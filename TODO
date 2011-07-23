@@ -1,3 +1,23 @@
-- Pluggable encoders/decoders
+python.erl
+==========
+
+- Protocol handshake? For example it can be "--version N" command line option
+  for erlport.cli
+
+- Python shell support for debugging. Is it possible at all?
+
+- Use 'exit_status' option to return exit status for python:stop()?
+
+
+erlport.erlterms
+================
+
+- Pluggable encoders/decoders?
+
 - Add all Erlang datatypes
-- Add version keyword to encode() function
+
+
+Other
+=====
+
+- Python 3 support

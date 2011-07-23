@@ -30,8 +30,8 @@
 -behaviour(gen_server).
 
 -export([
-    start/0,
-    start_link/0,
+    start/1,
+    start_link/1,
     stop/1,
     call/4,
     cast/4
@@ -54,12 +54,12 @@
 -define(CALL_TIMEOUT, 15000).
 
 
-start() ->
-    gen_server:start(?MODULE, undefined, [{timeout, ?START_TIMEOUT}]).
+start(Options) when is_list(Options) ->
+    gen_server:start(?MODULE, Options, [{timeout, ?START_TIMEOUT}]).
 
 
-start_link() ->
-    gen_server:start_link(?MODULE, undefined, [{timeout, ?START_TIMEOUT}]).
+start_link(Options) when is_list(Options) ->
+    gen_server:start_link(?MODULE, Options, [{timeout, ?START_TIMEOUT}]).
 
 
 stop(InstanceId) when is_pid(InstanceId) ->
@@ -82,9 +82,25 @@ cast(InstanceId, Module, Function, Args) when is_pid(InstanceId),
 %%% Behaviour callbacks
 %%%
 
-init(undefined) ->
-    Port = open_port({spawn, "python -u -m erlport.cli"},
-        [{packet, 4}, binary, use_stdio]),
+init(Options) when is_list(Options) ->
+    % FIXME: Cleanup option parsing and command line construction
+    Stdio = case proplists:get_value(nouse_stdio, Options, false) of
+        true ->
+            nouse_stdio;
+        false ->
+            use_stdio
+    end,
+    Packet = case proplists:get_value(packet, Options, 4) of
+        1 ->
+            1;
+        2 ->
+            2;
+        4 ->
+            4
+    end,
+    Port = open_port({spawn, "python -u -m erlport.cli --packet="
+        ++ integer_to_list(Packet) ++ " --" ++ atom_to_list(Stdio)},
+        [{packet, Packet}, binary, Stdio, hide]),
     {ok, #state{port=Port}}.
 
 
@@ -120,6 +136,8 @@ handle_info({Port, {data, Data}}, State=#state{port=Port}) ->
             {noreply, State}
     end;
 handle_info({timeout, From}, State) ->
+    % TODO: We need to distinguish server errors, function errors and function
+    % results
     gen_server:reply(From, {error, timeout}),
     {noreply, State};
 handle_info(_Info, State) ->
