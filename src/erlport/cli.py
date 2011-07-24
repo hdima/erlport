@@ -27,8 +27,107 @@
 
 import sys
 from optparse import OptionParser, OptionValueError
+from Queue import Queue
+from threading import Thread
 
 from erlport import Port, Atom
+
+
+class ReceiveThread(Thread):
+
+    def __init__(self, port, sender, manager):
+        self.port = port
+        self.sender = sender
+        self.manager = manager
+        Thread.__init__(self)
+        self.setDaemon(True)
+
+    def run(self):
+        while True:
+            try:
+                message = self.port.read()
+            except EOFError:
+                break
+            self.handle(message)
+
+    def handle(self, message):
+        if isinstance(message, tuple) and len(message) >= 3:
+            mtype = message[0]
+            if isinstance(mtype, Atom):
+                if mtype == "S":
+                    if len(message) == 5:
+                        id, module, function, args = message[1:]
+                        result = self.call(module, function, args)
+                        self.sender.send((Atom("R"), id, result))
+                        return
+                elif mtype == "A":
+                    if len(message) == 4:
+                        module, function, args = message[1:]
+                        self.call(module, function, args)
+                        return
+                elif mtype == "R":
+                    if len(message) == 3:
+                        id, result = message[1:]
+                        queue = self.manager.requests[id]
+                        if queue is not None:
+                            queue.put(result)
+                        return
+
+    def call(self, module, function, args):
+        m = sys.modules.get(module)
+        if m is None:
+            m = __import__(module, {}, {}, [function])
+        f = getattr(m, function)
+        return f(*args)
+
+
+class SendThread(Thread):
+
+    def __init__(self, port):
+        self.port = port
+        self.requests = Queue()
+        Thread.__init__(self)
+        self.setDaemon(True)
+
+    def run(self):
+        while True:
+            message = self.requests.get()
+            try:
+                self.port.write(message)
+            except EOFError:
+                break
+
+    def send(self, message):
+        self.requests.put(message)
+
+
+class ThreadedCallProtocol(object):
+
+    def __init__(self, port):
+        self.id = 0
+        self.requests = {}
+        self.port = port
+        self.sender = SendThread(self.port)
+        self.sender.start()
+        self.receiver = ReceiveThread(self.port, self.sender, self)
+        self.receiver.start()
+
+    def cast(self, module, function, args):
+        request = Atom("A"), Atom(module), Atom(function), list(args)
+        self.sender.send(request)
+
+    def call(self, module, function, args):
+        id = self.id
+        # TODO: Optimize id generation
+        # TODO: Cleanup requests storage
+        self.id += 1
+        request = Atom("S"), id, Atom(module), Atom(function), list(args)
+        queue = Queue()
+        self.requests[id] = queue
+        self.sender.send(request)
+        response = queue.get()
+        del self.requests[id]
+        return response
 
 
 class CallProtocol(object):
@@ -51,6 +150,7 @@ class CallProtocol(object):
                         result = self.call(module, function, args)
                         port.write((Atom("R"), id, result))
                         return
+
                 elif mtype == "A":
                     if len(message) == 4:
                         module, function, args = message[1:]
@@ -87,8 +187,15 @@ def get_option_parser():
 def main(args=None):
     parser = get_option_parser()
     options, args = parser.parse_args(args)
-    proto = CallProtocol()
-    proto.start(Port(use_stdio=options.stdio, packet=options.packet))
+    port = Port(use_stdio=options.stdio, packet=options.packet)
+    proto = ThreadedCallProtocol(port)
+
+    import time
+
+    while True:
+        r = proto.call(Atom("calendar"), Atom("universal_time"), [])
+        print >>sys.stderr, "Result: %r" % (r,)
+        time.sleep(2)
 
 
 if __name__ == "__main__":

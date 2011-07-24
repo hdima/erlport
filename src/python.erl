@@ -47,7 +47,9 @@
     ]).
 
 -record(state, {
-    port :: port()
+    port :: port(),
+    id = 0 :: non_neg_integer(),
+    requests = dict:new() :: dict()
     }).
 
 -define(START_TIMEOUT, 15000).
@@ -104,12 +106,16 @@ init(Options) when is_list(Options) ->
     {ok, #state{port=Port}}.
 
 
-handle_call({call, Module, Function, Args}, From, State=#state{port=Port})
+handle_call({call, Module, Function, Args}, From, State=#state{port=Port,
+        id=Id, requests=Requests})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
     Timer = erlang:send_after(?CALL_TIMEOUT, self(), {timeout, From}),
-    Request = {'S', {From, Timer}, Module, Function, Args},
+    NewRequests = dict:store(Id, {From, Timer}, Requests),
+    Request = {'S', Id, Module, Function, Args},
     true = port_command(Port, term_to_binary(Request)),
-    {noreply, State};
+    % TODO: Optimize Id generation
+    % TODO: Cleanup requests storage
+    {noreply, State#state{id=Id + 1, requests=NewRequests}};
 handle_call(Request, From, State) ->
     {reply, {error, {badarg, ?MODULE, Request, From}}, State}.
 
@@ -125,11 +131,28 @@ handle_cast(_Request, State) ->
     {noreply, State}.
 
 
-handle_info({Port, {data, Data}}, State=#state{port=Port}) ->
+handle_info({Port, {data, Data}}, State=#state{port=Port,
+        requests=Requests}) ->
     try binary_to_term(Data) of
-        {'R', {From, Timer}, Result} ->
-            erlang:cancel_timer(Timer),
-            gen_server:reply(From, Result),
+        {'R', Id, Result} ->
+            NewState = case dict:find(Id, Requests) of
+                {ok, {From, Timer}} ->
+                    erlang:cancel_timer(Timer),
+                    gen_server:reply(From, Result),
+                    State#state{requests=dict:erase(Id, Requests)};
+                error ->
+                    State
+            end,
+            {noreply, NewState};
+        {'A', Module, Function, Args} when is_atom(Module), is_atom(Function),
+                is_list(Args) ->
+            apply(Module, Function, Args),
+            {noreply, State};
+        {'S', Id, Module, Function, Args} when is_atom(Module),
+                is_atom(Function), is_list(Args) ->
+            Result = apply(Module, Function, Args),
+            Response = {'R', Id, Result},
+            true = port_command(Port, term_to_binary(Response)),
             {noreply, State}
     catch
         error:badarg ->

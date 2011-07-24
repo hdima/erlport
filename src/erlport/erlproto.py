@@ -136,7 +136,7 @@ class Port(object):
         while len(data) != 0:
             try:
                 n = os.write(self.out_d, data)
-            except IOError, why:
+            except OSError, why:
                 if why.errno == errno.EPIPE:
                     raise EOFError()
                 raise
