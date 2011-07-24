@@ -112,7 +112,7 @@ class Port(object):
         while length > 0:
             try:
                 buf = os.read(self.in_d, length)
-            except IOError, why:
+            except OSError, why:
                 if why.errno == errno.EPIPE:
                     raise EOFError()
                 raise
