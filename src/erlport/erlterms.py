@@ -441,7 +441,10 @@ def encode_term(term,
     elif isinstance(term, dict):
         # encode dict as proplist, but will be orddict compatible if keys
         # are all of the same type.
-        return encode_term(sorted(term.iteritems()))
+        items = term.items()
+        # Faster than sorted(term.iteritems())
+        items.sort()
+        return encode_term(items)
     elif term is None:
         return pack(">BH", 100, 4) + "none"
     elif isinstance(term, Pid):
