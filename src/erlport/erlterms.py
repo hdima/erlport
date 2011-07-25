@@ -141,7 +141,7 @@ class Export(object):
 
 def decode(string):
     """Decode Erlang external term."""
-    if len(string) < 1:
+    if not string:
         raise IncompleteData("incomplete data: %r" % string)
     version = ord(string[0])
     if version != 131:
@@ -167,7 +167,7 @@ def decode_term(string,
                 # Hack to turn globals into locals
                 len=len, ord=ord, unpack=unpack, tuple=tuple, float=float,
                 BitBinary=BitBinary, Atom=Atom):
-    if len(string) < 1:
+    if not string:
         raise IncompleteData("incomplete data: %r" % string)
     tag = ord(string[0])
     tail = string[1:]
