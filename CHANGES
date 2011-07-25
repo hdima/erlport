@@ -1,5 +1,8 @@
 Version 0.7 (2011-MM-DD)
 
+    - Removed encoding of datetime.datetime() as {{Y, M, D}, {H, M, S}}.
+      It can be done in a high level code.
+
     - Added encoding/decoding for fun M:F/A
 
     - Added Port class and encoding/decoding for port() Erlang type

@@ -36,7 +36,6 @@ __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 from struct import pack, unpack
 from array import array
 from zlib import decompressobj, compress
-from datetime import datetime
 
 
 class IncompleteData(ValueError):
@@ -355,7 +354,7 @@ def encode_term(term,
                 pack=pack, tuple=tuple, len=len, isinstance=isinstance,
                 list=list, int=int, long=long, array=array, unicode=unicode,
                 Atom=Atom, BitBinary=BitBinary, str=str, float=float, ord=ord,
-                dict=dict, datetime=datetime, True=True, False=False,
+                dict=dict, True=True, False=False,
                 ValueError=ValueError, OverflowError=OverflowError):
     if isinstance(term, tuple):
         arity = len(term)
@@ -445,9 +444,6 @@ def encode_term(term,
         return encode_term(sorted(term.iteritems()))
     elif term is None:
         return pack(">BH", 100, 4) + "none"
-    elif isinstance(term, datetime):
-        return encode_term(((term.year, term.month, term.day),
-            (term.hour, term.minute, term.second)))
     elif isinstance(term, Pid):
         node = encode_term(term.node)
         if len(term.serial) != 4:
