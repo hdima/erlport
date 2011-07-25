@@ -401,15 +401,15 @@ def encode_term(term,
         return encode_term([ord(i) for i in term])
     elif isinstance(term, Atom):
         return pack(">BH", 100, len(term)) + term
+    # Must be before str type
     elif isinstance(term, BitBinary):
-        # Must be before str type
         return pack(">BIB", 77, len(term), term.bits) + term
     elif isinstance(term, str):
         length = len(term)
         if length > 4294967295:
             raise ValueError("invalid binary length")
         return pack(">BI", 109, length) + term
-    # must be before int type
+    # Must be before int type
     elif term is True or term is False:
         term = term and 'true' or 'false'
         return pack(">BH", 100, len(term)) + term
@@ -451,16 +451,16 @@ def encode_term(term,
         node = encode_term(term.node)
         if len(term.serial) != 4:
             raise ValueError("invalid pid serial field")
-        return "g" + node + term.id + term.serial + chr(term.creation)
+        return "g" + node + term.id + term.serial + "%c" % term.creation
     elif isinstance(term, Reference):
         node = encode_term(term.node)
         num = len(term.id) // 4
-        return "r" + pack(">H", num) + node + chr(term.creation) + term.id
+        return "r" + pack(">H", num) + node + "%c" % term.creation + term.id
     elif isinstance(term, Port):
         node = encode_term(term.node)
         if len(term.id) != 4:
             raise ValueError("invalid port id field")
-        return "f" + node + term.id + chr(term.creation)
+        return "f" + node + term.id + "%c" % term.creation
     elif isinstance(term, Export):
         module = encode_term(term.module)
         function = encode_term(term.function)
