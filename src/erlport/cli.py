@@ -28,8 +28,8 @@
 import sys
 from optparse import OptionParser, OptionValueError
 
-import erlang
-from erlport import Port, Atom
+from erlport import erlang
+from erlport import Port
 
 
 def get_option_parser():
@@ -54,14 +54,7 @@ def main(args=None):
     parser = get_option_parser()
     options, args = parser.parse_args(args)
     port = Port(use_stdio=options.stdio, packet=options.packet)
-    erlang.setup(port)
-
-    import time
-
-    while True:
-        r = erlang.call(Atom("calendar"), Atom("universal_time"), [])
-        print >>sys.stderr, "Result: %r" % (r,)
-        time.sleep(2)
+    erlang.start(port)
 
 
 if __name__ == "__main__":

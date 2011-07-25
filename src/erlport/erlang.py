@@ -32,12 +32,47 @@ from threading import Thread
 from erlport import Atom
 
 
+class CallThread(Thread):
+
+    def __init__(self, sender):
+        self.sender = sender
+        self.commands = Queue()
+        Thread.__init__(self)
+        self.setDaemon(True)
+
+    def call(self, id, module, function, args):
+        self.commands.put((id, module, function, args))
+
+    def cast(self, module, function, args):
+        self.commands.put((module, function, args))
+
+    def run(self):
+        while True:
+            command = self.commands.get()
+            if len(command) == 4:
+                id, module, function, args = command
+                result = self._call(module, function, args)
+                self.sender.send((Atom("R"), id, result))
+            elif len(command) == 3:
+                module, function, args = command
+                self._call(module, function, args)
+
+    def _call(self, module, function, args):
+        m = modules.get(module)
+        if m is None:
+            m = __import__(module, {}, {}, [function])
+        f = getattr(m, function)
+        return f(*args)
+
+
+
 class ReceiveThread(Thread):
 
     def __init__(self, port, sender, manager):
         self.port = port
-        self.sender = sender
         self.manager = manager
+        self.calls = CallThread(sender)
+        self.calls.start()
         Thread.__init__(self)
         self.setDaemon(True)
 
@@ -56,28 +91,17 @@ class ReceiveThread(Thread):
                 if mtype == "S":
                     if len(message) == 5:
                         id, module, function, args = message[1:]
-                        result = self.call(module, function, args)
-                        self.sender.send((Atom("R"), id, result))
-                        return
+                        self.calls.call(id, module, function, args)
                 elif mtype == "A":
                     if len(message) == 4:
                         module, function, args = message[1:]
-                        self.call(module, function, args)
-                        return
+                        self.calls.cast(module, function, args)
                 elif mtype == "R":
                     if len(message) == 3:
                         id, result = message[1:]
                         queue = self.manager.requests[id]
                         if queue is not None:
                             queue.put(result)
-                        return
-
-    def call(self, module, function, args):
-        m = modules.get(module)
-        if m is None:
-            m = __import__(module, {}, {}, [function])
-        f = getattr(m, function)
-        return f(*args)
 
 
 class SendThread(Thread):
@@ -119,6 +143,7 @@ class ThreadedCallProtocol(object):
         id = self.id
         # TODO: Optimize id generation
         # TODO: Cleanup requests storage
+        # TODO: Lock?
         self.id += 1
         request = Atom("S"), id, Atom(module), Atom(function), list(args)
         queue = Queue()
@@ -128,9 +153,14 @@ class ThreadedCallProtocol(object):
         del self.requests[id]
         return response
 
+    def join(self):
+        self.receiver.join()
+        self.sender.join()
 
-def setup(port):
+
+def start(port):
     global call, cast
     proto = ThreadedCallProtocol(port)
     call = proto.call
     cast = proto.cast
+    proto.join()
