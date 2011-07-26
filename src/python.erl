@@ -146,13 +146,18 @@ handle_info({Port, {data, Data}}, State=#state{port=Port,
             {noreply, NewState};
         {'A', Module, Function, Args} when is_atom(Module), is_atom(Function),
                 is_list(Args) ->
-            apply(Module, Function, Args),
+            proc_lib:spawn(fun () ->
+                apply(Module, Function, Args)
+                end),
             {noreply, State};
         {'S', Id, Module, Function, Args} when is_atom(Module),
                 is_atom(Function), is_list(Args) ->
-            Result = apply(Module, Function, Args),
-            Response = {'R', Id, Result},
-            true = port_command(Port, term_to_binary(Response)),
+            proc_lib:spawn(fun () ->
+                % TODO: Handle errors
+                Result = apply(Module, Function, Args),
+                Response = {'R', Id, Result},
+                true = port_command(Port, term_to_binary(Response))
+                end),
             {noreply, State}
     catch
         error:badarg ->
