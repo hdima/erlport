@@ -36,6 +36,7 @@ __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 from struct import pack, unpack
 from array import array
 from zlib import decompressobj, compress
+from cPickle import loads, dumps
 
 
 class IncompleteData(ValueError):
@@ -92,6 +93,15 @@ class Pid(object):
         self.serial = serial
         self.creation = creation
 
+    def __eq__(self, other):
+        return (type(self) == type(other)
+            and (self.node, self.id, self.serial, self.creation)
+                == (other.node, other.id, other.serial, other.creation))
+
+    def __hash__(self):
+        hash((self.__module__, self.__name__,
+            self.node, self.id, self.serial, self.creation))
+
     def __repr__(self):
         return "pid(%r, %r, %r, %r)" % (self.node, self.id, self.serial,
             self.creation)
@@ -107,6 +117,15 @@ class Reference(object):
         self.id = id
         self.creation = creation
 
+    def __eq__(self, other):
+        return (type(self) == type(other)
+            and (self.node, self.id, self.creation)
+                == (other.node, other.id, other.creation))
+
+    def __hash__(self):
+        hash((self.__module__, self.__name__,
+            self.node, self.id, self.creation))
+
     def __repr__(self):
         return "ref(%r, %r, %r)" % (self.node, self.id, self.creation)
 
@@ -121,6 +140,15 @@ class Port(object):
         self.id = id
         self.creation = creation
 
+    def __eq__(self, other):
+        return (type(self) == type(other)
+            and (self.node, self.id, self.creation)
+                == (other.node, other.id, other.creation))
+
+    def __hash__(self):
+        hash((self.__module__, self.__name__,
+            self.node, self.id, self.creation))
+
     def __repr__(self):
         return "port(%r, %r, %r)" % (self.node, self.id, self.creation)
 
@@ -134,6 +162,15 @@ class Export(object):
         self.module = module
         self.function = function
         self.arity = arity
+
+    def __eq__(self, other):
+        return (type(self) == type(other)
+            and (self.module, self.function, self.arity)
+                == (other.module, other.function, other.arity))
+
+    def __hash__(self):
+        hash((self.__module__, self.__name__,
+            self.module, self.function, self.arity))
 
     def __repr__(self):
         return "export(%r, %r, %r)" % (self.module, self.function, self.arity)
@@ -250,6 +287,8 @@ def decode_term(string,
             term, tail = decode_term(tail)
             lst.append(term)
             arity -= 1
+        if len(lst) == 2 and lst[0] == Atom("python_pickle"):
+            return loads(lst[1]), tail
         return tuple(lst), tail
     elif tag == 70:
         # NEW_FLOAT_EXT
@@ -467,4 +506,8 @@ def encode_term(term,
         arity = encode_term(term.arity)
         return "q" + module + function + arity
 
-    raise ValueError("unsupported data type: %s" % type(term))
+    try:
+        data = dumps(term, -1)
+    except:
+        raise ValueError("unsupported data type: %s" % type(term))
+    return encode_term((Atom("python_pickle"), data))
