@@ -58,10 +58,12 @@ class CallThread(Thread):
                 self._call(module, function, args)
 
     def _call(self, module, function, args):
-        m = modules.get(module)
-        if m is None:
-            m = __import__(module, {}, {}, [function])
-        f = getattr(m, function)
+        objects = function.split(".")
+        f = modules.get(module)
+        if f is None:
+            f = __import__(module, {}, {}, [objects[0]])
+        for o in objects:
+            f = getattr(f, o)
         return f(*args)
 
 
