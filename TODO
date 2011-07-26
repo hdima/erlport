@@ -4,7 +4,11 @@ python.erl
 - Protocol handshake? For example it can be "--version N" command line option
   for erlport.cli
 
-- Python shell support for debugging. Is it possible at all?
+- Add 'python' and 'python_path' options to python:start/1
+
+- Call timeouts
+
+- Maybe force strings with {string, String}?
 
 
 erlport.erlterms

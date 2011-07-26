@@ -25,11 +25,29 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from sys import modules
+from sys import modules, exc_info
 from Queue import Queue
 from threading import Thread
+from traceback import extract_tb
 
 from erlport import Atom
+
+
+class Error(Exception):
+
+    def __init__(self, value, stacktrace):
+        self.value = value
+        self.stacktrace = stacktrace
+        Exception.__init__(self, (value, stacktrace))
+
+class ErlangError(Error):
+    """Erlang error."""
+
+class ThrowErlangError(Error):
+    """Erlang throw()."""
+
+class ExitErlangError(Error):
+    """Erlang exit()."""
 
 
 class CallThread(Thread):
@@ -51,11 +69,22 @@ class CallThread(Thread):
             command = self.commands.get()
             if len(command) == 4:
                 id, module, function, args = command
-                result = self._call(module, function, args)
+                result = self._call_with_errors(module, function, args)
                 self.sender.send((Atom("R"), id, result))
             elif len(command) == 3:
                 module, function, args = command
                 self._call(module, function, args)
+
+    def _call_with_errors(self, module, function, args):
+        try:
+            result = Atom("ok"), self._call(module, function, args)
+        except:
+            t, val, tb = exc_info()
+            exc = Atom("%s.%s" % (t.__module__, t.__name__))
+            exc_tb = extract_tb(tb)
+            exc_tb.reverse()
+            result = Atom("error"), (exc, unicode(val), exc_tb)
+        return result
 
     def _call(self, module, function, args):
         objects = function.split(".")
@@ -151,9 +180,18 @@ class ThreadedCallProtocol(object):
         queue = Queue()
         self.requests[id] = queue
         self.sender.send(request)
-        response = queue.get()
+        result = queue.get()
         del self.requests[id]
-        return response
+        if result[0] == Atom("ok"):
+            return result[1]
+        error, value, stacktrace = result[1:4]
+        if error == Atom("error"):
+            raise ErlangError(value, stacktrace)
+        elif error == Atom("exit"):
+            raise ExitErlangError(value, stacktrace)
+        elif error == Atom("throw"):
+            raise ThrowErlangError(value, stacktrace)
+        raise Error(value, stacktrace)
 
     def join(self):
         self.receiver.join()

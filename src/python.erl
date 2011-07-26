@@ -70,9 +70,12 @@ stop(InstanceId) when is_pid(InstanceId) ->
 
 call(InstanceId, Module, Function, Args) when is_pid(InstanceId),
         is_atom(Module), is_atom(Function), is_list(Args) ->
-    % TODO: We need to distinguish server errors, function errors and function
-    % results
-    gen_server:call(InstanceId, {call, Module, Function, Args}).
+    case gen_server:call(InstanceId, {call, Module, Function, Args}) of
+        {ok, Result} ->
+            Result;
+        {error, Error} ->
+            erlang:error(Error)
+    end.
 
 
 cast(InstanceId, Module, Function, Args) when is_pid(InstanceId),
@@ -153,8 +156,11 @@ handle_info({Port, {data, Data}}, State=#state{port=Port,
         {'S', Id, Module, Function, Args} when is_atom(Module),
                 is_atom(Function), is_list(Args) ->
             proc_lib:spawn(fun () ->
-                % TODO: Handle errors
-                Result = apply(Module, Function, Args),
+                Result = try {ok, apply(Module, Function, Args)}
+                    catch
+                        Class:Reason ->
+                            {error, Class, Reason, erlang:get_stacktrace()}
+                    end,
                 Response = {'R', Id, Result},
                 true = port_command(Port, term_to_binary(Response))
                 end),
@@ -164,8 +170,6 @@ handle_info({Port, {data, Data}}, State=#state{port=Port,
             {noreply, State}
     end;
 handle_info({timeout, From}, State) ->
-    % TODO: We need to distinguish server errors, function errors and function
-    % results
     gen_server:reply(From, {error, timeout}),
     {noreply, State};
 handle_info(_Info, State) ->
