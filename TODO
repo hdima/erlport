@@ -6,6 +6,8 @@ python.erl
 
 - Add 'python' and 'python_path' options to python:start/1
 
+- How to handle Python <-> Python exceptions?
+
 - Call timeouts
 
 - Maybe force strings with {string, String}?
