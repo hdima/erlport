@@ -30,7 +30,9 @@
 -behaviour(gen_server).
 
 -export([
+    start/0,
     start/1,
+    start_link/0,
     start_link/1,
     stop/1,
     call/4,
@@ -56,9 +58,24 @@
 -define(CALL_TIMEOUT, 15000).
 
 
+start() ->
+    start([]).
+
+-spec start(Options) -> Result when
+    Options :: [Option],
+    Option :: nouse_stdio
+        | {packet, 1 | 2 | 4}
+        | {python, Python :: string()}
+        | {python_path, Path :: string()}
+        | {env, [{Name :: string(), Value :: string() | false}]},
+    Result :: {ok, pid()} | {error, term()}.
+
 start(Options) when is_list(Options) ->
     gen_server:start(?MODULE, Options, [{timeout, ?START_TIMEOUT}]).
 
+
+start_link() ->
+    start_link([]).
 
 start_link(Options) when is_list(Options) ->
     gen_server:start_link(?MODULE, Options, [{timeout, ?START_TIMEOUT}]).
@@ -103,9 +120,17 @@ init(Options) when is_list(Options) ->
         4 ->
             4
     end,
-    Port = open_port({spawn, "python -u -m erlport.cli --packet="
+    Python = proplists:get_value(python, Options, "python"),
+    Env = proplists:get_value(env, Options, []),
+    Env2 = case proplists:get_value(python_path, Options) of
+        undefined ->
+            Env;
+        PythonPath ->
+            [{"PYTHONPATH", PythonPath} | proplists:delete("PYTHONPATH", Env)]
+    end,
+    Port = open_port({spawn, Python ++ " -u -m erlport.cli --packet="
         ++ integer_to_list(Packet) ++ " --" ++ atom_to_list(Stdio)},
-        [{packet, Packet}, binary, Stdio, hide]),
+        [{packet, Packet}, binary, Stdio, hide, {env, Env2}]),
     {ok, #state{port=Port}}.
 
 

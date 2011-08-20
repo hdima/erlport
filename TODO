@@ -4,13 +4,15 @@ python.erl
 - Protocol handshake? For example it can be "--version N" command line option
   for erlport.cli
 
-- Add 'python' and 'python_path' options to python:start/1
+- Add {'cd', Dir} option to python:start(_link)/1
 
 - How to handle Python <-> Python exceptions?
 
 - Call timeouts
 
 - Maybe force strings with {string, String}?
+
+- Periodically check if channel is alive in Python?
 
 
 erlport.erlterms
