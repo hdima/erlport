@@ -14,6 +14,8 @@ python.erl
 
 - Periodically check if channel is alive in Python?
 
+- Need a way to start a Python code on Python start
+
 
 erlport.erlterms
 ================
