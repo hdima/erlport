@@ -1,4 +1,4 @@
-# Copyright (c) 2009, 2010, Dmitry Vasiliev <dima@hlabs.org>
+# Copyright (c) 2009-2012, Dmitry Vasiliev <dima@hlabs.org>
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 test:
-	python setup.py test
-
-sdist:
-	python setup.py sdist
-
-bdist_egg:
-	python setup.py bdist_egg
+	cd priv/python; make test
 
 clean:
-	python setup.py clean --all
-
-release:
-	python setup.py register
-	python setup.py bdist_egg upload
-	python setup.py sdist upload

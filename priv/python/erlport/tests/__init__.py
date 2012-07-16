@@ -1,5 +1,4 @@
-#! /usr/bin/env python
-# Copyright (c) 2009, 2010, Dmitry Vasiliev <dima@hlabs.org>
+# Copyright (c) 2009-2012, Dmitry Vasiliev <dima@hlabs.org>
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -26,35 +25,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__author__ = "Dmitry Vasiliev <dima@hlabs.org>"
+import doctest
+import unittest
 
-from setuptools import setup, find_packages
+
+def test_suite():
+    suite = unittest.TestSuite()
+    suite.addTest(doctest.DocFileSuite("erlterms.txt"))
+    suite.addTest(doctest.DocFileSuite("erlproto.txt"))
+    return suite
 
 
-setup(
-    name="erlport",
-    version="0.7",
-    url="http://github.com/hdima/erlport",
-    description="Erlang port protocol",
-    long_description=open('README.rst').read(),
-    author="Dmitry Vasiliev",
-    author_email="dima@hlabs.org",
-    license="BSD",
-    platforms="any",
-    keywords="Python Erlang",
-
-    packages=find_packages("src", exclude=["*.tests"]),
-    package_dir={"": "src"},
-
-    zip_safe = True,
-    test_suite="erlport.tests.test_suite",
-    classifiers=[
-        "Development Status :: 4 - Beta",
-        "Environment :: Console",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: BSD License",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python",
-        "Topic :: Software Development :: Libraries",
-        ],
-)
+if __name__ == "__main__":
+    unittest.main(defaultTest="test_suite")
