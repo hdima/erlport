@@ -131,8 +131,10 @@ init(Options) when is_list(Options) ->
             [{"PYTHONPATH", PrivPath ++ ":" ++ PythonPath}
                 | proplists:delete("PYTHONPATH", Env)]
     end,
-    Port = open_port({spawn, Python ++ " -u -m erlport.cli --packet="
-        ++ integer_to_list(Packet) ++ " --" ++ atom_to_list(Stdio)},
+    % TODO: Add custom args?
+    Path = lists:concat([Python, " -u -m erlport.cli --packet=", Packet,
+        " --", Stdio]),
+    Port = open_port({spawn, Path},
         [{packet, Packet}, binary, Stdio, hide, {env, Env2}]),
     {ok, #state{port=Port}}.
 
