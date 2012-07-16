@@ -122,11 +122,14 @@ init(Options) when is_list(Options) ->
     end,
     Python = proplists:get_value(python, Options, "python"),
     Env = proplists:get_value(env, Options, []),
+    % TODO: Check for errors
+    PrivPath = filename:join(code:priv_dir(erlport), "python"),
     Env2 = case proplists:get_value(python_path, Options) of
         undefined ->
-            Env;
+            [{"PYTHONPATH", PrivPath} | Env];
         PythonPath ->
-            [{"PYTHONPATH", PythonPath} | proplists:delete("PYTHONPATH", Env)]
+            [{"PYTHONPATH", PrivPath ++ ":" ++ PythonPath}
+                | proplists:delete("PYTHONPATH", Env)]
     end,
     Port = open_port({spawn, Python ++ " -u -m erlport.cli --packet="
         ++ integer_to_list(Packet) ++ " --" ++ atom_to_list(Stdio)},
