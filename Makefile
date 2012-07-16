@@ -25,7 +25,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+SOURCES = $(wildcard src/*.erl)
+BEAMS = $(patsubst src/%.erl,ebin/%.beam,$(SOURCES))
+
+
+compile: $(BEAMS)
+
+ebin/%.beam: src/%.erl
+	erlc -Wall -o ebin $<
+
 test:
 	cd priv/python; make test
-
-clean:
