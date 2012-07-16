@@ -1,6 +1,12 @@
 - Switch ErlPort to Erlang application instead of Python application.  Remove
   .egg generation and move .py files to priv/ directory.
 
+- Two modes of operation:
+
+  - Call and cast from Erlang
+
+  - Call and cast from Python with user supplied script
+
 python.erl
 ==========
 
