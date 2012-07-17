@@ -7,6 +7,9 @@
 
   - Call and cast from Python with user supplied script
 
+- Add opaque type {opaque, Type :: erlang | python, Data :: binary()} and
+  unpack Data depending on Type.
+
 python.erl
 ==========
 
