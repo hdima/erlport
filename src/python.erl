@@ -50,7 +50,7 @@
 
 -record(state, {
     port :: port(),
-    server = true :: boolean(),
+    client = true :: boolean(),
     queue = queue:new() :: queue(),
     in_process
     }).
@@ -140,7 +140,7 @@ init(Options) when is_list(Options) ->
     Stdio = stdio_option(Options),
     Packet = packet_option(Options),
     Python = python_option(Options),
-    Server = server_option(Options),
+    Client = client_option(Options),
     Env = env_option(Options),
     % TODO: Add custom args?
     % TODO: Default call timeout?
@@ -149,13 +149,11 @@ init(Options) when is_list(Options) ->
         " --", Stdio]),
     Port = open_port({spawn, Path},
         [{packet, Packet}, binary, Stdio, hide, {env, Env}]),
-    {ok, #state{port=Port, server=Server}}.
+    {ok, #state{port=Port, client=Client}}.
 
 
-handle_call({call, _, _, _}, _, State=#state{server=false}) ->
-    {reply, {error, unable_to_call_in_server_mode}, State};
 handle_call({call, Module, Function, Args}, From, State=#state{port=Port,
-        queue=Queue, in_process=InProcess})
+        queue=Queue, in_process=InProcess, client=true})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
     case InProcess of
         undefined ->
@@ -169,14 +167,14 @@ handle_call({call, Module, Function, Args}, From, State=#state{port=Port,
             Queue2 = queue:in(Request, Queue),
             {noreply, State#state{queue=Queue2}}
     end;
+handle_call({call, _, _, _}, _, State) ->
+    {reply, {error, unable_to_call_in_server_mode}, State};
 handle_call(Request, From, State) ->
     {reply, {error, {bad_request, ?MODULE, Request, From}}, State}.
 
 
-handle_cast({cast, _, _, _}, State=#state{server=false}) ->
-    {noreply, State};
 handle_cast({cast, Module, Function, Args}, State=#state{port=Port,
-        queue=Queue, in_process=InProcess})
+        queue=Queue, in_process=InProcess, client=true})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
     case InProcess of
         undefined ->
@@ -190,39 +188,15 @@ handle_cast({cast, Module, Function, Args}, State=#state{port=Port,
             Queue2 = queue:in(Request, Queue),
             {noreply, State#state{queue=Queue2}}
     end;
+handle_cast({cast, _, _, _}, State) ->
+    {noreply, State};
 handle_cast(stop, State) ->
     {stop, normal, State};
 handle_cast(_Request, State) ->
     {noreply, State}.
 
 
-handle_info({Port, {data, Data}}, State=#state{server=false, port=Port}) ->
-    try binary_to_term(Data) of
-        {'C', Module, Function, Args} when is_atom(Module), is_atom(Function),
-                is_list(Args) ->
-            proc_lib:spawn(fun () ->
-                Result = try {ok, apply(Module, Function, Args)}
-                    catch
-                        Class:Reason ->
-                            {error, Class, Reason, erlang:get_stacktrace()}
-                    end,
-                Response = {'R', Result},
-                true = port_command(Port, term_to_binary(Response))
-                end),
-            % TODO: Check errors in the process??
-            {noreply, State};
-        {'M', Module, Function, Args} when is_atom(Module), is_atom(Function),
-                is_list(Args) ->
-            proc_lib:spawn(fun () -> apply(Module, Function, Args) end),
-            true = port_command(Port, term_to_binary('R')),
-            {noreply, State};
-        _ ->
-            {noreply, State}
-    catch
-        error:badarg ->
-            {noreply, State}
-    end;
-handle_info({Port, {data, Data}}, State=#state{port=Port,
+handle_info({Port, {data, Data}}, State=#state{client=true, port=Port,
         in_process=InProcess}) ->
     try binary_to_term(Data) of
         'R' ->
@@ -258,6 +232,32 @@ handle_info({Port, {data, Data}}, State=#state{port=Port,
                     ok
             end,
             {stop, invalid_result, State}
+    end;
+handle_info({Port, {data, Data}}, State=#state{port=Port}) ->
+    try binary_to_term(Data) of
+        {'C', Module, Function, Args} when is_atom(Module), is_atom(Function),
+                is_list(Args) ->
+            proc_lib:spawn(fun () ->
+                Result = try {ok, apply(Module, Function, Args)}
+                    catch
+                        Class:Reason ->
+                            {error, Class, Reason, erlang:get_stacktrace()}
+                    end,
+                Response = {'R', Result},
+                true = port_command(Port, term_to_binary(Response))
+                end),
+            % TODO: Monitor process?
+            {noreply, State};
+        {'M', Module, Function, Args} when is_atom(Module), is_atom(Function),
+                is_list(Args) ->
+            proc_lib:spawn(fun () -> apply(Module, Function, Args) end),
+            true = port_command(Port, term_to_binary('R')),
+            {noreply, State};
+        _ ->
+            {noreply, State}
+    catch
+        error:badarg ->
+            {noreply, State}
     end;
 % TODO: More port related handlers
 handle_info(timeout, State=#state{in_process=InProcess}) ->
@@ -337,8 +337,8 @@ join_python_path(Parts=[_|_]) ->
     string:join([P || P=[_|_] <- Parts], ":").
 
 
-server_option(Options) ->
-    case proplists:get_value(client, Options, false) of
+client_option(Options) ->
+    case proplists:get_value(client, Options, true) of
         false ->
             false;
         _ ->

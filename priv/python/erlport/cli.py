@@ -37,6 +37,7 @@ def get_option_parser():
         if value not in (1, 2, 4):
             raise OptionValueError("Valid values for --packet are 1, 2, or 4")
         setattr(parser.values, option.dest, value)
+
     parser = OptionParser()
     parser.add_option("--packet", action="callback", type="int",
         help="Message length sent in N bytes. Valid values are 1, 2, or 4",
@@ -47,6 +48,8 @@ def get_option_parser():
     parser.add_option("--use_stdio", action="store_true", dest="stdio",
         default=True,
         help="Use file descriptors 0 and 1 for communication with Erlang")
+    parser.add_option("--client", dest="client",
+        help="Set 'client mode' module for Python", metavar="FILE")
     return parser
 
 
@@ -54,7 +57,7 @@ def main(args=None):
     parser = get_option_parser()
     options, args = parser.parse_args(args)
     port = Port(use_stdio=options.stdio, packet=options.packet)
-    erlang.start(port)
+    erlang.start(port, options.client)
 
 
 if __name__ == "__main__":

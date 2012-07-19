@@ -28,6 +28,5 @@
 {application, erlport, [
     {description, "Erlang port protocol"},
     {vsn, "1.0"},
-    {modules, [python]},
     {applications, [kernel, stdlib]}
     ]}.

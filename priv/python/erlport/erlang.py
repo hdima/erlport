@@ -197,10 +197,64 @@ class ThreadedCallProtocol(object):
         self.receiver.join()
         self.sender.join()
 
+class ServerMode(object):
 
-def start(port):
-    global call, cast
-    proto = ThreadedCallProtocol(port)
-    call = proto.call
-    cast = proto.cast
-    proto.join()
+    def __init__(self, port):
+        self.port = port
+
+    def start(self):
+        read = self.port.read
+        write = self.port.write
+        handle = self.handle
+        while True:
+            try:
+                handle(read(), write)
+            except EOFError:
+                break
+
+    def handle(self, message, write):
+        try:
+            # TODO: Is it faster than checking the type and size first?
+            mtype, module, function, args = message
+        except ValueError:
+            # FIXME: Should we exit if we received a bad message?
+            pass
+        else:
+            if mtype == "C":
+                write(self.call(module, function, args))
+            elif mtype == "A":
+                write(Atom("R"))
+                self.call(module, function, args)
+
+    def call(self, module, function, args):
+        try:
+            # TODO: Need to check this code
+            objects = function.split(".")
+            f = modules.get(module)
+            if f is None:
+                f = __import__(module, {}, {}, [objects[0]])
+            for o in objects:
+                f = getattr(f, o)
+            result = Atom("ok"), f(*args)
+        except:
+            t, val, tb = exc_info()
+            exc = Atom("%s.%s" % (t.__module__, t.__name__))
+            exc_tb = extract_tb(tb)
+            exc_tb.reverse()
+            result = Atom("error"), (exc, unicode(val), exc_tb)
+        return Atom("R"), result
+
+
+def call(module, function, args):
+    raise ServerMode("call() is unsupported in 'server mode'")
+
+def cast(module, function, args):
+    raise ServerMode("cast() is unsupported in 'server mode'")
+
+
+def start(port, client_script):
+    if client_script is None:
+        ServerMode(port).start()
+    else:
+        global call, cast
+        # Set call() and cast() and start user application
