@@ -1,20 +1,16 @@
-- Switch ErlPort to Erlang application instead of Python application.  Remove
-  .egg generation and move .py files to priv/ directory.
-
 - Two modes of operation:
 
   - Call and cast from Erlang
 
   - Call and cast from Python with user supplied script
 
+- We can store already encoded request in the request queue
+
+- We can allow to send some number (configurable?) of backlog request while
+  we waiting for response
+
 - Add opaque type {opaque, Type :: erlang | python, Data :: binary()} and
   unpack Data depending on Type.
-
-python.erl
-==========
-
-- Protocol handshake? For example it can be "--version N" command line option
-  for erlport.cli
 
 - Add {'cd', Dir} option to python:start(_link)/1
 
@@ -24,20 +20,18 @@ python.erl
 
 - Maybe force strings with {string, String}?
 
-- Periodically check if channel is alive in Python?
-
 - Need a way to start a Python code on Python start
 
+- Pluggable encoders/decoders? We can register proxy encoder/decoder functions.
 
-erlport.erlterms
-================
+- Reduce number of supported types.
 
-- Pluggable encoders/decoders?
+- Python 3, other languages?
 
-- Add all Erlang datatypes
+- Maybe we can try variable length length field as in
+  Twisted Banana/Protocol Buffers protocols
 
+- Maybe we can cache atoms or module/function but it also can be slower?
 
-Other
-=====
-
-- Python 3 support
+- Periodically check if channel is alive in Python? Seems unneeded because we
+  always trying read or write
