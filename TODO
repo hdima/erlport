@@ -18,6 +18,17 @@
 
 - Call timeouts
 
+- Check default port options on Windows
+
+- Can we request attributes also, like
+  python:call(P, 'sys.modules', get, [<<"sys">>])?
+
+- Add some type functions on Erlang side. Like
+  python_types:module("__builtins__")??
+
+- Add ready to use function to return attribute of objects in Python.
+  Should it be added to erlport.py/python.py or just erlang.py?
+
 - Maybe force strings with {string, String}?
 
 - Need a way to start a Python code on Python start
@@ -25,6 +36,8 @@
 - Pluggable encoders/decoders? We can register proxy encoder/decoder functions.
 
 - Reduce number of supported types.
+
+- Support also argparse along with optparse in Python? Or rework erlport.cli?
 
 - Python 3, other languages?
 
