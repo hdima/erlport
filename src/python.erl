@@ -157,10 +157,17 @@ handle_call({call, Module, Function, Args}, From, State=#state{port=Port,
     Data = term_to_binary({'C', Module, Function, Args}),
     case InProcess of
         undefined ->
-            Timer = erlang:send_after(?CALL_TIMEOUT, self(), timeout),
-            Info = {call, From, Timer},
-            true = port_command(Port, Data),
-            {noreply, State#state{in_process=Info}};
+            case try_to_send(Port, Data) of
+                {ok, Timer} ->
+                    Info = {call, From, Timer},
+                    {noreply, State#state{in_process=Info}};
+                wait ->
+                    Request = {call, From, Data},
+                    Queue2 = queue:in(Request, Queue),
+                    {noreply, State#state{queue=Queue2}};
+                fail ->
+                    {stop, port_closed, State}
+            end;
         _ ->
             Request = {call, From, Data},
             Queue2 = queue:in(Request, Queue),
@@ -178,10 +185,17 @@ handle_cast({cast, Module, Function, Args}, State=#state{port=Port,
     Data = term_to_binary({'M', Module, Function, Args}),
     case InProcess of
         undefined ->
-            Timer = erlang:send_after(?CALL_TIMEOUT, self(), timeout),
-            Info = {cast, Timer},
-            true = port_command(Port, Data),
-            {noreply, State#state{in_process=Info}};
+            case try_to_send(Port, Data) of
+                {ok, Timer} ->
+                    Info = {cast, Timer},
+                    {noreply, State#state{in_process=Info}};
+                wait ->
+                    Request = {cast, Data},
+                    Queue2 = queue:in(Request, Queue),
+                    {noreply, State#state{queue=Queue2}};
+                fail ->
+                    {stop, port_closed, State}
+            end;
         _ ->
             Request = {cast, Data},
             Queue2 = queue:in(Request, Queue),
@@ -232,7 +246,7 @@ handle_info({Port, {data, Data}}, State=#state{client=true, port=Port,
             end,
             {stop, invalid_result, State}
     end;
-handle_info({Port, {data, Data}}, State=#state{port=Port}) ->
+handle_info({Port, {data, Data}}, State=#state{port=Port, queue=Queue}) ->
     try binary_to_term(Data) of
         {'C', Module, Function, Args} when is_atom(Module), is_atom(Function),
                 is_list(Args) ->
@@ -250,8 +264,16 @@ handle_info({Port, {data, Data}}, State=#state{port=Port}) ->
         {'M', Module, Function, Args} when is_atom(Module), is_atom(Function),
                 is_list(Args) ->
             proc_lib:spawn(fun () -> apply(Module, Function, Args) end),
-            true = port_command(Port, term_to_binary('R')),
-            {noreply, State};
+            Data = term_to_binary('R'),
+            case try_to_send(Port, Data, false) of
+                ok ->
+                    {noreply, State};
+                wait ->
+                    Queue2 = queue:in({response, Data}, Queue),
+                    {noreply, State#state{queue=Queue2}};
+                fail ->
+                    {stop, port_closed, State}
+            end;
         _ ->
             {noreply, State}
     catch
@@ -261,11 +283,11 @@ handle_info({Port, {data, Data}}, State=#state{port=Port}) ->
 % TODO: More port related handlers
 handle_info(timeout, State=#state{in_process=InProcess}) ->
     case InProcess of
-        undefined ->
-            {noreply, State};
-        {From, _} ->
+        {call, From, _} ->
             gen_server:reply(From, {error, timeout}),
-            {stop, timeout, State}
+            {stop, timeout, State};
+        _ ->
+            {noreply, State}
     end;
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -344,18 +366,62 @@ client_option(Options) ->
             true
     end.
 
-check_queue(State=#state{port=Port, queue=Queue}) ->
+try_to_send(Port, Data) ->
+    try_to_send(Port, Data, true).
+
+try_to_send(Port, Data, NeedTimer) ->
+    try port_command(Port, Data, [nosuspend]) of
+        true ->
+            case NeedTimer of
+                true ->
+                    Timer = erlang:send_after(?CALL_TIMEOUT, self(), timeout),
+                    {ok, Timer};
+                false ->
+                    ok
+            end;
+        false ->
+            wait
+    catch
+        error:badarg ->
+            fail
+    end.
+
+check_queue(State=#state{port=Port, queue=Queue, client=true}) ->
     case queue:out(Queue) of
         {empty, Queue} ->
             {noreply, State#state{in_process=undefined}};
         {{value, {call, Client, Data}}, Queue2} ->
-            Timer = erlang:send_after(?CALL_TIMEOUT, self(), timeout),
-            true = port_command(Port, Data),
-            Info = {call, Client, Timer},
-            {noreply, State#state{in_process=Info, queue=Queue2}};
+            case try_to_send(Port, Data) of
+                {ok, Timer} ->
+                    Info = {call, Client, Timer},
+                    {noreply, State#state{in_process=Info, queue=Queue2}};
+                wait ->
+                    {noreply, State#state{in_process=undefined}};
+                fail ->
+                    {stop, port_closed, State}
+            end;
         {{value, {cast, Data}}, Queue2} ->
-            Timer = erlang:send_after(?CALL_TIMEOUT, self(), timeout),
-            true = port_command(Port, Data),
-            Info = {cast, Timer},
-            {noreply, State#state{in_process=Info, queue=Queue2}}
+            case try_to_send(Port, Data) of
+                {ok, Timer} ->
+                    Info = {cast, Timer},
+                    {noreply, State#state{in_process=Info, queue=Queue2}};
+                wait ->
+                    {noreply, State#state{in_process=undefined}};
+                fail ->
+                    {stop, port_closed, State}
+            end
+    end;
+check_queue(State=#state{port=Port, queue=Queue}) ->
+    case queue:out(Queue) of
+        {empty, Queue} ->
+            {noreply, State#state{in_process=undefined}};
+        {{value, {response, Data}}, Queue2} ->
+            case try_to_send(Port, Data, false) of
+                ok ->
+                    {noreply, State#state{queue=Queue2}};
+                wait ->
+                    {noreply, State};
+                fail ->
+                    {stop, port_closed, State}
+            end
     end.
