@@ -41,5 +41,14 @@ call_test_() -> {setup,
     fun setup/0,
     fun cleanup/1,
     fun (P) -> [
-        ?_assertEqual(4, python:call(P, '__builtin__', eval, [<<"2 + 2">>]))
+        ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
     ] end}.
+
+call_queue_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (P) ->
+        {inparallel, [
+            ?_assertEqual(N + 1, python:call(P, operator, add, [N , 1]))
+            || N <- lists:seq(1, 50)]}
+    end}.

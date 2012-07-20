@@ -4,8 +4,6 @@
 
   - Call and cast from Python with user supplied script
 
-- We can store already encoded request in the request queue
-
 - We can allow to send some number (configurable?) of backlog request while
   we waiting for response. We just can use 'nosuspend' options for port_command
 
@@ -72,3 +70,7 @@
   error for requests/responses, uptime?
 
 - Check port_command for 'badarg' exception
+
+- Type: 'undefined' <-> None
+
+- Check term_to_binary/1 calls for errors

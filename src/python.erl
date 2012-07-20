@@ -52,7 +52,7 @@
     port :: port(),
     client = true :: boolean(),
     queue = queue:new() :: queue(),
-    in_process
+    in_process :: {call, From::term(), Timer::term()} | {cast, Timer::term()}
     }).
 
 -type state() :: #state{}.
@@ -144,7 +144,6 @@ init(Options) when is_list(Options) ->
     Env = env_option(Options),
     % TODO: Add custom args?
     % TODO: Default call timeout?
-    % TODO: Pass Server option to Python
     Path = lists:concat([Python, " -u -m erlport.cli --packet=", Packet,
         " --", Stdio]),
     Port = open_port({spawn, Path},
@@ -155,15 +154,15 @@ init(Options) when is_list(Options) ->
 handle_call({call, Module, Function, Args}, From, State=#state{port=Port,
         queue=Queue, in_process=InProcess, client=true})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
+    Data = term_to_binary({'C', Module, Function, Args}),
     case InProcess of
         undefined ->
             Timer = erlang:send_after(?CALL_TIMEOUT, self(), timeout),
-            Info = {'C', From, Timer},
-            Request = {'C', Module, Function, Args},
-            true = port_command(Port, term_to_binary(Request)),
+            Info = {call, From, Timer},
+            true = port_command(Port, Data),
             {noreply, State#state{in_process=Info}};
         _ ->
-            Request = {call, From, {'C', Module, Function, Args}},
+            Request = {call, From, Data},
             Queue2 = queue:in(Request, Queue),
             {noreply, State#state{queue=Queue2}}
     end;
@@ -176,15 +175,15 @@ handle_call(Request, From, State) ->
 handle_cast({cast, Module, Function, Args}, State=#state{port=Port,
         queue=Queue, in_process=InProcess, client=true})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
+    Data = term_to_binary({'M', Module, Function, Args}),
     case InProcess of
         undefined ->
             Timer = erlang:send_after(?CALL_TIMEOUT, self(), timeout),
-            Info = {'M', Timer},
-            Request = {'M', Module, Function, Args},
-            true = port_command(Port, term_to_binary(Request)),
+            Info = {cast, Timer},
+            true = port_command(Port, Data),
             {noreply, State#state{in_process=Info}};
         _ ->
-            Request = {cast, {'M', Module, Function, Args}},
+            Request = {cast, Data},
             Queue2 = queue:in(Request, Queue),
             {noreply, State#state{queue=Queue2}}
     end;
@@ -203,21 +202,21 @@ handle_info({Port, {data, Data}}, State=#state{client=true, port=Port,
             case InProcess of
                 undefined ->
                     {stop, orphan_result, State};
-                {'M', Timer} ->
+                {cast, Timer} ->
                     erlang:cancel_timer(Timer),
                     check_queue(State);
-                {'C', _From, _Timer} ->
+                {call, _From, _Timer} ->
                     {stop, unexpected_result, State}
             end;
         {'R', Result} ->
             case InProcess of
                 undefined ->
                     {stop, orphan_result, State};
-                {'C', From, Timer} ->
+                {call, From, Timer} ->
                     erlang:cancel_timer(Timer),
                     gen_server:reply(From, Result),
                     check_queue(State);
-                {'M', _Timer} ->
+                {cast, _Timer} ->
                     {stop, unexpected_result, State}
             end;
         _ ->
@@ -226,7 +225,7 @@ handle_info({Port, {data, Data}}, State=#state{client=true, port=Port,
     catch
         error:badarg ->
             case InProcess of
-                {'C', From, _Timer} ->
+                {call, From, _Timer} ->
                     gen_server:reply(From, {error, invalid_result});
                 _ ->
                     ok
@@ -257,7 +256,7 @@ handle_info({Port, {data, Data}}, State=#state{port=Port}) ->
             {noreply, State}
     catch
         error:badarg ->
-            {noreply, State}
+            {stop, invalid_request, State}
     end;
 % TODO: More port related handlers
 handle_info(timeout, State=#state{in_process=InProcess}) ->
@@ -349,14 +348,14 @@ check_queue(State=#state{port=Port, queue=Queue}) ->
     case queue:out(Queue) of
         {empty, Queue} ->
             {noreply, State#state{in_process=undefined}};
-        {value, {call, Client, Request}, Queue2} ->
+        {{value, {call, Client, Data}}, Queue2} ->
             Timer = erlang:send_after(?CALL_TIMEOUT, self(), timeout),
-            Info = {'C', Client, Timer},
-            true = port_command(Port, term_to_binary(Request)),
+            true = port_command(Port, Data),
+            Info = {call, Client, Timer},
             {noreply, State#state{in_process=Info, queue=Queue2}};
-        {value, {cast, Request}, Queue2} ->
+        {{value, {cast, Data}}, Queue2} ->
             Timer = erlang:send_after(?CALL_TIMEOUT, self(), timeout),
-            Info = {'M', Timer},
-            true = port_command(Port, term_to_binary(Request)),
+            true = port_command(Port, Data),
+            Info = {cast, Timer},
             {noreply, State#state{in_process=Info, queue=Queue2}}
     end.
