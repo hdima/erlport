@@ -52,3 +52,44 @@ call_queue_test_() -> {setup,
             ?_assertEqual(N + 1, python:call(P, operator, add, [N , 1]))
             || N <- lists:seq(1, 50)]}
     end}.
+
+cast_test_() -> {setup,
+    fun () ->
+        P = setup(),
+        TestFile = string:strip(?cmd("/bin/mktemp -t python_tests.XXXXXXXX"),
+            right, $\n),
+        {P, TestFile}
+    end,
+    fun ({_, TestFile}) ->
+        ok = file:delete(TestFile)
+    end,
+    fun ({P, TestFile}) ->
+        fun () ->
+            ?assertEqual(ok, python:cast(P, os, system,
+                [<<"echo 'OK' > ", (list_to_binary(TestFile))/binary>>])),
+            timer:sleep(500),
+            ?assertEqual({ok, <<"OK\n">>}, file:read_file(TestFile))
+        end
+    end}.
+
+cast_queue_test_() -> {setup,
+    fun () ->
+        P = setup(),
+        TestDir = string:strip(?cmd("/bin/mktemp -d -t python_tests.XXXXXXXX"),
+            right, $\n),
+        {P, TestDir}
+    end,
+    fun ({_, TestDir}) ->
+        ?cmd("/bin/rm -rf " ++ TestDir)
+    end,
+    fun ({P, TestDir}) ->
+        {inparallel, [
+            fun () ->
+                TestFile = filename:join(TestDir, integer_to_list(N)),
+                ?assertEqual(ok, python:cast(P, os, system,
+                        [<<"echo 'OK' > ",
+                            (list_to_binary(TestFile))/binary>>])),
+                timer:sleep(500),
+                ?assertEqual({ok, <<"OK\n">>}, file:read_file(TestFile))
+            end || N <- lists:seq(1, 50)]}
+    end}.

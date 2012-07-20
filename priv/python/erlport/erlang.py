@@ -222,20 +222,17 @@ class ServerMode(object):
         else:
             if mtype == "C":
                 write(self.call(module, function, args))
-            elif mtype == "A":
+            elif mtype == "M":
                 write(Atom("R"))
-                self.call(module, function, args)
+                try:
+                    self._call(module, function, args)
+                except:
+                    pass
 
     def call(self, module, function, args):
+        # TODO: Need to check this code
         try:
-            # TODO: Need to check this code
-            objects = function.split(".")
-            f = modules.get(module)
-            if f is None:
-                f = __import__(module, {}, {}, [objects[0]])
-            for o in objects:
-                f = getattr(f, o)
-            result = Atom("ok"), f(*args)
+            result = self._call(module, function, args)
         except:
             t, val, tb = exc_info()
             exc = Atom("%s.%s" % (t.__module__, t.__name__))
@@ -243,6 +240,16 @@ class ServerMode(object):
             exc_tb.reverse()
             result = Atom("error"), (exc, unicode(val), exc_tb)
         return Atom("R"), result
+
+    def _call(self, module, function, args):
+        # TODO: Need to check this code
+        objects = function.split(".")
+        f = modules.get(module)
+        if f is None:
+            f = __import__(module, {}, {}, [objects[0]])
+        for o in objects:
+            f = getattr(f, o)
+        return Atom("ok"), f(*args)
 
 
 def call(module, function, args):

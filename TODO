@@ -7,6 +7,8 @@
 - Create monitor and timer for Erlang function and wait for result. If timeout
   occurs we can return error
 
+- Use bigger buffer for port in Python
+
 - We can allow to send some number (configurable?) of backlog request while
   we waiting for response. We just can use 'nosuspend' options for port_command
 
