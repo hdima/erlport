@@ -7,7 +7,7 @@
 - We can store already encoded request in the request queue
 
 - We can allow to send some number (configurable?) of backlog request while
-  we waiting for response
+  we waiting for response. We just can use 'nosuspend' options for port_command
 
 - Add opaque type {opaque, Type :: erlang | python, Data :: binary()} and
   unpack Data depending on Type.
@@ -48,3 +48,27 @@
 
 - Periodically check if channel is alive in Python? Seems unneeded because we
   always trying read or write
+
+- Add workers_pool module with pluggable workers selection policies
+
+- Errors/exceptions should be like opaque types marked with the language
+  but store some known structures as values
+
+- Marks errors/exception with some ID? Like (node(), self(), OS PID) for Python
+  and (node(), self()) for Erlang?
+
+- Add ping() method with 'P' request and 'p' response. Or just some binary
+  request/response like 00/01?
+
+- Add some handshake protocol? We can request OS PID for example?
+
+- Periodically call ping() on timeouts (when there is no messages for some
+  time)?
+
+- If we found error in options just throw error and stop init function
+
+- Add info() function with statistics and information, for example number
+  of requests/responses, number of sent/received bytes, number of
+  error for requests/responses, uptime?
+
+- Check port_command for 'badarg' exception
