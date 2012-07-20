@@ -32,5 +32,8 @@ compile:
 test:
 	./rebar eunit
 
+check:
+	dialyzer ebin
 
-.PHONY: compile test
+
+.PHONY: compile test check
