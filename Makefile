@@ -29,8 +29,11 @@
 compile:
 	./rebar compile
 
-test:
+test: python-test
 	./rebar eunit
+
+python-test:
+	cd priv/python; make test
 
 check: compile
 	dialyzer ebin
