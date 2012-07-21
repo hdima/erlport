@@ -30,6 +30,6 @@
 __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 __version__ = "1.0"
 
-from erlport.erlproto import Port, Protocol
+from erlport.erlproto import Port
 from erlport.erlterms import IncompleteData, decode, encode
 from erlport.erlterms import Atom, String, BitBinary

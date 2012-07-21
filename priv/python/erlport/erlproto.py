@@ -30,57 +30,10 @@
 __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 
 import os
-import sys
 import errno
-import traceback
 from struct import pack, unpack
 
-from erlport.erlterms import Atom, encode, decode
-
-
-class Protocol(object):
-    """Erlang port protocol."""
-
-    def run(self, port):
-        """Run processing loop."""
-        while True:
-            try:
-                message = port.read()
-            except EOFError:
-                break
-            self.handle(port, message)
-
-    def handle(self, port, message):
-        """Handle incoming message."""
-        if not (isinstance(message, Atom)
-                or isinstance(message, tuple) and len(message) > 0):
-            response = Atom("error"), Atom("badarg")
-        else:
-            if isinstance(message, Atom):
-                name = message
-                args = ()
-            else:
-                name = message[0]
-                args = message[1:]
-            if not isinstance(name, Atom):
-                response = Atom("error"), Atom("badarg")
-            else:
-                handler = getattr(self, "handle_%s" % name, None)
-                if handler is None:
-                    response = Atom("error"), Atom("undef")
-                else:
-                    try:
-                        response = handler(*args)
-                    except:
-                        response = self._handle_error(sys.exc_info())
-        port.write(response)
-
-    def _handle_error(self, exception):
-        t, val, tb = exception
-        exc = Atom("%s.%s" % (t.__module__, t.__name__))
-        exc_tb = traceback.extract_tb(tb)
-        exc_tb.reverse()
-        return Atom("error"), (Atom("exception"), (exc, unicode(val), exc_tb))
+from erlport.erlterms import encode, decode
 
 
 class Port(object):
