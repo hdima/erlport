@@ -7,6 +7,10 @@
 - Create monitor and timer for Erlang function and wait for result. If timeout
   occurs we can return error
 
+- Comments for modules
+
+- Add 'compressed' option
+
 - Use bigger buffer for port in Python
 
 - We can allow to send some number (configurable?) of backlog request while
