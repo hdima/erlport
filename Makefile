@@ -32,7 +32,7 @@ compile:
 test:
 	./rebar eunit
 
-check:
+check: compile
 	dialyzer ebin
 
 
