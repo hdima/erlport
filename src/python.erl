@@ -55,29 +55,19 @@
     in_process :: {call, From::term(), Timer::term()} | {cast, Timer::term()}
     }).
 
--type state() :: #state{}.
--type option() :: client
-    | nouse_stdio
-    | {packet, 1 | 2 | 4}
-    | {python, Python :: string()}
-    | {python_path, Path :: string()}
-    | {env, [{Name :: string(), Value :: string() | false}]}.
--type options() :: [option()].
--opaque instance() :: pid().
-
--export_type([option/0, options/0]).
-
 -define(START_TIMEOUT, 15000).
 -define(CALL_TIMEOUT, 15000).
+
+-include("erlport.hrl").
 
 
 start() ->
     start([]).
 
 -spec start(Options) -> Result when
-    Options :: options(),
+    Options :: erlport_options:options(),
     Result :: {ok, Instance} | {error, Reason},
-    Instance :: instance(),
+    Instance :: pid(),
     Reason :: term().
 
 start(Options) when is_list(Options) ->
@@ -92,14 +82,14 @@ start_link(Options) when is_list(Options) ->
 
 
 -spec stop(Instance) -> ok when
-    Instance :: instance().
+    Instance :: pid().
 
 stop(Instance) when is_pid(Instance) ->
     gen_server:cast(Instance, stop).
 
 
 -spec call(Instance, Module, Function, Args) -> Result when
-    Instance :: instance(),
+    Instance :: pid(),
     Module :: atom(),
     Function :: atom(),
     Args :: list(),
@@ -117,7 +107,7 @@ call(Instance, Module, Function, Args) when is_pid(Instance),
 
 
 -spec cast(Instance, Module, Function, Args) -> ok when
-    Instance :: instance(),
+    Instance :: pid(),
     Module :: atom(),
     Function :: atom(),
     Args :: list().
@@ -132,23 +122,32 @@ cast(Instance, Module, Function, Args) when is_pid(Instance),
 %%%
 
 -spec init(Options) -> Result when
-    Options :: options(),
-    Result :: {ok, state()} | {stop, Reason},
+    Options :: erlport_options:options(),
+    Result :: {ok, #state{}} | {stop, Reason},
     Reason :: term().
 
 init(Options) when is_list(Options) ->
-    Stdio = stdio_option(Options),
-    Packet = packet_option(Options),
-    Python = python_option(Options),
-    Client = client_option(Options),
-    Env = env_option(Options),
     % TODO: Add custom args?
     % TODO: Default call timeout?
-    Path = lists:concat([Python, " -u -m erlport.cli --packet=", Packet,
-        " --", Stdio]),
-    Port = open_port({spawn, Path},
-        [{packet, Packet}, binary, Stdio, hide, {env, Env}]),
-    {ok, #state{port=Port, client=Client}}.
+    case erlport_options:parse(Options) of
+        {ok, #options{python=Python,use_stdio=UseStdio,
+                is_client_mode=IsClientMode, packet=Packet,
+                port_options=PortOptions}} ->
+            Path = lists:concat([Python,
+                " -u",
+                " -m erlport.cli",
+                " --packet=", Packet,
+                " --", UseStdio]),
+            try open_port({spawn, Path}, PortOptions) of
+                Port ->
+                    {ok, #state{port=Port, client=IsClientMode}}
+            catch
+                error:Error ->
+                    {stop, {open_port_error, Error}}
+            end;
+        {error, Reason} ->
+            {stop, Reason}
+    end.
 
 
 handle_call({call, Module, Function, Args}, From, State=#state{port=Port,
@@ -300,71 +299,9 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-
-stdio_option(Options) ->
-    case proplists:get_value(nouse_stdio, Options, false) of
-        false ->
-            use_stdio;
-        _ ->
-            nouse_stdio
-    end.
-
-
-packet_option(Options) ->
-    case proplists:get_value(packet, Options, 4) of
-        1 ->
-            1;
-        2 ->
-            2;
-        _ ->
-            4
-    end.
-
-
-python_option(Options) ->
-    case proplists:get_value(python, Options, "python") of
-        Python=[_|_] ->
-            Python;
-        _ ->
-            "python"
-    end.
-
-env_option(Options) ->
-    Env = case proplists:get_value(env, Options) of
-        E when is_list(E) ->
-            E;
-        _ ->
-            []
-    end,
-    % FIXME: What about errors in code:priv_dir/1?
-    ErlPortPath = filename:join(code:priv_dir(erlport), "python"),
-    PathFromEnv = case proplists:get_value("PYTHONPATH", Env) of
-        Path=[_|_] ->
-            Path;
-        _ ->
-            ""
-    end,
-    Env2 = proplists:delete("PYTHONPATH", Env),
-    PythonPath = case proplists:get_value(python_path, Options) of
-        Path2=[_|_] ->
-            join_python_path([ErlPortPath, Path2, PathFromEnv]);
-        _ ->
-            join_python_path([ErlPortPath, PathFromEnv])
-    end,
-    [{"PYTHONPATH", PythonPath} | Env2].
-
-
-join_python_path(Parts=[_|_]) ->
-    string:join([P || P=[_|_] <- Parts], ":").
-
-
-client_option(Options) ->
-    case proplists:get_value(client, Options, true) of
-        false ->
-            false;
-        _ ->
-            true
-    end.
+%%%
+%%% Utility functions
+%%%
 
 try_to_send(Port, Data) ->
     try_to_send(Port, Data, true).
