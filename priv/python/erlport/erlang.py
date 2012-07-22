@@ -243,12 +243,10 @@ class ServerMode(object):
 
     def _call(self, module, function, args):
         # TODO: Need to check this code
-        objects = function.split(".")
         f = modules.get(module)
         if f is None:
-            f = __import__(module, {}, {}, [objects[0]])
-        for o in objects:
-            f = getattr(f, o)
+            f = __import__(module, {}, {}, [function])
+        f = getattr(f, function)
         return Atom("ok"), f(*args)
 
 
