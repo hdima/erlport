@@ -186,6 +186,7 @@ init(Options) when is_list(Options) ->
                 is_client_mode=IsClientMode, packet=Packet,
                 port_options=PortOptions}} ->
             Path = lists:concat([Python,
+                % Binary STDIO
                 " -u",
                 " -m erlport.cli",
                 " --packet=", Packet,
