@@ -38,5 +38,11 @@ python-test:
 check: compile
 	dialyzer ebin
 
+doc:
+	./rebar doc
 
-.PHONY: compile test check
+clean:
+	./rebar clean
+
+
+.PHONY: compile test check doc clean python-test

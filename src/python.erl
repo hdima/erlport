@@ -121,6 +121,8 @@ cast(Instance, Module, Function, Args) when is_pid(Instance),
 %%% Behaviour callbacks
 %%%
 
+%% @hidden
+
 -spec init(Options) -> Result when
     Options :: erlport_options:options(),
     Result :: {ok, #state{}} | {stop, Reason},
@@ -149,6 +151,7 @@ init(Options) when is_list(Options) ->
             {stop, Reason}
     end.
 
+%% @hidden
 
 handle_call({call, Module, Function, Args}, From, State=#state{port=Port,
         queue=Queue, in_process=InProcess, client=true})
@@ -177,6 +180,7 @@ handle_call({call, _, _, _}, _, State) ->
 handle_call(Request, From, State) ->
     {reply, {error, {bad_request, ?MODULE, Request, From}}, State}.
 
+%% @hidden
 
 handle_cast({cast, Module, Function, Args}, State=#state{port=Port,
         queue=Queue, in_process=InProcess, client=true})
@@ -207,6 +211,7 @@ handle_cast(stop, State) ->
 handle_cast(_Request, State) ->
     {noreply, State}.
 
+%% @hidden
 
 handle_info({Port, {data, Data}}, State=#state{client=true, port=Port,
         in_process=InProcess}) ->
@@ -292,10 +297,12 @@ handle_info(timeout, State=#state{in_process=InProcess}) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
+%% @hidden
 
 terminate(_Reason, _State) ->
     ok.
 
+%% @hidden
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
