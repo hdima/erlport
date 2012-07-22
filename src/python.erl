@@ -246,6 +246,7 @@ handle_info({Port, {data, Data}}, State=#state{client=true, port=Port,
             {stop, invalid_result, State}
     end;
 handle_info({Port, {data, Data}}, State=#state{port=Port, queue=Queue}) ->
+    % TODO: Check queue for responses
     try binary_to_term(Data) of
         {'C', Module, Function, Args} when is_atom(Module), is_atom(Function),
                 is_list(Args) ->

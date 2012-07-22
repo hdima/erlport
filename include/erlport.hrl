@@ -25,13 +25,15 @@
 %%% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %%% POSSIBILITY OF SUCH DAMAGE.
 
+-define(DEFAULT_PYTHON, "python").
+
 -record(options, {
-    python = "python" :: string(),
+    python = ?DEFAULT_PYTHON :: string(),
     use_stdio = use_stdio :: use_stdio | nouse_stdio,
     is_client_mode = true :: boolean(),
     packet = 4 :: 1 | 2 | 4,
     env = [] :: [{EnvName :: string(), EnvValue :: string()}],
-    python_path = "" :: string(),
+    python_path = [] :: [Path :: string()],
     port_options = [binary, hide, exit_status]
         :: [Option :: atom() | {Name :: atom(), Value :: term()}]
     }).

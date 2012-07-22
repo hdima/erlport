@@ -56,12 +56,11 @@ call_queue_test_() -> {setup,
 cast_test_() -> {setup,
     fun () ->
         P = setup(),
-        TestFile = string:strip(?cmd("/bin/mktemp -t python_tests.XXXXXXXX"),
-            right, $\n),
+        TestFile = erlport_test_utils:tmp_file("python_tests"),
         {P, TestFile}
     end,
     fun ({_, TestFile}) ->
-        ok = file:delete(TestFile)
+        ok = erlport_test_utils:remove_object(TestFile)
     end,
     fun ({P, TestFile}) ->
         fun () ->
@@ -75,12 +74,11 @@ cast_test_() -> {setup,
 cast_queue_test_() -> {setup,
     fun () ->
         P = setup(),
-        TestDir = string:strip(?cmd("/bin/mktemp -d -t python_tests.XXXXXXXX"),
-            right, $\n),
+        TestDir = erlport_test_utils:tmp_dir("python_tests"),
         {P, TestDir}
     end,
     fun ({_, TestDir}) ->
-        ?cmd("/bin/rm -rf " ++ TestDir)
+        ok = erlport_test_utils:remove_object(TestDir)
     end,
     fun ({P, TestDir}) ->
         {inparallel, [

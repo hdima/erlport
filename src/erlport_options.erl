@@ -25,6 +25,10 @@
 %%% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %%% POSSIBILITY OF SUCH DAMAGE.
 
+%%%
+%%% @doc ErlPort options handling
+%%%
+
 -module(erlport_options).
 
 -export([
@@ -43,6 +47,11 @@
 
 -include_lib("kernel/include/file.hrl").
 -include("erlport.hrl").
+
+
+%%
+%% @doc Parse ErlPort options
+%%
 
 -spec parse(Options) -> Result when
     Options :: options(),
@@ -63,20 +72,9 @@ parse([{packet, Packet}=Value | Tail], Options) ->
         false ->
             {error, {invalid_option, Value}}
     end;
-parse([{python, Python}=Value | Tail], Options) ->
-    Paths = string:tokens(os:getenv("PATH"), ":"),
-    case file:path_open(Paths, Python, [read, raw]) of
-        {ok, F, Filename} ->
-            ok = file:close(F),
-            case file:read_file_info(Filename) of
-                {ok, #file_info{mode=Mode}} when Mode band 8#00100 =/= 0 ->
-                    parse(Tail, Options#options{python=Filename});
-                _ ->
-                    {error, {invalid_option, Value, non_executable}}
-            end;
-        {error, Reason} ->
-            {error, {invalid_option, Value, Reason}}
-    end;
+parse([{python, Python} | Tail], Options) ->
+    % Will be checked later
+    parse(Tail, Options#options{python=Python});
 parse([server | Tail], Options) ->
     parse(Tail, Options#options{is_client_mode=false});
 parse([{env, Env}=Value | Tail], Options) ->
@@ -86,16 +84,41 @@ parse([{env, Env}=Value | Tail], Options) ->
         Invalid ->
             {error, {invalid_option, Value, Invalid}}
     end;
-parse([{python_path, PythonPath} | Tail], Options) ->
-    % TODO: Check all dirs?
-    parse(Tail, Options#options{python_path=PythonPath});
+parse([{python_path, PythonPath}=Value | Tail], Options) ->
+    case filter_invalid_paths(PythonPath) of
+        [] ->
+            % Paths will be checked later
+            parse(Tail, Options#options{python_path=PythonPath});
+        Invalid ->
+            {error, {invalid_option, Value, Invalid}}
+    end;
 parse([UnknownOption | _Tail], _Options) ->
     {error, {unknown_option, UnknownOption}};
-parse([], Options=#options{env=Env0, python_path=PythonPath,
+parse([], Options=#options{env=Env0, python_path=PythonPath0, python=Python,
         port_options=PortOptions, packet=Packet}) ->
-    Env = set_python_path(Env0, PythonPath),
-    {ok, Options#options{env=Env,
-        port_options=[{env, Env}, {packet, Packet} | PortOptions]}}.
+    case get_python(Python) of
+        {ok, PythonFilename} ->
+            case update_python_path(Env0, PythonPath0) of
+                {ok, PythonPath, Env} ->
+                    {ok, Options#options{env=Env, python_path=PythonPath,
+                        python=PythonFilename,
+                        port_options=[{env, Env}, {packet, Packet}
+                            | PortOptions]}};
+                {error, _}=Error ->
+                    Error
+            end;
+        {error, _}=Error ->
+            Error
+    end.
+
+%%%
+%%% Utility functions
+%%%
+
+filter_invalid_paths(Paths) when is_list(Paths) ->
+    lists:filter(fun (P) -> not is_list(P) end, Paths);
+filter_invalid_paths(_Paths) ->
+    not_list.
 
 filter_invalid_env(Env) when is_list(Env) ->
     lists:filter(fun
@@ -105,14 +128,65 @@ filter_invalid_env(Env) when is_list(Env) ->
             true
         end, Env);
 filter_invalid_env(_Env) ->
-    non_list.
+    not_list.
 
-set_python_path(Env, PythonPath0) ->
-    % FIXME: What about errors in code:priv_dir/1?
-    ErlPortPath = filename:join(code:priv_dir(erlport), "python"),
-    PathFromEnv = proplists:get_value("PYTHONPATH", Env),
-    PythonPath = join_python_path([ErlPortPath, PythonPath0, PathFromEnv]),
-    [{"PYTHONPATH", PythonPath} | proplists:delete("PYTHONPATH", Env)].
+update_python_path(Env0, PythonPath0) ->
+    case code:priv_dir(erlport) of
+        {error, bad_name} ->
+            {error, {not_found, "erlport/priv"}};
+        PrivDir ->
+            ErlPortPath = filename:join(PrivDir, "python"),
+            {PathFromEnv, Env2} = case lists:keytake("PYTHONPATH", 1, Env0) of
+                false ->
+                    {"", Env0};
+                {value, {"PYTHONPATH", P}, Env1} ->
+                    {P, Env1}
+            end,
+            case join_python_path([[ErlPortPath], PythonPath0,
+                    string:tokens(PathFromEnv, ":")]) of
+                {ok, PythonPath} ->
+                    Env3 = [{"PYTHONPATH", PythonPath} | Env2],
+                    {ok, PythonPath, Env3};
+                {error, _}=Error ->
+                    Error
+            end
+    end.
 
 join_python_path(Parts=[_|_]) ->
-    string:join([P || P=[_|_] <- Parts], ":").
+    remove_duplicate_path(lists:append(Parts), [], sets:new()).
+
+remove_duplicate_path([P | Tail], Paths, Seen) ->
+    case P of
+        "" ->
+            remove_duplicate_path(Tail, Paths, Seen);
+        P ->
+            case filelib:is_dir(P) of
+                true ->
+                    case sets:is_element(P, Seen) of
+                        false ->
+                            Seen2 = sets:add_element(P, Seen),
+                            remove_duplicate_path(Tail, [P | Paths], Seen2);
+                        true ->
+                            remove_duplicate_path(Tail, Paths, Seen)
+                    end;
+                false ->
+                    {error, {not_dir, P}}
+            end
+    end;
+remove_duplicate_path([], Paths, _Seen) ->
+    {ok, string:join(lists:reverse(Paths), ":")}.
+
+get_python(Python=[_|_]) ->
+    case os:find_executable(Python) of
+        false ->
+            case Python of
+                ?DEFAULT_PYTHON ->
+                    {error, python_not_found};
+                _ ->
+                    {error, {invalid_option, {python, Python}, not_found}}
+            end;
+        Filename ->
+            {ok, Filename}
+    end;
+get_python(Python) ->
+    {error, {invalid_option, {python, Python}}}.
