@@ -11,6 +11,9 @@
 
 - Update tests for Python
 
+- Maybe module name should be list of atoms? Like [os, path] instead of
+  'os.path'.
+
 - Comments for modules
 
 - Add 'compressed' option
