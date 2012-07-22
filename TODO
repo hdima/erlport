@@ -42,7 +42,9 @@
 
 - Maybe force strings with {string, String}?
 
-- Need a way to start a Python code on Python start
+- Need a way to start a Python function on Python start. It's mandatory for
+  with 'server' option and also optional init function can be specified in
+  client mode.
 
 - Pluggable encoders/decoders? We can register proxy encoder/decoder functions.
 
@@ -55,7 +57,8 @@
 - Maybe we can try variable length length field as in
   Twisted Banana/Protocol Buffers protocols
 
-- Maybe we can cache atoms or module/function but it also can be slower?
+- Maybe we can cache atoms or module/function? But it also can be slower.
+
 
 - Periodically check if channel is alive in Python? Seems unneeded because we
   always trying read or write
@@ -75,8 +78,6 @@
 
 - Periodically call ping() on timeouts (when there is no messages for some
   time)?
-
-- If we found error in options just throw error and stop init function
 
 - Add info() function with statistics and information, for example number
   of requests/responses, number of sent/received bytes, number of
