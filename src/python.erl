@@ -25,7 +25,15 @@
 %%% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %%% POSSIBILITY OF SUCH DAMAGE.
 
+%%%
+%%% @doc ErlPort Python interface
+%%% @author Dmitry Vasiliev <dima@hlabs.org>
+%%% @copyright 2009-2012 Dmitry Vasiliev <dima@hlabs.org>
+%%%
+
 -module(python).
+
+-author('Dmitry Vasiliev <dima@hlabs.org>').
 
 -behaviour(gen_server).
 
@@ -55,41 +63,80 @@
     in_process :: {call, From::term(), Timer::term()} | {cast, Timer::term()}
     }).
 
+-opaque instance() :: pid().
+
 -define(START_TIMEOUT, 15000).
 -define(CALL_TIMEOUT, 15000).
 
 -include("erlport.hrl").
 
 
+%%
+%% @equiv start([])
+%%
+
+-spec start() -> Result when
+    Result :: {ok, Instance} | {error, Reason},
+    Instance :: instance(),
+    Reason :: term().
+
 start() ->
     start([]).
+
+%%
+%% @doc Start Python instance
+%%
 
 -spec start(Options) -> Result when
     Options :: erlport_options:options(),
     Result :: {ok, Instance} | {error, Reason},
-    Instance :: pid(),
+    Instance :: instance(),
     Reason :: term().
 
 start(Options) when is_list(Options) ->
     gen_server:start(?MODULE, Options, [{timeout, ?START_TIMEOUT}]).
 
+%%
+%% @equiv start_link([])
+%%
+
+-spec start_link() -> Result when
+    Result :: {ok, Instance} | {error, Reason},
+    Instance :: instance(),
+    Reason :: term().
 
 start_link() ->
     start_link([]).
 
+%%
+%% @doc Start linked Python instance
+%%
+
+-spec start_link(Options) -> Result when
+    Options :: erlport_options:options(),
+    Result :: {ok, Instance} | {error, Reason},
+    Instance :: instance(),
+    Reason :: term().
+
 start_link(Options) when is_list(Options) ->
     gen_server:start_link(?MODULE, Options, [{timeout, ?START_TIMEOUT}]).
 
+%%
+%% @doc Stop Python instance
+%%
 
 -spec stop(Instance) -> ok when
-    Instance :: pid().
+    Instance :: instance().
 
 stop(Instance) when is_pid(Instance) ->
     gen_server:cast(Instance, stop).
 
+%%
+%% @doc Call Python function with arguments and return result
+%%
 
 -spec call(Instance, Module, Function, Args) -> Result when
-    Instance :: pid(),
+    Instance :: instance(),
     Module :: atom(),
     Function :: atom(),
     Args :: list(),
@@ -105,9 +152,12 @@ call(Instance, Module, Function, Args) when is_pid(Instance),
             erlang:error(Error)
     end.
 
+%%
+%% @doc Call Python function with arguments without waiting for result
+%%
 
 -spec cast(Instance, Module, Function, Args) -> ok when
-    Instance :: pid(),
+    Instance :: instance(),
     Module :: atom(),
     Function :: atom(),
     Args :: list().

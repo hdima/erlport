@@ -27,9 +27,13 @@
 
 %%%
 %%% @doc ErlPort options handling
+%%% @author Dmitry Vasiliev <dima@hlabs.org>
+%%% @copyright 2009-2012 Dmitry Vasiliev <dima@hlabs.org>
 %%%
 
 -module(erlport_options).
+
+-author('Dmitry Vasiliev <dima@hlabs.org>').
 
 -export([
     parse/1
