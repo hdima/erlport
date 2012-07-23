@@ -3,7 +3,11 @@
 
 - Maybe we need call init function through port so we can pass arguments to it?
   Maybe the same true for main function also? It seems we need some handshake
-  protocol for this.
+  protocol for this. Errors in Python init function can be returned as errors
+  in python:init and errors in Python main function can be returned by
+  a special message?
+
+- We can return Python errors as a special message and just stop Erlang process
 
 - Two modes of operation:
 
