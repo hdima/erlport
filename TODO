@@ -1,19 +1,23 @@
-- Rename 'server' option to {main, PythonModule} and also add
-  {init, PythonModule} which also can be called before client code.
+- It seems we don't need server/client mode in Python and Python init function.
+  We can add switch(Module, Function, Args) function which pass control to the
+  other side by calling the Function with a special message like the cast
+  message. But what to do if we call switch from Python during call processing?
+  We can raise an exception on Python side or interrupt the call and return an
+  Interrupted exception to Erlang. It seems the same apply to the Erlang side
+  too.
 
-- Maybe we need call init function through port so we can pass arguments to it?
-  Maybe the same true for main function also? It seems we need some handshake
-  protocol for this. Errors in Python init function can be returned as errors
-  in python:init and errors in Python main function can be returned by
-  a special message?
+- We can return errors from cast/switch functions as a special message and just
+  stop Erlang process
 
-- We can return Python errors as a special message and just stop Erlang process
+- Add ping() method with 'P' request and 'p' response. Or just some binary
+  request/response like 00/01?
 
-- Two modes of operation:
+- Periodically call ping() on timeouts (when there is no messages for some
+  time)?
 
-  - Call and cast from Erlang
-
-  - Call and cast from Python with user supplied script
+- Add info() function with statistics and information, for example number
+  of requests/responses, number of sent/received bytes, number of
+  error for requests/responses, uptime?
 
 - Create monitor and timer for Erlang function and wait for result. If timeout
   occurs we can return error
@@ -84,18 +88,6 @@
 
 - Marks errors/exception with some ID? Like (node(), self(), OS PID) for Python
   and (node(), self()) for Erlang?
-
-- Add ping() method with 'P' request and 'p' response. Or just some binary
-  request/response like 00/01?
-
-- Add some handshake protocol? We can request OS PID for example?
-
-- Periodically call ping() on timeouts (when there is no messages for some
-  time)?
-
-- Add info() function with statistics and information, for example number
-  of requests/responses, number of sent/received bytes, number of
-  error for requests/responses, uptime?
 
 - Check port_command for 'badarg' exception
 
