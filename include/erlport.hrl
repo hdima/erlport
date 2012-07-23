@@ -30,10 +30,11 @@
 -record(options, {
     python = ?DEFAULT_PYTHON :: string(),
     use_stdio = use_stdio :: use_stdio | nouse_stdio,
-    is_client_mode = true :: boolean(),
     packet = 4 :: 1 | 2 | 4,
     env = [] :: [{EnvName :: string(), EnvValue :: string()}],
     python_path = [] :: [Path :: string()],
+    main :: atom() | undefined,
+    init :: atom() | undefined,
     port_options = [binary, hide, exit_status]
         :: [Option :: atom() | {Name :: atom(), Value :: term()}]
     }).

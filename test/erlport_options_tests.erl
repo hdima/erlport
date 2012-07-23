@@ -34,7 +34,7 @@
 parse_test_() ->
     fun () ->
         {ok, #options{python=Python, use_stdio=use_stdio,
-            is_client_mode=true, packet=4, python_path=PythonPath,
+            main=undefined, init=undefined, packet=4, python_path=PythonPath,
             env=Env, port_options=PortOptions}} = erlport_options:parse([]),
         ?assertEqual(match, re:run(Python, "/python$", [{capture, none}])),
         ?assertEqual(match, re:run(PythonPath, "/priv/python$",
@@ -63,11 +63,24 @@ packet_option_test_() -> [
         erlport_options:parse([{packet, 3}]))
     ].
 
-server_option_test_() -> [
-    ?_assertMatch({ok, #options{is_client_mode=true}},
-        erlport_options:parse([])),
-    ?_assertMatch({ok, #options{is_client_mode=false}},
-        erlport_options:parse([server]))
+main_option_test_() -> [
+    ?_assertMatch({ok, #options{main=undefined}}, erlport_options:parse([])),
+    ?_assertMatch({ok, #options{main='module.function'}},
+        erlport_options:parse([{main, 'module.function'}])),
+    ?_assertEqual({error, {invalid_option, {main, 'function'}}},
+        erlport_options:parse([{main, 'function'}])),
+    ?_assertEqual({error, {invalid_option, {main, "module.function"}}},
+        erlport_options:parse([{main, "module.function"}]))
+    ].
+
+init_option_test_() -> [
+    ?_assertMatch({ok, #options{init=undefined}}, erlport_options:parse([])),
+    ?_assertMatch({ok, #options{init='module.function'}},
+        erlport_options:parse([{init, 'module.function'}])),
+    ?_assertEqual({error, {invalid_option, {init, 'function'}}},
+        erlport_options:parse([{init, 'function'}])),
+    ?_assertEqual({error, {invalid_option, {init, "module.function"}}},
+        erlport_options:parse([{init, "module.function"}]))
     ].
 
 env_option_test_() -> [
