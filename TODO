@@ -1,3 +1,10 @@
+- Rename 'server' option to {main, PythonModule} and also add
+  {init, PythonModule} which also can be called before client code.
+
+- Maybe we need call init function through port so we can pass arguments to it?
+  Maybe the same true for main function also? It seems we need some handshake
+  protocol for this.
+
 - Two modes of operation:
 
   - Call and cast from Erlang
