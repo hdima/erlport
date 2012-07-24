@@ -6,6 +6,12 @@
   Interrupted exception to Erlang. It seems the same apply to the Erlang side
   too.
 
+- We need to return errors (like already in client mode) for switch in client
+  mode and for call/cast in client mode
+
+- Don't forget to order message handling functions by mos frequently used
+  messages
+
 - We can return errors from cast/switch functions as a special message and just
   stop Erlang process
 
