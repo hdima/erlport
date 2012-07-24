@@ -183,29 +183,16 @@ init(Options) when is_list(Options) ->
     % TODO: Default call timeout?
     case erlport_options:parse(Options) of
         {ok, #options{python=Python,use_stdio=UseStdio,
-                main=Main, init=Init, packet=Packet,
-                port_options=PortOptions}} ->
-            Options1 = case Main of
-                undefined ->
-                    [];
-                Main ->
-                    ["--main=", Main]
-            end,
-            Options2 = case Init of
-                undefined ->
-                    Options1;
-                Init ->
-                    ["--init=", Init | Options1]
-            end,
+                packet=Packet, port_options=PortOptions}} ->
             Path = lists:concat([Python,
                 % Binary STDIO
                 " -u",
                 " -m erlport.cli",
                 " --packet=", Packet,
-                " --", UseStdio | Options2]),
+                " --", UseStdio]),
             try open_port({spawn, Path}, PortOptions) of
                 Port ->
-                    {ok, #state{port=Port, client=(Main =:= undefined)}}
+                    {ok, #state{port=Port}}
             catch
                 error:Error ->
                     {stop, {open_port_error, Error}}

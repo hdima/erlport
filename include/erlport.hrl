@@ -33,8 +33,6 @@
     packet = 4 :: 1 | 2 | 4,
     env = [] :: [{EnvName :: string(), EnvValue :: string()}],
     python_path = [] :: [Path :: string()],
-    main :: atom() | undefined,
-    init :: atom() | undefined,
     port_options = [binary, hide, exit_status]
         :: [Option :: atom() | {Name :: atom(), Value :: term()}]
     }).

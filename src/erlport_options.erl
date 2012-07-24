@@ -39,9 +39,7 @@
     parse/1
     ]).
 
--type option() :: {main, PythonModule :: atom()}
-    | {init, PythonModule :: atom()}
-    | nouse_stdio
+-type option() :: nouse_stdio
     | {packet, 1 | 2 | 4}
     | {python, Python :: string()}
     | {python_path, Path :: string()}
@@ -80,20 +78,6 @@ parse([{packet, Packet}=Value | Tail], Options) ->
 parse([{python, Python} | Tail], Options) ->
     % Will be checked later
     parse(Tail, Options#options{python=Python});
-parse([{main, Main}=Value | Tail], Options) ->
-    case is_atom(Main) andalso lists:member($., atom_to_list(Main)) of
-        true ->
-            parse(Tail, Options#options{main=Main});
-        false ->
-            {error, {invalid_option, Value}}
-    end;
-parse([{init, Init}=Value | Tail], Options) ->
-    case is_atom(Init) andalso lists:member($., atom_to_list(Init)) of
-        true ->
-            parse(Tail, Options#options{init=Init});
-        false ->
-            {error, {invalid_option, Value}}
-    end;
 parse([{env, Env}=Value | Tail], Options) ->
     case filter_invalid_env(Env) of
         [] ->
