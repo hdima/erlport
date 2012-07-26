@@ -1,3 +1,9 @@
+- We can try gen_fsm behaviour instead of gen_server because of two modes of
+  operation
+
+- Maybe do 'cast' and 'switch' with get_server:call instead of gen_server:cast?
+  And return 'ok' or {error, Reason::term()}.
+
 - It seems we don't need server/client mode in Python and Python init function.
   We can add switch(Module, Function, Args) function which pass control to the
   other side by calling the Function with a special message like the cast
@@ -6,8 +12,9 @@
   Interrupted exception to Erlang. It seems the same apply to the Erlang side
   too.
 
-- We need to return errors (like already in client mode) for switch in client
-  mode and for call/cast in client mode
+- We can to return errors (like already in client mode) for switch in client
+  mode and for call/cast in client mode. Maybe we don't need to return
+  errors for 'cast' calls
 
 - Don't forget to order message handling functions by mos frequently used
   messages

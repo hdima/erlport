@@ -44,7 +44,8 @@
     start_link/1,
     stop/1,
     call/4,
-    cast/4
+    cast/4,
+    switch/4
     ]).
 
 -export([
@@ -166,6 +167,20 @@ cast(Instance, Module, Function, Args) when is_pid(Instance),
         is_atom(Module), is_atom(Function), is_list(Args) ->
     gen_server:cast(Instance, {cast, Module, Function, Args}).
 
+%%
+%% @doc Pass control to Python by calling functions with arguments
+%%
+
+-spec switch(Instance, Module, Function, Args) -> ok when
+    Instance :: instance(),
+    Module :: atom(),
+    Function :: atom(),
+    Args :: list().
+
+switch(Instance, Module, Function, Args) when is_pid(Instance),
+        is_atom(Module), is_atom(Function), is_list(Args) ->
+    gen_server:cast(Instance, {switch, Module, Function, Args}).
+
 
 %%%
 %%% Behaviour callbacks
@@ -203,58 +218,28 @@ init(Options) when is_list(Options) ->
 
 %% @hidden
 
-handle_call({call, Module, Function, Args}, From, State=#state{port=Port,
-        queue=Queue, in_process=InProcess, client=true})
+handle_call({call, Module, Function, Args}, From, State=#state{client=true})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
     Data = term_to_binary({'C', Module, Function, Args}),
-    case InProcess of
-        undefined ->
-            case try_to_send(Port, Data) of
-                {ok, Timer} ->
-                    Info = {call, From, Timer},
-                    {noreply, State#state{in_process=Info}};
-                wait ->
-                    Request = {call, From, Data},
-                    Queue2 = queue:in(Request, Queue),
-                    {noreply, State#state{queue=Queue2}};
-                fail ->
-                    {stop, port_closed, State}
-            end;
-        _ ->
-            Request = {call, From, Data},
-            Queue2 = queue:in(Request, Queue),
-            {noreply, State#state{queue=Queue2}}
-    end;
+    try_to_request(State, Data, {call, From});
 handle_call({call, _, _, _}, _, State) ->
-    {reply, {error, unable_to_call_in_server_mode}, State};
+    {reply, {error, server_mode}, State};
 handle_call(Request, From, State) ->
     {reply, {error, {bad_request, ?MODULE, Request, From}}, State}.
 
 %% @hidden
 
-handle_cast({cast, Module, Function, Args}, State=#state{port=Port,
-        queue=Queue, in_process=InProcess, client=true})
+handle_cast({cast, Module, Function, Args}, State=#state{client=true})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
     Data = term_to_binary({'M', Module, Function, Args}),
-    case InProcess of
-        undefined ->
-            case try_to_send(Port, Data) of
-                {ok, Timer} ->
-                    Info = {cast, Timer},
-                    {noreply, State#state{in_process=Info}};
-                wait ->
-                    Request = {cast, Data},
-                    Queue2 = queue:in(Request, Queue),
-                    {noreply, State#state{queue=Queue2}};
-                fail ->
-                    {stop, port_closed, State}
-            end;
-        _ ->
-            Request = {cast, Data},
-            Queue2 = queue:in(Request, Queue),
-            {noreply, State#state{queue=Queue2}}
-    end;
+    try_to_request(State, Data, cast);
 handle_cast({cast, _, _, _}, State) ->
+    {noreply, State};
+handle_cast({switch, Module, Function, Args}, State=#state{client=true})
+        when is_atom(Module), is_atom(Function), is_list(Args) ->
+    Data = term_to_binary({'S', Module, Function, Args}),
+    try_to_request(State#state{client=false}, Data, switch);
+handle_cast({switch, _, _, _}, State) ->
     {noreply, State};
 handle_cast(stop, State) ->
     {stop, normal, State};
@@ -269,23 +254,23 @@ handle_info({Port, {data, Data}}, State=#state{client=true, port=Port,
         'R' ->
             case InProcess of
                 undefined ->
-                    {stop, orphan_result, State};
+                    {stop, orphan_response, State};
                 {cast, Timer} ->
                     erlang:cancel_timer(Timer),
                     check_queue(State);
                 {call, _From, _Timer} ->
-                    {stop, unexpected_result, State}
+                    {stop, unexpected_response, State}
             end;
         {'R', Result} ->
             case InProcess of
                 undefined ->
-                    {stop, orphan_result, State};
+                    {stop, orphan_response, State};
                 {call, From, Timer} ->
                     erlang:cancel_timer(Timer),
                     gen_server:reply(From, Result),
                     check_queue(State);
                 {cast, _Timer} ->
-                    {stop, unexpected_result, State}
+                    {stop, unexpected_response, State}
             end;
         _ ->
             % Ignore possible call requests
@@ -294,11 +279,11 @@ handle_info({Port, {data, Data}}, State=#state{client=true, port=Port,
         error:badarg ->
             case InProcess of
                 {call, From, _Timer} ->
-                    gen_server:reply(From, {error, invalid_result});
+                    gen_server:reply(From, {error, invalid_response});
                 _ ->
                     ok
             end,
-            {stop, invalid_result, State}
+            {stop, invalid_response, State}
     end;
 handle_info({Port, {data, Data}}, State=#state{port=Port, queue=Queue}) ->
     % TODO: Check queue for responses
@@ -364,10 +349,10 @@ code_change(_OldVsn, State, _Extra) ->
 try_to_send(Port, Data) ->
     try_to_send(Port, Data, true).
 
-try_to_send(Port, Data, NeedTimer) ->
+try_to_send(Port, Data, WithTimer) ->
     try port_command(Port, Data, [nosuspend]) of
         true ->
-            case NeedTimer of
+            case WithTimer of
                 true ->
                     Timer = erlang:send_after(?CALL_TIMEOUT, self(), timeout),
                     {ok, Timer};
@@ -420,3 +405,37 @@ check_queue(State=#state{port=Port, queue=Queue}) ->
                     {stop, port_closed, State}
             end
     end.
+
+try_to_request(State=#state{port=Port, queue=Queue, in_process=InProcess},
+        Data, Type) ->
+    case InProcess of
+        undefined ->
+            case try_to_send(Port, Data) of
+                {ok, Timer} ->
+                    Info = request(Type, Timer),
+                    {noreply, State#state{in_process=Info}};
+                wait ->
+                    Queue2 = queue:in(queued(Type, Data), Queue),
+                    {noreply, State#state{queue=Queue2}};
+                fail ->
+                    {stop, port_closed, State}
+            end;
+        _ ->
+            Queue2 = queue:in(queued(Type, Data), Queue),
+            {noreply, State#state{queue=Queue2}}
+    end.
+
+
+request({call, From}, Timer) ->
+    {call, From, Timer};
+request(cast, Timer) ->
+    {cast, Timer};
+request(switch, Timer) ->
+    {switch, Timer}.
+
+queued({call, From}, Data) ->
+    {call, From, Data};
+queued(cast, Data) ->
+    {cast, Data};
+queued(switch, Data) ->
+    {switch, Data}.
