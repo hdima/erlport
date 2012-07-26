@@ -173,7 +173,7 @@ cast(Instance, Module, Function, Args) when is_pid(Instance),
     gen_fsm:sync_send_event(Instance, {cast, Module, Function, Args}).
 
 %%
-%% @doc Pass control to Python by calling functions with arguments
+%% @doc Pass control to Python by calling the function with arguments
 %%
 
 -spec switch(Instance, Module, Function, Args) -> Result when
