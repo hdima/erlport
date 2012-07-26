@@ -1,9 +1,3 @@
-- We can try gen_fsm behaviour instead of gen_server because of two modes of
-  operation
-
-- Maybe do 'cast' and 'switch' with get_server:call instead of gen_server:cast?
-  And return 'ok' or {error, Reason::term()}.
-
 - It seems we don't need server/client mode in Python and Python init function.
   We can add switch(Module, Function, Args) function which pass control to the
   other side by calling the Function with a special message like the cast

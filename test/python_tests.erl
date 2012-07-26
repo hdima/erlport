@@ -31,7 +31,7 @@
 
 
 setup() ->
-    {ok, P} = python:start(),
+    {ok, P} = python:start_link(),
     P.
 
 cleanup(P) ->
