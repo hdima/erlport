@@ -193,7 +193,10 @@ switch(Instance, Module, Function, Args) when is_pid(Instance),
 %%% Behaviour callbacks
 %%%
 
+%%
+%% @doc Process initialization callback
 %% @hidden
+%%
 
 -spec init(Options) -> Result when
     Options :: erlport_options:options(),
@@ -223,7 +226,26 @@ init(Options) when is_list(Options) ->
             {stop, Reason}
     end.
 
+%%
+%% @doc Synchronous event handler in client mode
 %% @hidden
+%%
+
+-spec client(Event, From, State) -> Response when
+    Event :: {Type, Module, Function, Args},
+    Type :: call | cast | switch,
+    Module :: atom(),
+    Function :: atom(),
+    Args :: [term()],
+    From :: {Pid, Tag},
+    Pid :: pid(),
+    Tag :: reference(),
+    Response :: {reply, Result, StateName, State}
+        | {next_state, StateName, State}
+        | {stop, port_closed, State},
+    Result :: term(),
+    StateName :: atom(),
+    State :: #state{}.
 
 client({call, Module, Function, Args}, From, State=#state{})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
@@ -250,7 +272,16 @@ client({switch, Module, Function, Args}, _From, State=#state{})
 client(Event, From, State) ->
     {reply, {bad_event, ?MODULE, Event, From}, client, State}.
 
+%%
+%% @doc Asynchronous event handler in client mode
 %% @hidden
+%%
+
+-spec client(Event, State) -> Response when
+    Event :: timeout,
+    State :: #state{},
+    Response :: {next_state, client, State}
+        | {stop, timeout, State}.
 
 client(timeout, State=#state{in_process=InProcess}) ->
     case InProcess of
@@ -263,17 +294,46 @@ client(timeout, State=#state{in_process=InProcess}) ->
 client(_Event, State) ->
     {next_state, client, State}.
 
+%%
+%% @doc Synchronous event handler in server mode
 %% @hidden
+%%
+
+-spec server(Event, From, State) -> Response when
+    Event :: term(),
+    From :: {Pid, Tag},
+    Pid :: pid(),
+    Tag :: reference(),
+    State :: #state{},
+    Response :: {reply, {error, server_mode}, server, State}.
 
 server(_Event, _From, State) ->
     {reply, {error, server_mode}, server, State}.
 
+%%
+%% @doc Asynchronous event handler in server mode
 %% @hidden
+%%
+
+-spec server(Event, State) -> Response when
+    Event :: term(),
+    State :: #state{},
+    Response :: {next_state, server, State}.
 
 server(_Event, State) ->
     {next_state, server, State}.
 
+%%
+%% @doc Generic asynchronous event handler
 %% @hidden
+%%
+
+-spec handle_event(Event, StateName, State) -> Response when
+    Event :: stop,
+    StateName :: atom(),
+    State :: #state{},
+    Response :: {stop, normal, State}
+        | {next_state, StateName, State}.
 
 handle_event(stop, _StateName, State) ->
     {stop, normal, State};
@@ -402,6 +462,7 @@ check_queue(StateName=client, State=#state{port=Port, queue=Queue}) ->
     case queue:out(Queue) of
         {empty, Queue} ->
             {next_state, StateName, State#state{in_process=undefined}};
+        % TODO: It can be refactored also as requests
         {{value, {call, Client, Data}}, Queue2} ->
             case try_to_send(Port, Data) of
                 {ok, Timer} ->
@@ -411,6 +472,7 @@ check_queue(StateName=client, State=#state{port=Port, queue=Queue}) ->
                 wait ->
                     {next_state, StateName, State#state{in_process=undefined}};
                 fail ->
+                    % FIXME: We need to send error responses to all clients
                     {stop, port_closed, State}
             end;
         {{value, {cast, Data}}, Queue2} ->
@@ -422,6 +484,7 @@ check_queue(StateName=client, State=#state{port=Port, queue=Queue}) ->
                 wait ->
                     {next_state, StateName, State#state{in_process=undefined}};
                 fail ->
+                    % FIXME: We need to send error responses to all clients
                     {stop, port_closed, State}
             end
     end;
@@ -436,6 +499,7 @@ check_queue(StateName, State=#state{port=Port, queue=Queue}) ->
                 wait ->
                     {next_state, StateName, State};
                 fail ->
+                    % FIXME: We need to send error responses to all clients
                     {stop, port_closed, State}
             end
     end.
@@ -452,6 +516,7 @@ try_to_request(StateName, State=#state{port=Port, queue=Queue,
                     Queue2 = queue:in(queued(Type, Data), Queue),
                     {next_state, StateName, State#state{queue=Queue2}};
                 fail ->
+                    % FIXME: We need to send error responses to all clients
                     {stop, port_closed, State}
             end;
         _ ->

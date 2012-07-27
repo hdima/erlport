@@ -1,3 +1,5 @@
+- Handler Python call timeouts on Erlang side.
+
 - It seems we don't need server/client mode in Python and Python init function.
   We can add switch(Module, Function, Args) function which pass control to the
   other side by calling the Function with a special message like the cast
