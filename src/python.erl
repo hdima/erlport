@@ -44,7 +44,6 @@
     start_link/1,
     stop/1,
     call/4,
-    cast/4,
     switch/4
     ]).
 
@@ -64,7 +63,7 @@
 -record(state, {
     port :: port(),
     queue = queue:new() :: queue(),
-    in_process :: {call, From::term(), Timer::term()} | {cast, Timer::term()}
+    in_process :: {call | switch, From::term(), Timer::term()}
     }).
 
 -opaque instance() :: pid().
@@ -157,22 +156,6 @@ call(Instance, Module, Function, Args) when is_pid(Instance),
     end.
 
 %%
-%% @doc Call Python function with arguments without waiting for result
-%%
-
--spec cast(Instance, Module, Function, Args) -> Result when
-    Instance :: instance(),
-    Module :: atom(),
-    Function :: atom(),
-    Args :: list(),
-    Result :: ok | {error, Reason},
-    Reason :: term().
-
-cast(Instance, Module, Function, Args) when is_pid(Instance),
-        is_atom(Module), is_atom(Function), is_list(Args) ->
-    gen_fsm:sync_send_event(Instance, {cast, Module, Function, Args}).
-
-%%
 %% @doc Pass control to Python by calling the function with arguments
 %%
 
@@ -233,7 +216,7 @@ init(Options) when is_list(Options) ->
 
 -spec client(Event, From, State) -> Response when
     Event :: {Type, Module, Function, Args},
-    Type :: call | cast | switch,
+    Type :: call | switch,
     Module :: atom(),
     Function :: atom(),
     Args :: [term()],
@@ -251,24 +234,10 @@ client({call, Module, Function, Args}, From, State=#state{})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
     Data = term_to_binary({'C', Module, Function, Args}),
     try_to_request(client, State, Data, {call, From});
-client({cast, Module, Function, Args}, _From, State=#state{})
-        when is_atom(Module), is_atom(Function), is_list(Args) ->
-    Data = term_to_binary({'M', Module, Function, Args}),
-    case try_to_request(client, State, Data, cast) of
-        {next_state, StateName, State2} ->
-            {reply, ok, StateName, State2};
-        Response ->
-            Response
-    end;
-client({switch, Module, Function, Args}, _From, State=#state{})
+client({switch, Module, Function, Args}, From, State=#state{})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
     Data = term_to_binary({'S', Module, Function, Args}),
-    case try_to_request(server, State, Data, switch) of
-        {next_state, StateName, State2} ->
-            {reply, ok, StateName, State2};
-        Response ->
-            Response
-    end;
+    try_to_request(server, State, Data, {switch, From});
 client(Event, From, State) ->
     {reply, {bad_event, ?MODULE, Event, From}, client, State}.
 
@@ -286,6 +255,7 @@ client(Event, From, State) ->
 client(timeout, State=#state{in_process=InProcess}) ->
     case InProcess of
         {call, From, _} ->
+            % TODO: Need to send errors responses to all clients
             gen_fsm:reply(From, {error, timeout}),
             {stop, timeout, State};
         _ ->
@@ -345,26 +315,27 @@ handle_event(_Event, StateName, State) ->
 handle_info({Port, {data, Data}}, StateName=client, State=#state{port=Port,
         in_process=InProcess}) ->
     try binary_to_term(Data) of
-        'R' ->
+        's' ->
             case InProcess of
-                undefined ->
-                    {stop, orphan_response, State};
-                {cast, Timer} ->
+                {switch, From, Timer} ->
                     gen_fsm:cancel_timer(Timer),
+                    gen_fsm:reply(From, ok),
                     check_queue(StateName, State);
                 {call, _From, _Timer} ->
-                    {stop, unexpected_response, State}
-            end;
-        {'R', Result} ->
-            case InProcess of
+                    {stop, unexpected_response, State};
                 undefined ->
-                    {stop, orphan_response, State};
+                    {stop, orphan_response, State}
+            end;
+        {'c', Result} ->
+            case InProcess of
                 {call, From, Timer} ->
                     gen_fsm:cancel_timer(Timer),
                     gen_fsm:reply(From, Result),
                     check_queue(StateName, State);
-                {cast, _Timer} ->
-                    {stop, unexpected_response, State}
+                {switch, _From, _Timer} ->
+                    {stop, unexpected_response, State};
+                undefined ->
+                    {stop, orphan_response, State}
             end;
         _ ->
             % Ignore possible call requests
@@ -475,10 +446,10 @@ check_queue(StateName=client, State=#state{port=Port, queue=Queue}) ->
                     % FIXME: We need to send error responses to all clients
                     {stop, port_closed, State}
             end;
-        {{value, {cast, Data}}, Queue2} ->
+        {{value, {switch, Client, Data}}, Queue2} ->
             case try_to_send(Port, Data) of
                 {ok, Timer} ->
-                    Info = {cast, Timer},
+                    Info = {switch, Client, Timer},
                     {next_state, StateName, State#state{in_process=Info,
                         queue=Queue2}};
                 wait ->
@@ -527,14 +498,10 @@ try_to_request(StateName, State=#state{port=Port, queue=Queue,
 
 request({call, From}, Timer) ->
     {call, From, Timer};
-request(cast, Timer) ->
-    {cast, Timer};
-request(switch, Timer) ->
-    {switch, Timer}.
+request({switch, From}, Timer) ->
+    {switch, From, Timer}.
 
 queued({call, From}, Data) ->
     {call, From, Data};
-queued(cast, Data) ->
-    {cast, Data};
-queued(switch, Data) ->
-    {switch, Data}.
+queued({switch, From}, Data) ->
+    {switch, From, Data}.

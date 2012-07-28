@@ -197,10 +197,11 @@ class ThreadedCallProtocol(object):
         self.receiver.join()
         self.sender.join()
 
-class ServerMode(object):
+class MessageHandler(object):
 
     def __init__(self, port):
         self.port = port
+        self.client = False
 
     def start(self):
         read = self.port.read
@@ -220,16 +221,22 @@ class ServerMode(object):
             # FIXME: Should we exit if we received a bad message?
             pass
         else:
+            # TODO: Check mode
             if mtype == "C":
-                write(self.call(module, function, args))
-            elif mtype == "M":
-                write(Atom("R"))
+                write(self._call_with_error_handler(module, function, args))
+            elif mtype == "S":
+                write(Atom("s"))
                 try:
                     self._call(module, function, args)
                 except:
+                    # TODO: Switch function result should be passed to
+                    # Erlang and Python should switch to server mode
                     pass
 
     def call(self, module, function, args):
+        raise ErlangError("call() is unsupported in server mode")
+
+    def _call_with_error_handler(self, module, function, args):
         # TODO: Need to check this code
         try:
             result = self._call(module, function, args)
@@ -239,7 +246,7 @@ class ServerMode(object):
             exc_tb = extract_tb(tb)
             exc_tb.reverse()
             result = Atom("error"), (exc, unicode(val), exc_tb)
-        return Atom("R"), result
+        return Atom("c"), result
 
     def _call(self, module, function, args):
         # TODO: Need to check this code
@@ -250,16 +257,9 @@ class ServerMode(object):
         return Atom("ok"), f(*args)
 
 
-def call(module, function, args):
-    raise ServerMode("call() is unsupported in 'server mode'")
-
-def cast(module, function, args):
-    raise ServerMode("cast() is unsupported in 'server mode'")
-
-
-def start(port, client_script):
-    if client_script is None:
-        ServerMode(port).start()
-    else:
-        global call, cast
-        # Set call() and cast() and start user application
+def start(port):
+    global MessageHandler, call
+    handler = MessageHandler(port)
+    call = handler.call
+    del MessageHandler
+    handler.start()

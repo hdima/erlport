@@ -1,8 +1,6 @@
 - We don't need to add 'switch' function in Python just switching back to
   Erlang when switched Python function is over
 
-- Delete 'cast'
-
 - Thread safety in Python?
 
 - Handler Python call timeouts on Erlang side.
