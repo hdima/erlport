@@ -1,3 +1,10 @@
+- Maybe we need to split request/response data if we can't send it?
+
+- We need check queue more than one time
+
+- Optionally call Erlang functions in one process without spawning new process
+  for each call?
+
 - We don't need to add 'switch' function in Python just switching back to
   Erlang when switched Python function is over
 
