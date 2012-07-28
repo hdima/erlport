@@ -245,8 +245,8 @@ class MessageHandler(object):
             exc = Atom("%s.%s" % (t.__module__, t.__name__))
             exc_tb = extract_tb(tb)
             exc_tb.reverse()
-            result = Atom("error"), (exc, unicode(val), exc_tb)
-        return Atom("c"), result
+            result = Atom("e"), (exc, unicode(val), exc_tb)
+        return result
 
     def _call(self, module, function, args):
         # TODO: Need to check this code
@@ -254,7 +254,7 @@ class MessageHandler(object):
         if f is None:
             f = __import__(module, {}, {}, [function])
         f = getattr(f, function)
-        return Atom("ok"), f(*args)
+        return Atom("r"), f(*args)
 
 
 def start(port):

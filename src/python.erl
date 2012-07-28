@@ -326,11 +326,22 @@ handle_info({Port, {data, Data}}, StateName=client, State=#state{port=Port,
                 undefined ->
                     {stop, orphan_response, State}
             end;
-        {'c', Result} ->
+        {'r', Result} ->
             case InProcess of
                 {call, From, Timer} ->
                     gen_fsm:cancel_timer(Timer),
-                    gen_fsm:reply(From, Result),
+                    gen_fsm:reply(From, {ok, Result}),
+                    check_queue(StateName, State);
+                {switch, _From, _Timer} ->
+                    {stop, unexpected_response, State};
+                undefined ->
+                    {stop, orphan_response, State}
+            end;
+        {'e', Result} ->
+            case InProcess of
+                {call, From, Timer} ->
+                    gen_fsm:cancel_timer(Timer),
+                    gen_fsm:reply(From, {error, Result}),
                     check_queue(StateName, State);
                 {switch, _From, _Timer} ->
                     {stop, unexpected_response, State};
