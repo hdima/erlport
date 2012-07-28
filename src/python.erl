@@ -316,47 +316,17 @@ handle_info({Port, {data, Data}}, StateName=client, State=#state{port=Port,
         in_process=InProcess}) ->
     try binary_to_term(Data) of
         's' ->
-            case InProcess of
-                {switch, From, Timer} ->
-                    gen_fsm:cancel_timer(Timer),
-                    gen_fsm:reply(From, ok),
-                    check_queue(StateName, State);
-                {call, _From, _Timer} ->
-                    {stop, unexpected_response, State};
-                undefined ->
-                    {stop, orphan_response, State}
-            end;
+            handle_response(switch, ok, State, StateName);
         {'r', Result} ->
-            case InProcess of
-                {call, From, Timer} ->
-                    gen_fsm:cancel_timer(Timer),
-                    gen_fsm:reply(From, {ok, Result}),
-                    check_queue(StateName, State);
-                {switch, _From, _Timer} ->
-                    {stop, unexpected_response, State};
-                undefined ->
-                    {stop, orphan_response, State}
-            end;
+            handle_response(call, {ok, Result}, State, StateName);
         {'e', Result} ->
-            case InProcess of
-                {call, From, Timer} ->
-                    gen_fsm:cancel_timer(Timer),
-                    gen_fsm:reply(From, {error, Result}),
-                    check_queue(StateName, State);
-                {switch, _From, _Timer} ->
-                    {stop, unexpected_response, State};
-                undefined ->
-                    {stop, orphan_response, State}
-            end;
-        _ ->
-            % Ignore possible call requests
-            {next_state, StateName, State}
+            handle_response(call, {error, Result}, State, StateName)
     catch
         error:badarg ->
             case InProcess of
-                {call, From, _Timer} ->
+                {_, From, _Timer} ->
                     gen_fsm:reply(From, {error, invalid_response});
-                _ ->
+                undefined ->
                     ok
             end,
             {stop, invalid_response, State}
@@ -506,7 +476,6 @@ try_to_request(StateName, State=#state{port=Port, queue=Queue,
             {next_state, StateName, State#state{queue=Queue2}}
     end.
 
-
 request({call, From}, Timer) ->
     {call, From, Timer};
 request({switch, From}, Timer) ->
@@ -516,3 +485,16 @@ queued({call, From}, Data) ->
     {call, From, Data};
 queued({switch, From}, Data) ->
     {switch, From, Data}.
+
+handle_response(Expect, Response, State=#state{in_process=InProcess},
+        StateName) ->
+    case InProcess of
+        {Expect, Client, Timer} ->
+            gen_fsm:cancel_timer(Timer),
+            gen_fsm:reply(Client, Response),
+            check_queue(StateName, State);
+        undefined ->
+            {stop, orphan_response, State};
+        _ ->
+            {stop, unexpected_response, State}
+    end.
