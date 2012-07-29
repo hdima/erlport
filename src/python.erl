@@ -62,8 +62,11 @@
 
 -record(state, {
     port :: port(),
+    % TODO: Rename to 'waiting'
     queue = queue:new() :: queue(),
-    in_process :: {call | switch, From::term(), Timer::term()}
+    % TODO: Rename to 'sent' and convert to queue
+    in_process :: {call | switch, From::term(), Timer::term()},
+    call :: {Monitor::reference(), Timer::reference(), Pid::pid()}
     }).
 
 -opaque instance() :: pid().
@@ -233,11 +236,11 @@ init(Options) when is_list(Options) ->
 client({call, Module, Function, Args}, From, State=#state{})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
     Data = term_to_binary({'C', Module, Function, Args}),
-    try_to_request(client, State, Data, {call, From});
+    send_request({call, From, Data}, client, State);
 client({switch, Module, Function, Args}, From, State=#state{})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
     Data = term_to_binary({'S', Module, Function, Args}),
-    try_to_request(server, State, Data, {switch, From});
+    send_request({switch, From, Data}, server, State);
 client(Event, From, State) ->
     {reply, {bad_event, ?MODULE, Event, From}, client, State}.
 
@@ -252,15 +255,8 @@ client(Event, From, State) ->
     Response :: {next_state, client, State}
         | {stop, timeout, State}.
 
-client(timeout, State=#state{in_process=InProcess}) ->
-    case InProcess of
-        {call, From, _} ->
-            % TODO: Need to send errors responses to all clients
-            gen_fsm:reply(From, {error, timeout}),
-            {stop, timeout, State};
-        _ ->
-            {next_state, client, State}
-    end;
+client(timeout, State=#state{}) ->
+    error_response(timeout, State);
 client(_Event, State) ->
     {next_state, client, State}.
 
@@ -286,10 +282,20 @@ server(_Event, _From, State) ->
 %%
 
 -spec server(Event, State) -> Response when
-    Event :: term(),
+    Event :: timeout,
     State :: #state{},
     Response :: {next_state, server, State}.
 
+server(timeout, State=#state{port=Port}) ->
+    % TODO: It seems we don't need close process here?
+    % TODO: We need to add request ID
+    Data = term_to_binary({'e', {error, timeout, []}}),
+    case send_data(Port, Data, false) of
+        ok ->
+            {next_state, server, State#state{call=undefined}};
+        fail ->
+            {stop, port_closed, State#state{call=undefined}}
+    end;
 server(_Event, State) ->
     {next_state, server, State}.
 
@@ -312,62 +318,63 @@ handle_event(_Event, StateName, State) ->
 
 %% @hidden
 
-handle_info({Port, {data, Data}}, StateName=client, State=#state{port=Port,
-        in_process=InProcess}) ->
+handle_info({Port, {data, Data}}, StateName=client, State=#state{port=Port}) ->
     try binary_to_term(Data) of
-        's' ->
-            handle_response(switch, ok, State, StateName);
         {'r', Result} ->
             handle_response(call, {ok, Result}, State, StateName);
         {'e', Result} ->
-            handle_response(call, {error, Result}, State, StateName)
+            handle_response(call, {error, Result}, State, StateName);
+        Response ->
+            error_response({invalid_response, Response}, State)
     catch
         error:badarg ->
-            case InProcess of
-                {_, From, _Timer} ->
-                    gen_fsm:reply(From, {error, invalid_response});
-                undefined ->
-                    ok
-            end,
-            {stop, invalid_response, State}
+            error_response({invalid_response_data, Data}, State)
     end;
-handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
-        queue=Queue}) ->
-    % TODO: Check queue for responses
+handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port}) ->
     try binary_to_term(Data) of
+        's' ->
+            handle_response(switch, ok, State, StateName);
         {'C', Module, Function, Args} when is_atom(Module), is_atom(Function),
                 is_list(Args) ->
-            proc_lib:spawn(fun () ->
-                Result = try {ok, apply(Module, Function, Args)}
+            Timer = gen_fsm:send_event_after(?CALL_TIMEOUT, timeout),
+            % FIXME: proc_lib:spawn and monitor?
+            {Pid, Monitor} = spawn_monitor(fun () ->
+                exit(try {ok, apply(Module, Function, Args)}
                     catch
                         Class:Reason ->
-                            {error, Class, Reason, erlang:get_stacktrace()}
-                    end,
-                Response = {'R', Result},
-                true = port_command(Port, term_to_binary(Response))
+                            {error, {Class, Reason, erlang:get_stacktrace()}}
+                    end)
                 end),
-            % TODO: Monitor process?
-            {next_state, StateName, State};
-        {'M', Module, Function, Args} when is_atom(Module), is_atom(Function),
-                is_list(Args) ->
-            proc_lib:spawn(fun () -> apply(Module, Function, Args) end),
-            Data = term_to_binary('R'),
-            case try_to_send(Port, Data, false) of
-                ok ->
-                    {next_state, StateName, State};
-                wait ->
-                    Queue2 = queue:in({response, Data}, Queue),
-                    {next_state, StateName, State#state{queue=Queue2}};
-                fail ->
-                    {stop, port_closed, State}
-            end;
-        _ ->
-            {next_state, StateName, State}
+            Info = {Monitor, Timer, Pid},
+            {next_state, StateName, State#state{call=Info}};
+        Request ->
+            {stop, {invalid_request, Request}, State}
     catch
         error:badarg ->
-            {stop, invalid_request, State}
+            {stop, {invalid_request_data, Data}, State}
     end;
-% TODO: More port related handlers
+handle_info({'DOWN', Monitor, process, Pid, Result}, StateName=server,
+        State=#state{port=Port, call={Monitor, Timer, Pid}}) ->
+    gen_fsm:cancel_timer(Timer),
+    R = case Result of
+        {ok, Response} ->
+            {'r', Response};
+        {error, Response} ->
+            {'e', Response};
+        Response ->
+            {'e', {error, Response, []}}
+    end,
+    Data = term_to_binary(R),
+    case send_data(Port, Data, false) of
+        ok ->
+            {next_state, StateName, State#state{call=undefined}};
+        fail ->
+            {stop, port_closed, State#state{call=undefined}}
+    end;
+handle_info({Port, closed}, _StateName, State=#state{port=Port}) ->
+    {stop, port_closed, State};
+handle_info({'EXIT', Port, Reason}, _StateName, State=#state{port=Port}) ->
+    {stop, {port_closed, Reason}, State};
 handle_info(_Info, StateName, State) ->
     {next_state, StateName, State}.
 
@@ -378,8 +385,17 @@ handle_sync_event(Event, From, StateName, State) ->
 
 %% @hidden
 
-terminate(_Reason, _StateName, _State) ->
-    ok.
+terminate(Reason, _StateName, #state{in_process=InProcess, queue=Queue}) ->
+    Error = {error, Reason},
+    case InProcess of
+        undefined ->
+            ok;
+        {_Type, From, _Timer} ->
+            gen_fsm:reply(From, Error)
+    end,
+    lists:foreach(fun ({_Type, From, _Data}) ->
+        gen_fsm:reply(From, Error)
+        end, queue:to_list(Queue)).
 
 %% @hidden
 
@@ -390,11 +406,11 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %%% Utility functions
 %%%
 
-try_to_send(Port, Data) ->
-    try_to_send(Port, Data, true).
+send_data(Port, Data) ->
+    send_data(Port, Data, true).
 
-try_to_send(Port, Data, WithTimer) ->
-    try port_command(Port, Data, [nosuspend]) of
+send_data(Port, Data, WithTimer) ->
+    try port_command(Port, Data) of
         true ->
             case WithTimer of
                 true ->
@@ -402,99 +418,76 @@ try_to_send(Port, Data, WithTimer) ->
                     {ok, Timer};
                 false ->
                     ok
-            end;
-        false ->
-            wait
+            end
     catch
         error:badarg ->
             fail
     end.
 
-check_queue(StateName=client, State=#state{port=Port, queue=Queue}) ->
+process_queue(StateName=client, State=#state{queue=Queue}) ->
     case queue:out(Queue) of
         {empty, Queue} ->
-            {next_state, StateName, State#state{in_process=undefined}};
-        % TODO: It can be refactored also as requests
-        {{value, {call, Client, Data}}, Queue2} ->
-            case try_to_send(Port, Data) of
-                {ok, Timer} ->
-                    Info = {call, Client, Timer},
-                    {next_state, StateName, State#state{in_process=Info,
-                        queue=Queue2}};
-                wait ->
-                    {next_state, StateName, State#state{in_process=undefined}};
-                fail ->
-                    % FIXME: We need to send error responses to all clients
-                    {stop, port_closed, State}
-            end;
-        {{value, {switch, Client, Data}}, Queue2} ->
-            case try_to_send(Port, Data) of
-                {ok, Timer} ->
-                    Info = {switch, Client, Timer},
-                    {next_state, StateName, State#state{in_process=Info,
-                        queue=Queue2}};
-                wait ->
-                    {next_state, StateName, State#state{in_process=undefined}};
-                fail ->
-                    % FIXME: We need to send error responses to all clients
-                    {stop, port_closed, State}
-            end
+            {next_state, StateName, State};
+        {{value, Queued}, Queue2} ->
+            send_from_queue(Queued, Queue2, StateName, State)
     end;
-check_queue(StateName, State=#state{port=Port, queue=Queue}) ->
+process_queue(StateName=server, State=#state{port=Port, queue=Queue}) ->
     case queue:out(Queue) of
         {empty, Queue} ->
             {next_state, StateName, State#state{in_process=undefined}};
         {{value, {response, Data}}, Queue2} ->
-            case try_to_send(Port, Data, false) of
+            case send_data(Port, Data, false) of
                 ok ->
                     {next_state, StateName, State#state{queue=Queue2}};
-                wait ->
-                    {next_state, StateName, State};
                 fail ->
-                    % FIXME: We need to send error responses to all clients
                     {stop, port_closed, State}
             end
     end.
 
-try_to_request(StateName, State=#state{port=Port, queue=Queue,
-        in_process=InProcess}, Data, Type) ->
+send_request(Queued={Type, From, Data}, StateName, State=#state{port=Port,
+        queue=Queue, in_process=InProcess}) ->
     case InProcess of
         undefined ->
-            case try_to_send(Port, Data) of
+            case send_data(Port, Data) of
                 {ok, Timer} ->
-                    Info = request(Type, Timer),
+                    Info = {Type, From, Timer},
                     {next_state, StateName, State#state{in_process=Info}};
-                wait ->
-                    Queue2 = queue:in(queued(Type, Data), Queue),
-                    {next_state, StateName, State#state{queue=Queue2}};
                 fail ->
-                    % FIXME: We need to send error responses to all clients
                     {stop, port_closed, State}
             end;
         _ ->
-            Queue2 = queue:in(queued(Type, Data), Queue),
+            Queue2 = queue:in(Queued, Queue),
             {next_state, StateName, State#state{queue=Queue2}}
     end.
 
-request({call, From}, Timer) ->
-    {call, From, Timer};
-request({switch, From}, Timer) ->
-    {switch, From, Timer}.
+send_from_queue({Type, From, Data}, Queue, StateName,
+        State=#state{port=Port}) ->
+    case send_data(Port, Data) of
+        {ok, Timer} ->
+            Info = {Type, From, Timer},
+            {next_state, StateName, State#state{in_process=Info, queue=Queue}};
+        fail ->
+            {stop, port_closed, State}
+    end.
 
-queued({call, From}, Data) ->
-    {call, From, Data};
-queued({switch, From}, Data) ->
-    {switch, From, Data}.
-
-handle_response(Expect, Response, State=#state{in_process=InProcess},
+handle_response(ExpectedType, Response, State=#state{in_process=InProcess},
         StateName) ->
     case InProcess of
-        {Expect, Client, Timer} ->
+        {ExpectedType, From, Timer} ->
             gen_fsm:cancel_timer(Timer),
-            gen_fsm:reply(Client, Response),
-            check_queue(StateName, State);
+            gen_fsm:reply(From, Response),
+            process_queue(StateName, State#state{in_process=undefined});
         undefined ->
             {stop, orphan_response, State};
         _ ->
             {stop, unexpected_response, State}
     end.
+
+error_response(Error, State=#state{in_process=InProcess}) ->
+    case InProcess of
+        {_Type, From, _Timer} ->
+            gen_fsm:reply(From, {error, Error});
+        undefined ->
+            ok
+    end,
+    {stop, Error, State}.
