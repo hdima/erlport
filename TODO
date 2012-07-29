@@ -1,3 +1,10 @@
+- Use 'nosuspend' option only for pipelinend requests and suspend otherwise?
+
+- Maybe configure threads for Python request handler? For example "run 4
+  threads for request handling".
+
+- Add ID to requests? Calls from Python can be multi-threaded for example
+
 - Maybe we need to split request/response data if we can't send it?
 
 - We need check queue more than one time
