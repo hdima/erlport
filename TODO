@@ -3,7 +3,8 @@
 - Maybe configure threads for Python request handler? For example "run 4
   threads for request handling".
 
-- Add ID to requests? Calls from Python can be multi-threaded for example
+- Add ID to requests? Calls from Python can be multi-threaded for example and
+  it can be good if we will support pippelined requests
 
 - Maybe we need to split request/response data if we can't send it?
 
