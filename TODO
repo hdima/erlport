@@ -1,3 +1,10 @@
+- Accept string as python path (and then we should split it by ':')? And maybe
+  return expected type in case of option error?
+
+- Maybe we can register handler to handle switch function errors and result?
+
+- Check code with older versions of Erlang/Python
+
 - Use 'nosuspend' option only for pipelinend requests and suspend otherwise?
 
 - Maybe configure threads for Python request handler? For example "run 4

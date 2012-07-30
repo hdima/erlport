@@ -26,8 +26,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from sys import modules, exc_info
-from Queue import Queue
-from threading import Thread
 from traceback import extract_tb
 
 from erlport import Atom
@@ -49,153 +47,6 @@ class ThrowErlangError(Error):
 class ExitErlangError(Error):
     """Erlang exit()."""
 
-
-class CallThread(Thread):
-
-    def __init__(self, sender):
-        self.sender = sender
-        self.commands = Queue()
-        Thread.__init__(self)
-        self.setDaemon(True)
-
-    def call(self, id, module, function, args):
-        self.commands.put((id, module, function, args))
-
-    def cast(self, module, function, args):
-        self.commands.put((module, function, args))
-
-    def run(self):
-        while True:
-            command = self.commands.get()
-            if len(command) == 4:
-                id, module, function, args = command
-                result = self._call_with_errors(module, function, args)
-                self.sender.send((Atom("R"), id, result))
-            elif len(command) == 3:
-                module, function, args = command
-                self._call(module, function, args)
-
-    def _call_with_errors(self, module, function, args):
-        try:
-            result = Atom("ok"), self._call(module, function, args)
-        except:
-            t, val, tb = exc_info()
-            exc = Atom("%s.%s" % (t.__module__, t.__name__))
-            exc_tb = extract_tb(tb)
-            exc_tb.reverse()
-            result = Atom("error"), (exc, unicode(val), exc_tb)
-        return result
-
-    def _call(self, module, function, args):
-        objects = function.split(".")
-        f = modules.get(module)
-        if f is None:
-            f = __import__(module, {}, {}, [objects[0]])
-        for o in objects:
-            f = getattr(f, o)
-        return f(*args)
-
-
-
-class ReceiveThread(Thread):
-
-    def __init__(self, port, sender, manager):
-        self.port = port
-        self.manager = manager
-        self.calls = CallThread(sender)
-        self.calls.start()
-        Thread.__init__(self)
-        self.setDaemon(True)
-
-    def run(self):
-        while True:
-            try:
-                message = self.port.read()
-            except EOFError:
-                break
-            self.handle(message)
-
-    def handle(self, message):
-        if isinstance(message, tuple) and len(message) >= 3:
-            mtype = message[0]
-            if isinstance(mtype, Atom):
-                if mtype == "S":
-                    if len(message) == 5:
-                        id, module, function, args = message[1:]
-                        self.calls.call(id, module, function, args)
-                elif mtype == "A":
-                    if len(message) == 4:
-                        module, function, args = message[1:]
-                        self.calls.cast(module, function, args)
-                elif mtype == "R":
-                    if len(message) == 3:
-                        id, result = message[1:]
-                        queue = self.manager.requests[id]
-                        if queue is not None:
-                            queue.put(result)
-
-
-class SendThread(Thread):
-
-    def __init__(self, port):
-        self.port = port
-        self.requests = Queue()
-        Thread.__init__(self)
-        self.setDaemon(True)
-
-    def run(self):
-        while True:
-            message = self.requests.get()
-            try:
-                self.port.write(message)
-            except EOFError:
-                break
-
-    def send(self, message):
-        self.requests.put(message)
-
-
-class ThreadedCallProtocol(object):
-
-    def __init__(self, port):
-        self.id = 0
-        self.requests = {}
-        self.port = port
-        self.sender = SendThread(self.port)
-        self.sender.start()
-        self.receiver = ReceiveThread(self.port, self.sender, self)
-        self.receiver.start()
-
-    def cast(self, module, function, args):
-        request = Atom("A"), Atom(module), Atom(function), list(args)
-        self.sender.send(request)
-
-    def call(self, module, function, args):
-        id = self.id
-        # TODO: Optimize id generation
-        # TODO: Cleanup requests storage
-        # TODO: Lock?
-        self.id += 1
-        request = Atom("S"), id, Atom(module), Atom(function), list(args)
-        queue = Queue()
-        self.requests[id] = queue
-        self.sender.send(request)
-        result = queue.get()
-        del self.requests[id]
-        if result[0] == Atom("ok"):
-            return result[1]
-        error, value, stacktrace = result[1:4]
-        if error == Atom("error"):
-            raise ErlangError(value, stacktrace)
-        elif error == Atom("exit"):
-            raise ExitErlangError(value, stacktrace)
-        elif error == Atom("throw"):
-            raise ThrowErlangError(value, stacktrace)
-        raise Error(value, stacktrace)
-
-    def join(self):
-        self.receiver.join()
-        self.sender.join()
 
 class MessageHandler(object):
 
@@ -225,16 +76,47 @@ class MessageHandler(object):
             if mtype == "C":
                 write(self._call_with_error_handler(module, function, args))
             elif mtype == "S":
+                self.client = True
                 write(Atom("s"))
                 try:
                     self._call(module, function, args)
                 except:
-                    # TODO: Switch function result should be passed to
-                    # Erlang and Python should switch to server mode
-                    pass
+                    t, val, tb = exc_info()
+                    exc = Atom("%s.%s" % (t.__module__, t.__name__))
+                    exc_tb = extract_tb(tb)
+                    exc_tb.reverse()
+                    result = Atom("e"), (exc, unicode(val), exc_tb)
+                    write(result)
+                else:
+                    write(Atom("S"))
+                finally:
+                    self.client = False
 
     def call(self, module, function, args):
-        raise ErlangError("call() is unsupported in server mode")
+        # TODO: Check all arguments
+        if not self.client:
+            raise ErlangError("call() is unsupported in server mode")
+        request = Atom('C'), module, function, args
+        self.port.write(request)
+        try:
+            response = self.port.read()
+        except EOFError:
+            # TODO: Raise some other error?
+            raise
+
+        try:
+            mtype, value = response
+        except ValueError:
+            # TODO: Raise some other error?
+            raise
+
+        if mtype != "r":
+            if mtype == "e":
+                # TODO: Raise error based on error value
+                raise Exception("error")
+            # TODO: Raise some other error?
+            raise Exception("unknown message")
+        return value
 
     def _call_with_error_handler(self, module, function, args):
         # TODO: Need to check this code

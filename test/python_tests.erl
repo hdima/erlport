@@ -29,9 +29,16 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-export([test_callback/2]).
+
+
+test_callback(PrevResult, N) ->
+    log_event({test_callback, PrevResult, N}),
+    N.
 
 setup() ->
-    {ok, P} = python:start_link(),
+    % Test working directory is .eunit
+    {ok, P} = python:start_link([{python_path, ["../test/python"]}]),
     P.
 
 cleanup(P) ->
@@ -52,3 +59,41 @@ call_queue_test_() -> {setup,
             ?_assertEqual(N + 1, python:call(P, operator, add, [N , 1]))
             || N <- lists:seq(1, 50)]}
     end}.
+
+switch_test_() -> {setup,
+    fun () ->
+        setup_event_logger(),
+        setup()
+    end,
+    fun (P) ->
+        cleanup(P),
+        cleanup_event_logger()
+    end,
+    fun (P) ->
+        fun () ->
+            ?assertEqual(ok, python:switch(P, switch, switch, [5])),
+            % TODO: We can send some signal from Python
+            timer:sleep(500),
+            ?assertEqual([
+                {test_callback, 0, 0},
+                {test_callback, 0, 1},
+                {test_callback, 1, 2},
+                {test_callback, 2, 3},
+                {test_callback, 3, 4}
+                ], get_events())
+        end
+    end}.
+
+log_event(Event) ->
+    true = ets:insert(events, {events, Event}).
+
+get_events() ->
+    Events = [E || {_, E} <- ets:lookup(events, events)],
+    true = ets:delete(events, events),
+    Events.
+
+setup_event_logger() ->
+    ets:new(events, [public, named_table, duplicate_bag]).
+
+cleanup_event_logger() ->
+    true = ets:delete(events).

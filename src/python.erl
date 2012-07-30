@@ -322,8 +322,8 @@ handle_info({Port, {data, Data}}, StateName=client, State=#state{port=Port}) ->
     try binary_to_term(Data) of
         {'r', Result} ->
             handle_response(call, {ok, Result}, State, StateName);
-        {'e', Result} ->
-            handle_response(call, {error, Result}, State, StateName);
+        {'e', Error} ->
+            handle_response(call, {error, Error}, State, StateName);
         Response ->
             error_response({invalid_response, Response}, State)
     catch
@@ -347,6 +347,11 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port}) ->
                 end),
             Info = {Monitor, Timer, Pid},
             {next_state, StateName, State#state{call=Info}};
+        'S' ->
+            {next_state, client, State};
+        {'e', Error} ->
+            % TODO: Unpack error if needed
+            {stop, {switch_failed, Error}, State};
         Request ->
             {stop, {invalid_request, Request}, State}
     catch

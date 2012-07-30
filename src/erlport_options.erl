@@ -42,7 +42,7 @@
 -type option() :: nouse_stdio
     | {packet, 1 | 2 | 4}
     | {python, Python :: string()}
-    | {python_path, Path :: string()}
+    | {python_path, [Path :: string()]}
     | {env, [{Name :: string(), Value :: string() | false}]}.
 -type options() :: [option()].
 
