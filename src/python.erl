@@ -287,7 +287,6 @@ server(_Event, _From, State) ->
     Response :: {next_state, server, State}.
 
 server(timeout, State=#state{port=Port}) ->
-    % TODO: It seems we don't need close process here?
     % TODO: We need to add request ID
     Data = term_to_binary({'e', {error, timeout, []}}),
     case send_data(Port, Data, false) of

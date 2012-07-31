@@ -15,10 +15,6 @@
 - Add ID to requests? Calls from Python can be multi-threaded for example and
   it can be good if we will support pippelined requests
 
-- Maybe we need to split request/response data if we can't send it?
-
-- We need check queue more than one time
-
 - Optionally call Erlang functions in one process without spawning new process
   for each call?
 
@@ -27,21 +23,7 @@
 
 - Thread safety in Python?
 
-- Handler Python call timeouts on Erlang side.
-
-- It seems we don't need server/client mode in Python and Python init function.
-  We can add switch(Module, Function, Args) function which pass control to the
-  other side by calling the Function with a special message like the cast
-  message. But what to do if we call switch from Python during call processing?
-  We can raise an exception on Python side or interrupt the call and return an
-  Interrupted exception to Erlang. It seems the same apply to the Erlang side
-  too.
-
-- We can to return errors (like already in client mode) for switch in client
-  mode and for call/cast in client mode. Maybe we don't need to return
-  errors for 'cast' calls
-
-- Don't forget to order message handling functions by mos frequently used
+- Don't forget to order message handling functions by most frequently used
   messages
 
 - We can return errors from cast/switch functions as a special message and just
@@ -56,9 +38,6 @@
 - Add info() function with statistics and information, for example number
   of requests/responses, number of sent/received bytes, number of
   error for requests/responses, uptime?
-
-- Create monitor and timer for Erlang function and wait for result. If timeout
-  occurs we can return error
 
 - Convert some tuples to records in python.erl
 
@@ -79,9 +58,11 @@
 - Add opaque type {opaque, Type :: erlang | python, Data :: binary()} and
   unpack Data depending on Type.
 
-- Add {'cd', Dir} option to python:start(_link)/1
+- Add {'cd', Dir} option to python:start(_link)/1. And make absolute names
+  for python path.
 
-- How to handle Python <-> Python exceptions?
+- How to handle Python <-> Python exceptions? We can pass it inside some
+  error term.
 
 - Call timeouts
 
@@ -98,10 +79,6 @@
 
 - Maybe force strings with {string, String}?
 
-- Need a way to start a Python function on Python start. It's mandatory for
-  with 'server' option and also optional init function can be specified in
-  client mode.
-
 - Pluggable encoders/decoders? We can register proxy encoder/decoder functions.
 
 - Reduce number of supported types.
@@ -115,10 +92,6 @@
 
 - Maybe we can cache atoms or module/function? But it also can be slower.
 
-
-- Periodically check if channel is alive in Python? Seems unneeded because we
-  always trying read or write
-
 - Add workers_pool module with pluggable workers selection policies
 
 - Errors/exceptions should be like opaque types marked with the language
@@ -131,4 +104,4 @@
 
 - Type: 'undefined' <-> None
 
-- Check term_to_binary/1 calls for errors
+- Add 'compressed' option
