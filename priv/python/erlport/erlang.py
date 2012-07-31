@@ -30,21 +30,33 @@ from traceback import extract_tb
 
 from erlport import Atom
 
-
 class Error(Exception):
+    """ErlPort Error."""
+
+class InvalidMessage(Error):
+    """Invalid message."""
+
+class UnknownMessage(Error):
+    """Unknown message."""
+
+class InvalidArgument(Error):
+    """Invalid argument."""
+
+class InvalidMode(Error):
+    """Invalid mode."""
+
+class ErlangError(Error):
+    """Erlang error()."""
 
     def __init__(self, value, stacktrace):
         self.value = value
         self.stacktrace = stacktrace
-        Exception.__init__(self, (value, stacktrace))
+        Error.__init__(self, (value, stacktrace))
 
-class ErlangError(Error):
-    """Erlang error."""
-
-class ThrowErlangError(Error):
+class ThrowErlangError(ErlangError):
     """Erlang throw()."""
 
-class ExitErlangError(Error):
+class ExitErlangError(ErlangError):
     """Erlang exit()."""
 
 
@@ -66,37 +78,35 @@ class MessageHandler(object):
 
     def handle(self, message, write):
         try:
-            # TODO: Is it faster than checking the type and size first?
             mtype, module, function, args = message
         except ValueError:
-            # FIXME: Should we exit if we received a bad message?
-            pass
+            raise InvalidMessage(message)
         else:
-            # TODO: Check mode
             if mtype == "C":
-                write(self._call_with_error_handler(module, function, args))
+                write(self.call_with_error_handler(module, function, args))
             elif mtype == "S":
-                self.client = True
                 write(Atom("s"))
+                self.client = True
                 try:
-                    self._call(module, function, args)
-                except:
-                    t, val, tb = exc_info()
-                    exc = Atom("%s.%s" % (t.__module__, t.__name__))
-                    exc_tb = extract_tb(tb)
-                    exc_tb.reverse()
-                    result = Atom("e"), (exc, unicode(val), exc_tb)
-                    write(result)
-                else:
-                    write(Atom("S"))
+                    write(self.call_with_error_handler(module, function, args))
                 finally:
                     self.client = False
+            else:
+                raise UnknownMessage(message)
 
     def call(self, module, function, args):
-        # TODO: Check all arguments
+        if not isinstance(module, Atom):
+            raise InvalidArgument(module)
+        if not isinstance(function, Atom):
+            raise InvalidArgument(function)
+        if not isinstance(args, list):
+            raise InvalidArgument(args)
+
         if not self.client:
-            raise ErlangError("call() is unsupported in server mode")
+            raise InvalidMode("call() is unsupported in server mode")
+
         request = Atom('C'), module, function, args
+        # TODO: EOFError
         self.port.write(request)
         try:
             response = self.port.read()
@@ -107,36 +117,31 @@ class MessageHandler(object):
         try:
             mtype, value = response
         except ValueError:
-            # TODO: Raise some other error?
-            raise
+            raise InvalidMessage(response)
 
         if mtype != "r":
             if mtype == "e":
                 # TODO: Raise error based on error value
                 raise Exception("error")
-            # TODO: Raise some other error?
-            raise Exception("unknown message")
+            raise UnknownMessage(response)
         return value
 
-    def _call_with_error_handler(self, module, function, args):
+    def call_with_error_handler(self, module, function, args):
         # TODO: Need to check this code
         try:
-            result = self._call(module, function, args)
+            f = modules.get(module)
+            if f is None:
+                f = __import__(module, {}, {}, [function])
+            f = getattr(f, function)
+            result = Atom("r"), f(*args)
         except:
+            # TODO: Update exception format
             t, val, tb = exc_info()
             exc = Atom("%s.%s" % (t.__module__, t.__name__))
             exc_tb = extract_tb(tb)
             exc_tb.reverse()
             result = Atom("e"), (exc, unicode(val), exc_tb)
         return result
-
-    def _call(self, module, function, args):
-        # TODO: Need to check this code
-        f = modules.get(module)
-        if f is None:
-            f = __import__(module, {}, {}, [function])
-        f = getattr(f, function)
-        return Atom("r"), f(*args)
 
 
 def start(port):

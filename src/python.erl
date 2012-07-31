@@ -346,7 +346,9 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port}) ->
                 end),
             Info = {Monitor, Timer, Pid},
             {next_state, StateName, State#state{call=Info}};
-        'S' ->
+        {'r', _Result} ->
+            % TODO: Result will be handled when we'll support swith result
+            % waiting
             {next_state, client, State};
         {'e', Error} ->
             % TODO: Unpack error if needed
