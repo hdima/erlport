@@ -1,5 +1,7 @@
-- Accept string as python path (and then we should split it by ':')? And maybe
-  return expected type in case of option error?
+- Add options list for call/switch so we can configure timeouts and
+  waiting for result for switch for example
+
+- Maybe return expected type in case of option error?
 
 - Maybe we can register handler to handle switch function errors and result?
 

@@ -42,7 +42,7 @@
 -type option() :: nouse_stdio
     | {packet, 1 | 2 | 4}
     | {python, Python :: string()}
-    | {python_path, [Path :: string()]}
+    | {python_path, Path :: string() | [Path :: string()]}
     | {env, [{Name :: string(), Value :: string() | false}]}.
 -type options() :: [option()].
 
@@ -87,10 +87,10 @@ parse([{env, Env}=Value | Tail], Options) ->
     end;
 parse([{python_path, PythonPath}=Value | Tail], Options) ->
     case filter_invalid_paths(PythonPath) of
-        [] ->
+        {ok, Path} ->
             % Paths will be checked later
-            parse(Tail, Options#options{python_path=PythonPath});
-        Invalid ->
+            parse(Tail, Options#options{python_path=Path});
+        {error, Invalid} ->
             {error, {invalid_option, Value, Invalid}}
     end;
 parse([UnknownOption | _Tail], _Options) ->
@@ -116,10 +116,24 @@ parse([], Options=#options{env=Env0, python_path=PythonPath0, python=Python,
 %%% Utility functions
 %%%
 
-filter_invalid_paths(Paths) when is_list(Paths) ->
-    lists:filter(fun (P) -> not is_list(P) end, Paths);
+filter_invalid_paths(Paths=[List | _]) when is_list(List) ->
+    case lists:filter(fun (L) -> not is_list(L) end, Paths) of
+        [] ->
+            {ok, Paths};
+        Invalid ->
+            {error, Invalid}
+    end;
+filter_invalid_paths(Path=[Integer | _]) when is_integer(Integer) ->
+    case lists:filter(fun (I) -> not is_integer(I) end, Path) of
+        "" ->
+            {ok, string:tokens(Path, ":")};
+        Invalid ->
+            {error, Invalid}
+    end;
+filter_invalid_paths(List) when is_list(List) ->
+    {error, invalid_path};
 filter_invalid_paths(_Paths) ->
-    not_list.
+    {error, not_list}.
 
 filter_invalid_env(Env) when is_list(Env) ->
     lists:filter(fun
