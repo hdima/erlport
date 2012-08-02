@@ -91,7 +91,7 @@
 
 - Support also argparse along with optparse in Python? Or rework erlport.cli?
 
-- Python 3, other languages?
+- Python 3, other languages? Ruby? What about different Ruby versions?
 
 - Maybe we can try variable length length field as in
   Twisted Banana/Protocol Buffers protocols
