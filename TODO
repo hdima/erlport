@@ -1,3 +1,9 @@
+- Pass options to Python? For example -O, -s etc. But maybe we can pass options
+  with 'python' option? Then we need to check only first argument on 'python'
+  option.
+
+- Check Python version by calling python -V
+
 - Add options list for call/switch so we can configure timeouts and
   waiting for result for switch for example
 
