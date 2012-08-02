@@ -32,4 +32,4 @@ __version__ = "1.0"
 
 from erlport.erlproto import Port
 from erlport.erlterms import IncompleteData, decode, encode
-from erlport.erlterms import Atom, String, BitBinary
+from erlport.erlterms import Atom, String

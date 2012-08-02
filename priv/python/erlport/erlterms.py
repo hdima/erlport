@@ -70,112 +70,6 @@ class String(unicode):
         return "string(%s)" % super(String, self).__repr__()
 
 
-class BitBinary(str):
-    """Erlang bitstring whose length in bits is not a multiple of 8."""
-
-    def __new__(cls, s, bits):
-        obj = super(BitBinary, cls).__new__(cls, s)
-        obj.bits = bits
-        return obj
-
-    def __repr__(self):
-        return "bits(%s, %s)" % (self.bits, super(BitBinary, self).__repr__())
-
-
-class Pid(object):
-    """Erlang process identifier."""
-
-    __slots__ = "node", "id", "serial", "creation"
-
-    def __init__(self, node, id, serial, creation):
-        self.node = node
-        self.id = id
-        self.serial = serial
-        self.creation = creation
-
-    def __eq__(self, other):
-        return (type(self) == type(other)
-            and (self.node, self.id, self.serial, self.creation)
-                == (other.node, other.id, other.serial, other.creation))
-
-    def __hash__(self):
-        hash((self.__module__, self.__name__,
-            self.node, self.id, self.serial, self.creation))
-
-    def __repr__(self):
-        return "pid(%r, %r, %r, %r)" % (self.node, self.id, self.serial,
-            self.creation)
-
-
-class Reference(object):
-    """Erlang reference."""
-
-    __slots__ = "node", "id", "creation"
-
-    def __init__(self, node, id, creation):
-        self.node = node
-        self.id = id
-        self.creation = creation
-
-    def __eq__(self, other):
-        return (type(self) == type(other)
-            and (self.node, self.id, self.creation)
-                == (other.node, other.id, other.creation))
-
-    def __hash__(self):
-        hash((self.__module__, self.__name__,
-            self.node, self.id, self.creation))
-
-    def __repr__(self):
-        return "ref(%r, %r, %r)" % (self.node, self.id, self.creation)
-
-
-class Port(object):
-    """Erlang port."""
-
-    __slots__ = "node", "id", "creation"
-
-    def __init__(self, node, id, creation):
-        self.node = node
-        self.id = id
-        self.creation = creation
-
-    def __eq__(self, other):
-        return (type(self) == type(other)
-            and (self.node, self.id, self.creation)
-                == (other.node, other.id, other.creation))
-
-    def __hash__(self):
-        hash((self.__module__, self.__name__,
-            self.node, self.id, self.creation))
-
-    def __repr__(self):
-        return "port(%r, %r, %r)" % (self.node, self.id, self.creation)
-
-
-class Export(object):
-    """Erlang function export fun M:F/A."""
-
-    __slots__ = "module", "function", "arity"
-
-    def __init__(self, module, function, arity):
-        self.module = module
-        self.function = function
-        self.arity = arity
-
-    def __eq__(self, other):
-        return (type(self) == type(other)
-            and (self.module, self.function, self.arity)
-                == (other.module, other.function, other.arity))
-
-    def __hash__(self):
-        hash((self.__module__, self.__name__,
-            self.module, self.function, self.arity))
-
-    def __repr__(self):
-        return "export(%r, %r, %r)" % (self.module, self.function, self.arity)
-
-
 def decode(string):
     """Decode Erlang external term."""
     if not string:
@@ -203,7 +97,7 @@ def decode(string):
 def decode_term(string,
                 # Hack to turn globals into locals
                 len=len, ord=ord, unpack=unpack, tuple=tuple, float=float,
-                BitBinary=BitBinary, Atom=Atom):
+                Atom=Atom):
     if not string:
         raise IncompleteData("incomplete data: %r" % string)
     tag = ord(string[0])
@@ -267,7 +161,7 @@ def decode_term(string,
             return True, tail
         elif name == "false":
             return False, tail
-        elif name == "none":
+        elif name == "undefined":
             return None, tail
         return Atom(name), tail
     elif tag == 104 or tag == 105:
@@ -292,11 +186,16 @@ def decode_term(string,
         return tuple(lst), tail
     elif tag == 70:
         # NEW_FLOAT_EXT
-        term, = unpack(">d", tail[:8])
-        return term, tail[8:]
+        if len(tail) < 8:
+            raise IncompleteData("incomplete data: %r" % string)
+        f, = unpack(">d", tail[:8])
+        return f, tail[8:]
     elif tag == 99:
         # FLOAT_EXT
-        return float(tail[:31].split("\x00", 1)[0]), tail[31:]
+        # TODO: Is it used?
+        if len(tail) < 31:
+            raise IncompleteData("incomplete data: %r" % string)
+        return float(tail[:31].split("\0", 1)[0]), tail[31:]
     elif tag == 110 or tag == 111:
         # SMALL_BIG_EXT, LARGE_BIG_EXT
         if tag == 110:
@@ -317,58 +216,6 @@ def decode_term(string,
         if sign:
             n = -n
         return n, tail[length:]
-    elif tag == 77:
-        # BIT_BINARY_EXT
-        if len(tail) < 5:
-            raise IncompleteData("incomplete data: %r" % string)
-        length, bits = unpack(">IB", tail[:5])
-        tail = tail[5:]
-        if len(tail) < length:
-            raise IncompleteData("incomplete daata: %r" % string)
-        return BitBinary(tail[:length], bits), tail[length:]
-    elif tag == 103:
-        # PID_EXT
-        node, tail = decode_term(tail)
-        if len(tail) < 9:
-            raise IncompleteData("incomplete data: %r" % string)
-        id = tail[:4]
-        serial = tail[4:8]
-        creation = ord(tail[8])
-        return Pid(node, id, serial, creation), tail[9:]
-    elif tag == 101:
-        # REFERENCE_EXT
-        node, tail = decode_term(tail)
-        if len(tail) < 5:
-            raise IncompleteData("incomplete data: %r" % string)
-        id = tail[:4]
-        creation = ord(tail[4])
-        return Reference(node, id, creation), tail[5:]
-    elif tag == 102:
-        # PORT_EXT
-        node, tail = decode_term(tail)
-        if len(tail) < 5:
-            raise IncompleteData("incomplete data: %r" % string)
-        id = tail[:4]
-        creation = ord(tail[4])
-        return Port(node, id, creation), tail[5:]
-    elif tag == 114:
-        # NEW_REFERENCE_EXT
-        if len(tail) < 2:
-            raise IncompleteData("incomplete data: %r" % string)
-        num, = unpack(">H", tail[:2])
-        length = num * 4
-        node, tail = decode_term(tail[2:])
-        if len(tail) < 1 + length:
-            raise IncompleteData("incomplete data: %r" % string)
-        creation = ord(tail[0])
-        id = tail[1:length + 1]
-        return Reference(node, id, creation), tail[length + 1:]
-    elif tag == 113:
-        # EXPORT_EXT
-        module, tail = decode_term(tail)
-        function, tail = decode_term(tail)
-        arity, tail = decode_term(tail)
-        return Export(module, function, arity), tail
 
     raise ValueError("unsupported data tag: %i" % tag)
 
@@ -392,7 +239,7 @@ def encode_term(term,
                 # Hack to turn globals into locals
                 pack=pack, tuple=tuple, len=len, isinstance=isinstance,
                 list=list, int=int, long=long, array=array, unicode=unicode,
-                Atom=Atom, BitBinary=BitBinary, str=str, float=float, ord=ord,
+                Atom=Atom, str=str, float=float, ord=ord,
                 dict=dict, True=True, False=False,
                 ValueError=ValueError, OverflowError=OverflowError):
     if isinstance(term, tuple):
@@ -440,18 +287,16 @@ def encode_term(term,
         return encode_term([ord(i) for i in term])
     elif isinstance(term, Atom):
         return pack(">BH", 100, len(term)) + term
-    # Must be before str type
-    elif isinstance(term, BitBinary):
-        return pack(">BIB", 77, len(term), term.bits) + term
     elif isinstance(term, str):
         length = len(term)
         if length > 4294967295:
             raise ValueError("invalid binary length")
         return pack(">BI", 109, length) + term
     # Must be before int type
-    elif term is True or term is False:
-        term = term and 'true' or 'false'
-        return pack(">BH", 100, len(term)) + term
+    elif term is True:
+        return "\x64\x00\x04true"
+    elif term is False:
+        return "\x64\x00\x05false"
     elif isinstance(term, (int, long)):
         if 0 <= term <= 255:
             return 'a%c' % term
@@ -485,26 +330,7 @@ def encode_term(term,
         items.sort()
         return encode_term(items)
     elif term is None:
-        return pack(">BH", 100, 4) + "none"
-    elif isinstance(term, Pid):
-        node = encode_term(term.node)
-        if len(term.serial) != 4:
-            raise ValueError("invalid pid serial field")
-        return "g" + node + term.id + term.serial + "%c" % term.creation
-    elif isinstance(term, Reference):
-        node = encode_term(term.node)
-        num = len(term.id) // 4
-        return "r" + pack(">H", num) + node + "%c" % term.creation + term.id
-    elif isinstance(term, Port):
-        node = encode_term(term.node)
-        if len(term.id) != 4:
-            raise ValueError("invalid port id field")
-        return "f" + node + term.id + "%c" % term.creation
-    elif isinstance(term, Export):
-        module = encode_term(term.module)
-        function = encode_term(term.function)
-        arity = encode_term(term.arity)
-        return "q" + module + function + arity
+        return "\x64\x00\x09undefined"
 
     try:
         data = dumps(term, -1)
