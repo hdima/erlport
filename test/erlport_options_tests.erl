@@ -99,6 +99,11 @@ python_option_test_() -> {setup,
         end,
         ?_assertMatch({ok, #options{python=GoodName}},
             erlport_options:parse([{python, GoodName}])),
+        fun () ->
+            CommandWithOption = GoodName ++ " -S",
+            ?assertMatch({ok, #options{python=CommandWithOption}},
+                erlport_options:parse([{python, CommandWithOption}]))
+        end,
         ?_assertEqual({error, {invalid_option, {python, BadName}, not_found}},
             erlport_options:parse([{python, BadName}])),
         ?_assertEqual({error, {invalid_option, {python, UnknownName},

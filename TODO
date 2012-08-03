@@ -1,7 +1,3 @@
-- Pass options to Python? For example -O, -s etc. But maybe we can pass options
-  with 'python' option? Then we need to check only first argument on 'python'
-  option.
-
 - Check Python version by calling python -V
 
 - Add options list for call/switch so we can configure timeouts and
@@ -9,11 +5,7 @@
 
 - Maybe return expected type in case of option error?
 
-- Maybe we can register handler to handle switch function errors and result?
-
 - Check code with older versions of Erlang/Python
-
-- Use 'nosuspend' option only for pipelinend requests and suspend otherwise?
 
 - Maybe configure threads for Python request handler? For example "run 4
   threads for request handling".
@@ -24,22 +16,7 @@
 - Optionally call Erlang functions in one process without spawning new process
   for each call?
 
-- We don't need to add 'switch' function in Python just switching back to
-  Erlang when switched Python function is over
-
 - Thread safety in Python?
-
-- Don't forget to order message handling functions by most frequently used
-  messages
-
-- We can return errors from cast/switch functions as a special message and just
-  stop Erlang process
-
-- Add ping() method with 'P' request and 'p' response. Or just some binary
-  request/response like 00/01?
-
-- Periodically call ping() on timeouts (when there is no messages for some
-  time)?
 
 - Add info() function with statistics and information, for example number
   of requests/responses, number of sent/received bytes, number of
@@ -48,9 +25,6 @@
 - Convert some tuples to records in python.erl
 
 - Update tests for Python
-
-- Maybe module name should be list of atoms? Like [os, path] instead of
-  'os.path'.
 
 - Comments for modules
 
@@ -71,27 +45,18 @@
 
 - Check default port options on Windows
 
-- Can we request attributes also, like
-  python:call(P, 'sys.modules', get, [<<"sys">>])?
-
-- Add some type functions on Erlang side. Like
-  python_types:module("__builtins__")??
-
-- Add ready to use function to return attribute of objects in Python.
-  Should it be added to erlport.py/python.py or just erlang.py?
-
 - Maybe force strings with {string, String}?
 
 - Pluggable encoders/decoders? We can register proxy encoder/decoder functions.
+  If encoder/decoder is defined we just scan through hierarchy of objects and
+  call encoder/decoder for each object.
 
-- Support also argparse along with optparse in Python? Or rework erlport.cli?
+- Support argparse instead of optparse on Python 3?
 
 - Python 3, other languages? Ruby? What about different Ruby versions?
 
 - Maybe we can try variable length length field as in
   Twisted Banana/Protocol Buffers protocols
-
-- Maybe we can cache atoms or module/function? But it also can be slower.
 
 - Add workers_pool module with pluggable workers selection policies
 
@@ -100,7 +65,3 @@
 
 - Marks errors/exception with some ID? Like (node(), self(), OS PID) for Python
   and (node(), self()) for Erlang?
-
-- Check port_command for 'badarg' exception
-
-- Add 'compressed' option

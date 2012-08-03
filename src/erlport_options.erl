@@ -192,7 +192,10 @@ remove_duplicate_path([], Paths, _Seen) ->
     {ok, string:join(lists:reverse(Paths), ":")}.
 
 get_python(Python=[_|_]) ->
-    case os:find_executable(Python) of
+    {PythonCommand, Options} = lists:splitwith(fun (C) ->
+        C =/= $ 
+        end, Python),
+    case os:find_executable(PythonCommand) of
         false ->
             case Python of
                 ?DEFAULT_PYTHON ->
@@ -201,7 +204,7 @@ get_python(Python=[_|_]) ->
                     {error, {invalid_option, {python, Python}, not_found}}
             end;
         Filename ->
-            {ok, Filename}
+            {ok, Filename ++ Options}
     end;
 get_python(Python) ->
     {error, {invalid_option, {python, Python}}}.

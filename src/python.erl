@@ -349,7 +349,7 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port}) ->
             Info = {Monitor, Timer, Pid},
             {next_state, StateName, State#state{call=Info}};
         {'r', _Result} ->
-            % TODO: Result will be handled when we'll support swith result
+            % TODO: Result will be handled when we'll support switch result
             % waiting
             {next_state, client, State};
         {'e', Error} ->
