@@ -36,7 +36,7 @@ __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 from struct import pack, unpack
 from array import array
 from zlib import decompressobj, compress
-from cPickle import loads, dumps
+from cPickle import loads, dumps, HIGHEST_PROTOCOL
 
 
 class IncompleteData(ValueError):
@@ -69,6 +69,10 @@ class String(unicode):
     def __repr__(self):
         return "string(%s)" % super(String, self).__repr__()
 
+_opaque = Atom("$opaque")
+_python = Atom("python")
+_erlang = Atom("erlang")
+
 
 def decode(string):
     """Decode Erlang external term."""
@@ -97,7 +101,7 @@ def decode(string):
 def decode_term(string,
                 # Hack to turn globals into locals
                 len=len, ord=ord, unpack=unpack, tuple=tuple, float=float,
-                Atom=Atom):
+                Atom=Atom, opaque=_opaque, python=_python, erlang=_erlang):
     if not string:
         raise IncompleteData("incomplete data: %r" % string)
     tag = ord(string[0])
@@ -185,8 +189,8 @@ def decode_term(string,
             term, tail = _decode_term(tail)
             append(term)
             arity -= 1
-        if len(lst) == 2 and lst[0] == Atom("python_pickle"):
-            return loads(lst[1]), tail
+        if len(lst) == 3 and lst[0] == opaque and lst[1] == python:
+            return loads(lst[2]), tail
         return tuple(lst), tail
     elif tag == 70:
         # NEW_FLOAT_EXT
@@ -215,7 +219,7 @@ def decode_term(string,
             n = -n
         return n, tail[length:]
 
-    raise ValueError("unsupported data tag: %i" % tag)
+    return opaque, erlang, string
 
 
 def encode(term, compressed=False):
@@ -239,10 +243,13 @@ def encode_term(term,
                 list=list, int=int, long=long, array=array, unicode=unicode,
                 Atom=Atom, str=str, float=float, ord=ord,
                 dict=dict, True=True, False=False,
-                ValueError=ValueError, OverflowError=OverflowError):
+                ValueError=ValueError, OverflowError=OverflowError,
+                opaque=_opaque, erlang=_erlang, python=_python):
     if isinstance(term, tuple):
         arity = len(term)
         if arity <= 255:
+            if arity == 3 and term[0] == opaque and term[1] == erlang:
+                return term[2]
             header = 'h%c' % arity
         elif arity <= 4294967295:
             header = pack(">BI", 105, arity)
@@ -331,7 +338,7 @@ def encode_term(term,
         return "\x64\x00\x09undefined"
 
     try:
-        data = dumps(term, -1)
+        data = dumps(term, HIGHEST_PROTOCOL)
     except:
         raise ValueError("unsupported data type: %s" % type(term))
-    return encode_term((Atom("python_pickle"), data))
+    return encode_term((opaque, python, data))

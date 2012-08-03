@@ -61,9 +61,6 @@
 - We can allow to send some number (configurable?) of backlog request while
   we waiting for response. We just can use 'nosuspend' options for port_command
 
-- Add opaque type {opaque, Type :: erlang | python, Data :: binary()} and
-  unpack Data depending on Type.
-
 - Add {'cd', Dir} option to python:start(_link)/1. And make absolute names
   for python path.
 
@@ -87,8 +84,6 @@
 
 - Pluggable encoders/decoders? We can register proxy encoder/decoder functions.
 
-- Reduce number of supported types.
-
 - Support also argparse along with optparse in Python? Or rework erlport.cli?
 
 - Python 3, other languages? Ruby? What about different Ruby versions?
@@ -107,7 +102,5 @@
   and (node(), self()) for Erlang?
 
 - Check port_command for 'badarg' exception
-
-- Type: 'undefined' <-> None
 
 - Add 'compressed' option
