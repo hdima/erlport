@@ -106,7 +106,7 @@ def decode_term(string,
         # SMALL_INTEGER_EXT
         if not tail:
             raise IncompleteData("incomplete data: %r" % string)
-        return ord(tail[:1]), tail[1:]
+        return ord(tail[0]), tail[1:]
     elif tag == 98:
         # INTEGER_EXT
         if len(tail) < 4:
@@ -132,11 +132,13 @@ def decode_term(string,
         length, = unpack(">I", tail[:4])
         tail = tail[4:]
         lst = []
+        append = lst.append
+        _decode_term = decode_term
         while length > 0:
-            term, tail = decode_term(tail)
-            lst.append(term)
+            term, tail = _decode_term(tail)
+            append(term)
             length -= 1
-        ignored, tail = decode_term(tail)
+        ignored, tail = _decode_term(tail)
         return lst, tail
     elif tag == 109:
         # BINARY_EXT
@@ -177,9 +179,11 @@ def decode_term(string,
             arity, = unpack(">I", tail[:4])
             tail = tail[4:]
         lst = []
+        append = lst.append
+        _decode_term = decode_term
         while arity > 0:
-            term, tail = decode_term(tail)
-            lst.append(term)
+            term, tail = _decode_term(tail)
+            append(term)
             arity -= 1
         if len(lst) == 2 and lst[0] == Atom("python_pickle"):
             return loads(lst[1]), tail
@@ -252,11 +256,11 @@ def encode_term(term,
             raise ValueError("invalid tuple arity")
         _encode_term = encode_term
         return header + "".join(_encode_term(t) for t in term)
-    if isinstance(term, list):
-        if not term:
-            return "j"
+    elif isinstance(term, list):
         length = len(term)
-        if length <= 65535:
+        if length == 0:
+            return "j"
+        elif length <= 65535:
             try:
                 # array coersion will allow floats as a deprecated feature
                 for t in term:
@@ -274,10 +278,10 @@ def encode_term(term,
         _encode_term = encode_term
         return header + "".join(_encode_term(t) for t in term) + "j"
     elif isinstance(term, unicode):
-        if not term:
-            return "j"
         length = len(term)
-        if length <= 65535:
+        if length == 0:
+            return "j"
+        elif length <= 65535:
             try:
                 bytes = term.encode("latin1")
             except UnicodeEncodeError:
