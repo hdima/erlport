@@ -194,12 +194,6 @@ def decode_term(string,
             raise IncompleteData("incomplete data: %r" % string)
         f, = unpack(">d", tail[:8])
         return f, tail[8:]
-    elif tag == 99:
-        # FLOAT_EXT
-        # TODO: Is it used?
-        if len(tail) < 31:
-            raise IncompleteData("incomplete data: %r" % string)
-        return float(tail[:31].split("\0", 1)[0]), tail[31:]
     elif tag == 110 or tag == 111:
         # SMALL_BIG_EXT, LARGE_BIG_EXT
         if tag == 110:

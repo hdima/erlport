@@ -33,6 +33,8 @@
 
 -module(python).
 
+-compile(inline).
+
 -author('Dmitry Vasiliev <dima@hlabs.org>').
 
 -behaviour(gen_fsm).
@@ -235,11 +237,11 @@ init(Options) when is_list(Options) ->
 
 client({call, Module, Function, Args}, From, State=#state{})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
-    Data = term_to_binary({'C', Module, Function, Args}),
+    Data = encode({'C', Module, Function, Args}),
     send_request({call, From, Data}, client, State);
 client({switch, Module, Function, Args}, From, State=#state{})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
-    Data = term_to_binary({'S', Module, Function, Args}),
+    Data = encode({'S', Module, Function, Args}),
     send_request({switch, From, Data}, server, State);
 client(Event, From, State) ->
     {reply, {bad_event, ?MODULE, Event, From}, client, State}.
@@ -288,7 +290,7 @@ server(_Event, _From, State) ->
 
 server(timeout, State=#state{port=Port}) ->
     % TODO: We need to add request ID
-    Data = term_to_binary({'e', {error, timeout, []}}),
+    Data = encode({'e', {error, timeout, []}}),
     case send_data(Port, Data, false) of
         ok ->
             {next_state, server, State#state{call=undefined}};
@@ -370,7 +372,7 @@ handle_info({'DOWN', Monitor, process, Pid, Result}, StateName=server,
         Response ->
             {'e', {error, Response, []}}
     end,
-    Data = term_to_binary(R),
+    Data = encode(R),
     case send_data(Port, Data, false) of
         ok ->
             {next_state, StateName, State#state{call=undefined}};
@@ -497,3 +499,7 @@ error_response(Error, State=#state{in_process=InProcess}) ->
             ok
     end,
     {stop, Error, State}.
+
+
+encode(Term) ->
+    term_to_binary(Term, [{minor_version, 1}]).
