@@ -192,7 +192,6 @@ switch(Instance, Module, Function, Args) when is_pid(Instance),
     Reason :: term().
 
 init(Options) when is_list(Options) ->
-    % TODO: Add custom args?
     % TODO: Default call timeout?
     case erlport_options:parse(Options) of
         {ok, #options{python=Python,use_stdio=UseStdio,
@@ -244,7 +243,7 @@ client({switch, Module, Function, Args}, From, State=#state{})
     Data = encode({'S', Module, Function, Args}),
     send_request({switch, From, Data}, server, State);
 client(Event, From, State) ->
-    {reply, {bad_event, ?MODULE, Event, From}, client, State}.
+    {reply, {unknown_event, ?MODULE, Event, From}, client, State}.
 
 %%
 %% @doc Asynchronous event handler in client mode
@@ -309,8 +308,7 @@ server(_Event, State) ->
     Event :: stop,
     StateName :: atom(),
     State :: #state{},
-    Response :: {stop, normal, State}
-        | {next_state, StateName, State}.
+    Response :: {stop, normal, State} | {next_state, StateName, State}.
 
 handle_event(stop, _StateName, State) ->
     {stop, normal, State};
@@ -372,8 +370,7 @@ handle_info({'DOWN', Monitor, process, Pid, Result}, StateName=server,
         Response ->
             {'e', {error, Response, []}}
     end,
-    Data = encode(R),
-    case send_data(Port, Data, false) of
+    case send_data(Port, encode(R), false) of
         ok ->
             {next_state, StateName, State#state{call=undefined}};
         fail ->
@@ -389,7 +386,7 @@ handle_info(_Info, StateName, State) ->
 %% @hidden
 
 handle_sync_event(Event, From, StateName, State) ->
-    {reply, {bad_event, ?MODULE, Event, From}, StateName, State}.
+    {reply, {unknown_event, ?MODULE, Event, From}, StateName, State}.
 
 %% @hidden
 
@@ -401,9 +398,9 @@ terminate(Reason, _StateName, #state{in_process=InProcess, queue=Queue}) ->
         {_Type, From, _Timer} ->
             gen_fsm:reply(From, Error)
     end,
-    lists:foreach(fun ({_Type, From, _Data}) ->
+    foreach_in_queue(fun ({_Type, From, _Data}) ->
         gen_fsm:reply(From, Error)
-        end, queue:to_list(Queue)).
+        end, Queue).
 
 %% @hidden
 
@@ -411,22 +408,15 @@ code_change(_OldVsn, StateName, State, _Extra) ->
     {ok, StateName, State}.
 
 %%%
-%%% Utility functions
+%%% Auxiliary functions
 %%%
 
-send_data(Port, Data) ->
-    send_data(Port, Data, true).
-
 send_data(Port, Data, WithTimer) ->
-    try port_command(Port, Data) of
-        true ->
-            case WithTimer of
-                true ->
-                    Timer = gen_fsm:send_event_after(?CALL_TIMEOUT, timeout),
-                    {ok, Timer};
-                false ->
-                    ok
-            end
+    try {port_command(Port, Data), WithTimer} of
+        {true, true} ->
+            {ok, gen_fsm:send_event_after(?CALL_TIMEOUT, timeout)};
+        {true, false} ->
+            ok
     catch
         error:badarg ->
             fail
@@ -456,7 +446,7 @@ send_request(Queued={Type, From, Data}, StateName, State=#state{port=Port,
         queue=Queue, in_process=InProcess}) ->
     case InProcess of
         undefined ->
-            case send_data(Port, Data) of
+            case send_data(Port, Data, true) of
                 {ok, Timer} ->
                     Info = {Type, From, Timer},
                     {next_state, StateName, State#state{in_process=Info}};
@@ -470,7 +460,7 @@ send_request(Queued={Type, From, Data}, StateName, State=#state{port=Port,
 
 send_from_queue({Type, From, Data}, Queue, StateName,
         State=#state{port=Port}) ->
-    case send_data(Port, Data) of
+    case send_data(Port, Data, true) of
         {ok, Timer} ->
             Info = {Type, From, Timer},
             {next_state, StateName, State#state{in_process=Info, queue=Queue}};
@@ -500,6 +490,14 @@ error_response(Error, State=#state{in_process=InProcess}) ->
     end,
     {stop, Error, State}.
 
-
 encode(Term) ->
     term_to_binary(Term, [{minor_version, 1}]).
+
+foreach_in_queue(Fun, Queue) ->
+    case queue:out(Queue) of
+        {empty, Queue} ->
+            ok;
+        {{value, Item}, Queue2} ->
+            Fun(Item),
+            foreach_in_queue(Fun, Queue2)
+    end.
