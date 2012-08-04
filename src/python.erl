@@ -46,7 +46,9 @@
     start_link/1,
     stop/1,
     call/4,
-    switch/4
+    call/5,
+    switch/4,
+    switch/5
     ]).
 
 -export([
@@ -63,18 +65,16 @@
     ]).
 
 -record(state, {
+    timeout :: pos_integer() | infinity,
     port :: port(),
     % TODO: Rename to 'waiting'
     queue = queue:new() :: queue(),
     % TODO: Rename to 'sent' and convert to queue
-    in_process :: {call | switch, From::term(), Timer::term()},
+    in_process :: {call | switch | switch_wait, From::term(), Timer::term()},
     call :: {Monitor::reference(), Timer::reference(), Pid::pid()}
     }).
 
 -opaque instance() :: pid().
-
--define(START_TIMEOUT, 15000).
--define(CALL_TIMEOUT, 15000).
 
 -include("erlport.hrl").
 
@@ -101,8 +101,8 @@ start() ->
     Instance :: instance(),
     Reason :: term().
 
-start(Options) when is_list(Options) ->
-    gen_fsm:start(?MODULE, Options, [{timeout, ?START_TIMEOUT}]).
+start(Options) ->
+    start(start, Options).
 
 %%
 %% @equiv start_link([])
@@ -126,8 +126,8 @@ start_link() ->
     Instance :: instance(),
     Reason :: term().
 
-start_link(Options) when is_list(Options) ->
-    gen_fsm:start_link(?MODULE, Options, [{timeout, ?START_TIMEOUT}]).
+start_link(Options) ->
+    start(start_link, Options).
 
 %%
 %% @doc Stop Python instance
@@ -140,7 +140,7 @@ stop(Instance) when is_pid(Instance) ->
     gen_fsm:send_all_state_event(Instance, stop).
 
 %%
-%% @doc Call Python function with arguments and return result
+%% @equiv call(Instance, Module, Function, Args, [])
 %%
 
 -spec call(Instance, Module, Function, Args) -> Result when
@@ -150,18 +150,36 @@ stop(Instance) when is_pid(Instance) ->
     Args :: list(),
     Result :: term().
 
-% TODO: Call timeout?
-call(Instance, Module, Function, Args) when is_pid(Instance),
-        is_atom(Module), is_atom(Function), is_list(Args) ->
-    case gen_fsm:sync_send_event(Instance, {call, Module, Function, Args}) of
+call(Instance, Module, Function, Args) ->
+    call(Instance, Module, Function, Args, []).
+
+%%
+%% @doc Call Python function with arguments and return result
+%%
+
+-spec call(Instance, Module, Function, Args, Options) -> Result when
+    Instance :: instance(),
+    Module :: atom(),
+    Function :: atom(),
+    Args :: list(),
+    Options :: [Option],
+    Option :: {timeout, Timeout},
+    Timeout :: pos_integer() | infinity,
+    Result :: term().
+
+call(Instance, Module, Function, Args, Options) when is_pid(Instance),
+        is_atom(Module), is_atom(Function), is_list(Args), is_list(Options) ->
+    Request = {call, Module, Function, Args, Options},
+    case gen_fsm:sync_send_event(Instance, Request, infinity) of
         {ok, Result} ->
             Result;
         {error, Error} ->
+            % TODO: Unpack Error if needed
             erlang:error(Error)
     end.
 
 %%
-%% @doc Pass control to Python by calling the function with arguments
+%% @equiv switch(Instance, Module, Function, Args, [])
 %%
 
 -spec switch(Instance, Module, Function, Args) -> Result when
@@ -172,9 +190,39 @@ call(Instance, Module, Function, Args) when is_pid(Instance),
     Result :: ok | {error, Reason},
     Reason :: term().
 
-switch(Instance, Module, Function, Args) when is_pid(Instance),
-        is_atom(Module), is_atom(Function), is_list(Args) ->
-    gen_fsm:sync_send_event(Instance, {switch, Module, Function, Args}).
+switch(Instance, Module, Function, Args) ->
+    switch(Instance, Module, Function, Args, []).
+
+%%
+%% @doc Pass control to Python by calling the function with arguments
+%%
+
+-spec switch(Instance, Module, Function, Args, Options) -> Result when
+    Instance :: instance(),
+    Module :: atom(),
+    Function :: atom(),
+    Args :: list(),
+    Options :: [Option],
+    Option :: {timeout, Timeout} | wait,
+    Timeout :: pos_integer() | infinity,
+    Result :: ok | term() | {error, Reason},
+    Reason :: term().
+
+switch(Instance, Module, Function, Args, Options) when is_pid(Instance),
+        is_atom(Module), is_atom(Function), is_list(Args), is_list(Options) ->
+    Request = {switch, Module, Function, Args, Options},
+    case proplists:get_value(wait, Options, false) of
+        false ->
+            gen_fsm:sync_send_event(Instance, Request, infinity);
+        _ ->
+            case gen_fsm:sync_send_event(Instance, Request, infinity) of
+                {ok, Result} ->
+                    Result;
+                {error, Error} ->
+                    % TODO: Unpack Error if needed
+                    erlang:error(Error)
+            end
+    end.
 
 
 %%%
@@ -187,30 +235,24 @@ switch(Instance, Module, Function, Args) when is_pid(Instance),
 %%
 
 -spec init(Options) -> Result when
-    Options :: erlport_options:options(),
+    Options :: #options{},
     Result :: {ok, client, #state{}} | {stop, Reason},
     Reason :: term().
 
-init(Options) when is_list(Options) ->
-    % TODO: Default call timeout?
-    case erlport_options:parse(Options) of
-        {ok, #options{python=Python,use_stdio=UseStdio,
-                packet=Packet, port_options=PortOptions}} ->
-            Path = lists:concat([Python,
-                % Binary STDIO
-                " -u",
-                " -m erlport.cli",
-                " --packet=", Packet,
-                " --", UseStdio]),
-            try open_port({spawn, Path}, PortOptions) of
-                Port ->
-                    {ok, client, #state{port=Port}}
-            catch
-                error:Error ->
-                    {stop, {open_port_error, Error}}
-            end;
-        {error, Reason} ->
-            {stop, Reason}
+init(#options{python=Python,use_stdio=UseStdio, packet=Packet,
+        port_options=PortOptions, call_timeout=Timeout}) ->
+    Path = lists:concat([Python,
+        % Binary STDIO
+        " -u",
+        " -m erlport.cli",
+        " --packet=", Packet,
+        " --", UseStdio]),
+    try open_port({spawn, Path}, PortOptions) of
+        Port ->
+            {ok, client, #state{port=Port, timeout=Timeout}}
+    catch
+        error:Error ->
+            {stop, {open_port_error, Error}}
     end.
 
 %%
@@ -234,14 +276,36 @@ init(Options) when is_list(Options) ->
     StateName :: atom(),
     State :: #state{}.
 
-client({call, Module, Function, Args}, From, State=#state{})
-        when is_atom(Module), is_atom(Function), is_list(Args) ->
-    Data = encode({'C', Module, Function, Args}),
-    send_request({call, From, Data}, client, State);
-client({switch, Module, Function, Args}, From, State=#state{})
-        when is_atom(Module), is_atom(Function), is_list(Args) ->
-    Data = encode({'S', Module, Function, Args}),
-    send_request({switch, From, Data}, server, State);
+client({call, Module, Function, Args, Options}, From, State=#state{
+        timeout=DefaultTimeout}) when is_atom(Module), is_atom(Function),
+        is_list(Args), is_list(Options) ->
+    Timeout = proplists:get_value(timeout, Options, DefaultTimeout),
+    case erlport_options:timeout(Timeout) of
+        {ok, Timeout} ->
+            Data = encode({'C', Module, Function, Args}),
+            send_request(call, From, Data, client, State, Timeout);
+        error ->
+            Error = {error, {invalid_option, {timeout, Timeout}}},
+            {reply, Error, client, State}
+    end;
+client({switch, Module, Function, Args, Options}, From, State=#state{
+        timeout=DefaultTimeout}) when is_atom(Module), is_atom(Function),
+        is_list(Args), is_list(Options) ->
+    Timeout = proplists:get_value(timeout, Options, DefaultTimeout),
+    case erlport_options:timeout(Timeout) of
+        {ok, Timeout} ->
+            Data = encode({'S', Module, Function, Args}),
+            case proplists:get_value(wait, Options, false) of
+                false ->
+                    send_request(switch, From, Data, server, State, Timeout);
+                _ ->
+                    send_request(switch_wait, From, Data, server, State,
+                        Timeout)
+            end;
+        error ->
+            Error = {error, {invalid_option, {timeout, Timeout}}},
+            {reply, Error, client, State}
+    end;
 client(Event, From, State) ->
     {reply, {unknown_event, ?MODULE, Event, From}, client, State}.
 
@@ -256,8 +320,8 @@ client(Event, From, State) ->
     Response :: {next_state, client, State}
         | {stop, timeout, State}.
 
-client(timeout, State=#state{}) ->
-    error_response(timeout, State);
+client(Error=timeout, State) ->
+    {stop, Error, State};
 client(_Event, State) ->
     {next_state, client, State}.
 
@@ -290,10 +354,10 @@ server(_Event, _From, State) ->
 server(timeout, State=#state{port=Port}) ->
     % TODO: We need to add request ID
     Data = encode({'e', {error, timeout, []}}),
-    case send_data(Port, Data, false) of
+    case send_data(Port, Data) of
         ok ->
             {next_state, server, State#state{call=undefined}};
-        fail ->
+        error ->
             {stop, port_closed, State#state{call=undefined}}
     end;
 server(_Event, State) ->
@@ -324,18 +388,31 @@ handle_info({Port, {data, Data}}, StateName=client, State=#state{port=Port}) ->
         {'e', Error} ->
             handle_response(call, {error, Error}, State, StateName);
         Response ->
-            error_response({invalid_response, Response}, State)
+            {stop, {invalid_response, Response}, State}
     catch
         error:badarg ->
-            error_response({invalid_response_data, Data}, State)
+            {stop, {invalid_response_data, Data}, State}
     end;
-handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port}) ->
+handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
+        timeout=Timeout, in_process=InProcess}) ->
     try binary_to_term(Data) of
         's' ->
-            handle_response(switch, ok, State, StateName);
+            case InProcess of
+                {switch, From, Timer} ->
+                    gen_fsm:cancel_timer(Timer),
+                    gen_fsm:reply(From, ok),
+                    {next_state, StateName, State#state{in_process=undefined}};
+                {switch_wait, _From, Timer} ->
+                    gen_fsm:cancel_timer(Timer),
+                    {next_state, StateName, State};
+                undefined ->
+                    {stop, orphan_response, State};
+                _ ->
+                    {stop, unexpected_response, State}
+            end;
         {'C', Module, Function, Args} when is_atom(Module), is_atom(Function),
                 is_list(Args) ->
-            Timer = gen_fsm:send_event_after(?CALL_TIMEOUT, timeout),
+            Timer = gen_fsm:send_event_after(Timeout, timeout),
             % FIXME: proc_lib:spawn and monitor?
             {Pid, Monitor} = spawn_monitor(fun () ->
                 exit(try {ok, apply(Module, Function, Args)}
@@ -346,13 +423,22 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port}) ->
                 end),
             Info = {Monitor, Timer, Pid},
             {next_state, StateName, State#state{call=Info}};
-        {'r', _Result} ->
-            % TODO: Result will be handled when we'll support switch result
-            % waiting
-            {next_state, client, State};
+        {'r', Result} ->
+            case InProcess of
+                {switch_wait, From, _} ->
+                    gen_fsm:reply(From, {ok, Result}),
+                    {next_state, client, State#state{in_process=undefined}};
+                undefined ->
+                    {next_state, client, State}
+            end;
         {'e', Error} ->
-            % TODO: Unpack error if needed
-            {stop, {switch_failed, Error}, State};
+            case InProcess of
+                {switch_wait, From, _} ->
+                    gen_fsm:reply(From, {error, Error}),
+                    {next_state, client, State#state{in_process=undefined}};
+                undefined ->
+                    {stop, {switch_failed, Error}, State}
+            end;
         Request ->
             {stop, {invalid_request, Request}, State}
     catch
@@ -370,10 +456,10 @@ handle_info({'DOWN', Monitor, process, Pid, Result}, StateName=server,
         Response ->
             {'e', {error, Response, []}}
     end,
-    case send_data(Port, encode(R), false) of
+    case send_data(Port, encode(R)) of
         ok ->
             {next_state, StateName, State#state{call=undefined}};
-        fail ->
+        error ->
             {stop, port_closed, State#state{call=undefined}}
     end;
 handle_info({Port, closed}, _StateName, State=#state{port=Port}) ->
@@ -411,15 +497,13 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %%% Auxiliary functions
 %%%
 
-send_data(Port, Data, WithTimer) ->
-    try {port_command(Port, Data), WithTimer} of
-        {true, true} ->
-            {ok, gen_fsm:send_event_after(?CALL_TIMEOUT, timeout)};
-        {true, false} ->
+send_data(Port, Data) ->
+    try port_command(Port, Data) of
+        true ->
             ok
     catch
         error:badarg ->
-            fail
+            error
     end.
 
 process_queue(StateName=client, State=#state{queue=Queue}) ->
@@ -428,43 +512,29 @@ process_queue(StateName=client, State=#state{queue=Queue}) ->
             {next_state, StateName, State};
         {{value, Queued}, Queue2} ->
             send_from_queue(Queued, Queue2, StateName, State)
-    end;
-process_queue(StateName=server, State=#state{port=Port, queue=Queue}) ->
-    case queue:out(Queue) of
-        {empty, Queue} ->
-            {next_state, StateName, State#state{in_process=undefined}};
-        {{value, {response, Data}}, Queue2} ->
-            case send_data(Port, Data, false) of
-                ok ->
-                    {next_state, StateName, State#state{queue=Queue2}};
-                fail ->
-                    {stop, port_closed, State}
-            end
     end.
 
-send_request(Queued={Type, From, Data}, StateName, State=#state{port=Port,
-        queue=Queue, in_process=InProcess}) ->
+send_request(Type, From, Data, StateName, State=#state{port=Port,
+        queue=Queue, in_process=InProcess}, Timeout) ->
+    Info = {Type, From, gen_fsm:send_event_after(Timeout, timeout)},
     case InProcess of
         undefined ->
-            case send_data(Port, Data, true) of
-                {ok, Timer} ->
-                    Info = {Type, From, Timer},
+            case send_data(Port, Data) of
+                ok ->
                     {next_state, StateName, State#state{in_process=Info}};
-                fail ->
+                error ->
                     {stop, port_closed, State}
             end;
         _ ->
-            Queue2 = queue:in(Queued, Queue),
+            Queue2 = queue:in({Info, Data}, Queue),
             {next_state, StateName, State#state{queue=Queue2}}
     end.
 
-send_from_queue({Type, From, Data}, Queue, StateName,
-        State=#state{port=Port}) ->
-    case send_data(Port, Data, true) of
-        {ok, Timer} ->
-            Info = {Type, From, Timer},
+send_from_queue({Info, Data}, Queue, StateName, State=#state{port=Port}) ->
+    case send_data(Port, Data) of
+        ok ->
             {next_state, StateName, State#state{in_process=Info, queue=Queue}};
-        fail ->
+        error ->
             {stop, port_closed, State}
     end.
 
@@ -481,15 +551,6 @@ handle_response(ExpectedType, Response, State=#state{in_process=InProcess},
             {stop, unexpected_response, State}
     end.
 
-error_response(Error, State=#state{in_process=InProcess}) ->
-    case InProcess of
-        {_Type, From, _Timer} ->
-            gen_fsm:reply(From, {error, Error});
-        undefined ->
-            ok
-    end,
-    {stop, Error, State}.
-
 encode(Term) ->
     term_to_binary(Term, [{minor_version, 1}]).
 
@@ -500,4 +561,12 @@ foreach_in_queue(Fun, Queue) ->
         {{value, Item}, Queue2} ->
             Fun(Item),
             foreach_in_queue(Fun, Queue2)
+    end.
+
+start(Function, OptionsList) when is_list(OptionsList) ->
+    case erlport_options:parse(OptionsList) of
+        {ok, Options=#options{start_timeout=Timeout}} ->
+            gen_fsm:Function(?MODULE, Options, [{timeout, Timeout}]);
+        Error={error, _} ->
+            Error
     end.

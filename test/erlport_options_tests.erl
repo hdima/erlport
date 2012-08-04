@@ -33,8 +33,8 @@
 
 parse_test_() ->
     fun () ->
-        {ok, #options{python=Python, use_stdio=use_stdio,
-            packet=4, python_path=PythonPath,
+        {ok, #options{python=Python, use_stdio=use_stdio, call_timeout=10000,
+            packet=4, python_path=PythonPath, start_timeout=10000,
             env=Env, port_options=PortOptions}} = erlport_options:parse([]),
         ?assertEqual(match, re:run(Python, "/python$", [{capture, none}])),
         ?assertEqual(match, re:run(PythonPath, "/priv/python$",
@@ -61,6 +61,32 @@ packet_option_test_() -> [
         erlport_options:parse([{packet, 2}])),
     ?_assertEqual({error, {invalid_option, {packet, 3}}},
         erlport_options:parse([{packet, 3}]))
+    ].
+
+start_timeout_test_() -> [
+    ?_assertMatch({ok, #options{start_timeout=10000}},
+        erlport_options:parse([])),
+    ?_assertMatch({ok, #options{start_timeout=5000}},
+        erlport_options:parse([{start_timeout, 5000}])),
+    ?_assertMatch({ok, #options{start_timeout=infinity}},
+        erlport_options:parse([{start_timeout, infinity}])),
+    ?_assertEqual({error, {invalid_option, {start_timeout, 0}}},
+        erlport_options:parse([{start_timeout, 0}])),
+    ?_assertEqual({error, {invalid_option, {start_timeout, invalid}}},
+        erlport_options:parse([{start_timeout, invalid}]))
+    ].
+
+call_timeout_test_() -> [
+    ?_assertMatch({ok, #options{call_timeout=10000}},
+        erlport_options:parse([])),
+    ?_assertMatch({ok, #options{call_timeout=5000}},
+        erlport_options:parse([{call_timeout, 5000}])),
+    ?_assertMatch({ok, #options{call_timeout=infinity}},
+        erlport_options:parse([{call_timeout, infinity}])),
+    ?_assertEqual({error, {invalid_option, {call_timeout, 0}}},
+        erlport_options:parse([{call_timeout, 0}])),
+    ?_assertEqual({error, {invalid_option, {call_timeout, invalid}}},
+        erlport_options:parse([{call_timeout, invalid}]))
     ].
 
 env_option_test_() -> [

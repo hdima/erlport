@@ -47,9 +47,9 @@ cleanup(P) ->
 call_test_() -> {setup,
     fun setup/0,
     fun cleanup/1,
-    fun (P) -> [
+    fun (P) ->
         ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
-    ] end}.
+    end}.
 
 call_queue_test_() -> {setup,
     fun setup/0,
@@ -69,10 +69,9 @@ switch_test_() -> {setup,
         cleanup(P),
         cleanup_event_logger()
     end,
-    fun (P) ->
+    fun (P) -> [
         fun () ->
             ?assertEqual(ok, python:switch(P, switch, switch, [5])),
-            % TODO: We can send some signal from Python
             timer:sleep(500),
             ?assertEqual([
                 {test_callback, 0, 0},
@@ -81,8 +80,18 @@ switch_test_() -> {setup,
                 {test_callback, 2, 3},
                 {test_callback, 3, 4}
                 ], get_events())
+        end,
+        fun () ->
+            ?assertEqual(5, python:switch(P, switch, switch, [5], [wait])),
+            ?assertEqual([
+                {test_callback, 0, 0},
+                {test_callback, 0, 1},
+                {test_callback, 1, 2},
+                {test_callback, 2, 3},
+                {test_callback, 3, 4}
+                ], get_events())
         end
-    end}.
+    ] end}.
 
 log_event(Event) ->
     true = ets:insert(events, {events, Event}).

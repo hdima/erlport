@@ -36,13 +36,17 @@
 -author('Dmitry Vasiliev <dima@hlabs.org>').
 
 -export([
-    parse/1
+    parse/1,
+    timeout/1
     ]).
+
 
 -type option() :: nouse_stdio
     | {packet, 1 | 2 | 4}
     | {python, Python :: string()}
     | {python_path, Path :: string() | [Path :: string()]}
+    | {start_timeout, pos_integer() | infinity}
+    | {call_timeout, pos_integer() | infinity}
     | {env, [{Name :: string(), Value :: string() | false}]}.
 -type options() :: [option()].
 
@@ -92,6 +96,20 @@ parse([{python_path, PythonPath}=Value | Tail], Options) ->
             parse(Tail, Options#options{python_path=Path});
         {error, Invalid} ->
             {error, {invalid_option, Value, Invalid}}
+    end;
+parse([{start_timeout, Timeout}=Value | Tail], Options) ->
+    case timeout(Timeout) of
+        {ok, T} ->
+            parse(Tail, Options#options{start_timeout=T});
+        error ->
+            {error, {invalid_option, Value}}
+    end;
+parse([{call_timeout, Timeout}=Value | Tail], Options) ->
+    case timeout(Timeout) of
+        {ok, T} ->
+            parse(Tail, Options#options{call_timeout=T});
+        error ->
+            {error, {invalid_option, Value}}
     end;
 parse([UnknownOption | _Tail], _Options) ->
     {error, {unknown_option, UnknownOption}};
@@ -208,3 +226,10 @@ get_python(Python=[_|_]) ->
     end;
 get_python(Python) ->
     {error, {invalid_option, {python, Python}}}.
+
+timeout(Timeout) when is_integer(Timeout) andalso Timeout > 0 ->
+    {ok, Timeout};
+timeout(Timeout=infinity) ->
+    {ok, Timeout};
+timeout(_) ->
+    error.

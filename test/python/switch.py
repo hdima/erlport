@@ -6,3 +6,4 @@ def switch(n):
     for i in range(n):
         result = erlang.call(Atom("python_tests"), Atom("test_callback"),
             [result, i])
+    return n

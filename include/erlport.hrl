@@ -25,6 +25,8 @@
 %%% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %%% POSSIBILITY OF SUCH DAMAGE.
 
+-define(DEFAULT_START_TIMEOUT, 10000).
+-define(DEFAULT_CALL_TIMEOUT, 10000).
 -define(DEFAULT_PYTHON, "python").
 
 -record(options, {
@@ -34,5 +36,7 @@
     env = [] :: [{EnvName :: string(), EnvValue :: string()}],
     python_path = [] :: [Path :: string()],
     port_options = [binary, hide, exit_status]
-        :: [Option :: atom() | {Name :: atom(), Value :: term()}]
+        :: [Option :: atom() | {Name :: atom(), Value :: term()}],
+    start_timeout = ?DEFAULT_START_TIMEOUT :: pos_integer() | infinity,
+    call_timeout = ?DEFAULT_CALL_TIMEOUT :: pos_integer() | infinity
     }).

@@ -1,8 +1,5 @@
 - Check Python version by calling python -V
 
-- Add options list for call/switch so we can configure timeouts and
-  waiting for result for switch for example
-
 - Maybe return expected type in case of option error?
 
 - Check code with older versions of Erlang/Python
@@ -41,8 +38,6 @@
 - How to handle Python <-> Python exceptions? We can pass it inside some error
   term. Errors/exceptions should be like opaque types marked with the language
   but store some known structures as values
-
-- Call timeouts
 
 - Check default port options on Windows
 
