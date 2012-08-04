@@ -4,11 +4,9 @@
 
 - Check code with older versions of Erlang/Python
 
-- Maybe configure threads for Python request handler? For example "run 4
-  threads for request handling".
-
 - Add ID to requests? Calls from Python can be multi-threaded for example and
-  it can be good if we will support pippelined requests
+  it can be good if we will support pippelined requests. It seems IDs only
+  useful for Python requests in server mode.
 
 - Optionally call Erlang functions in one process without spawning new process
   for each call?
@@ -18,8 +16,6 @@
 - Add info() function with statistics and information, for example number
   of requests/responses, number of sent/received bytes, number of
   errors for requests/responses, uptime?
-
-- Convert some tuples to records in python.erl
 
 - Update tests for Python. Add tests for all data types for Erlang <-> Python
 
