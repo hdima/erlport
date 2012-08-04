@@ -20,11 +20,11 @@
 
 - Add info() function with statistics and information, for example number
   of requests/responses, number of sent/received bytes, number of
-  error for requests/responses, uptime?
+  errors for requests/responses, uptime?
 
 - Convert some tuples to records in python.erl
 
-- Update tests for Python
+- Update tests for Python. Add tests for all data types for Erlang <-> Python
 
 - Comments for modules
 
@@ -38,14 +38,15 @@
 - Add {'cd', Dir} option to python:start(_link)/1. And make absolute names
   for python path.
 
-- How to handle Python <-> Python exceptions? We can pass it inside some
-  error term.
+- How to handle Python <-> Python exceptions? We can pass it inside some error
+  term. Errors/exceptions should be like opaque types marked with the language
+  but store some known structures as values
 
 - Call timeouts
 
 - Check default port options on Windows
 
-- Maybe force strings with {string, String}?
+- Maybe force strings with {string, String}? Check with JSON EEP?
 
 - Pluggable encoders/decoders? We can register proxy encoder/decoder functions.
   If encoder/decoder is defined we just scan through hierarchy of objects and
@@ -59,9 +60,3 @@
   Twisted Banana/Protocol Buffers protocols
 
 - Add workers_pool module with pluggable workers selection policies
-
-- Errors/exceptions should be like opaque types marked with the language
-  but store some known structures as values
-
-- Marks errors/exception with some ID? Like (node(), self(), OS PID) for Python
-  and (node(), self()) for Erlang?
