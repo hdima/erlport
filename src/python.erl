@@ -75,7 +75,11 @@
     call :: {Monitor::reference(), Timer::reference(), Pid::pid()}
     }).
 
--opaque instance() :: pid().
+-record(python, {
+    pid :: pid()
+    }).
+
+-opaque instance() :: #python{}.
 
 -include("erlport.hrl").
 
@@ -137,8 +141,8 @@ start_link(Options) ->
 -spec stop(Instance) -> ok when
     Instance :: instance().
 
-stop(Instance) when is_pid(Instance) ->
-    gen_fsm:send_all_state_event(Instance, stop).
+stop(#python{pid=Pid}) ->
+    gen_fsm:send_all_state_event(Pid, stop).
 
 %%
 %% @equiv call(Instance, Module, Function, Args, [])
@@ -168,10 +172,10 @@ call(Instance, Module, Function, Args) ->
     Timeout :: pos_integer() | infinity,
     Result :: term().
 
-call(Instance, Module, Function, Args, Options) when is_pid(Instance),
-        is_atom(Module), is_atom(Function), is_list(Args), is_list(Options) ->
+call(#python{pid=Pid}, Module, Function, Args, Options) when is_atom(Module),
+        is_atom(Function), is_list(Args), is_list(Options) ->
     Request = {call, Module, Function, Args, Options},
-    case gen_fsm:sync_send_event(Instance, Request, infinity) of
+    case gen_fsm:sync_send_event(Pid, Request, infinity) of
         {ok, Result} ->
             Result;
         {error, Error} ->
@@ -209,14 +213,14 @@ switch(Instance, Module, Function, Args) ->
     Result :: ok | term() | {error, Reason},
     Reason :: term().
 
-switch(Instance, Module, Function, Args, Options) when is_pid(Instance),
-        is_atom(Module), is_atom(Function), is_list(Args), is_list(Options) ->
+switch(#python{pid=Pid}, Module, Function, Args, Options) when is_atom(Module),
+        is_atom(Function), is_list(Args), is_list(Options) ->
     Request = {switch, Module, Function, Args, Options},
     case proplists:get_value(wait, Options, false) of
         false ->
-            gen_fsm:sync_send_event(Instance, Request, infinity);
+            gen_fsm:sync_send_event(Pid, Request, infinity);
         _ ->
-            case gen_fsm:sync_send_event(Instance, Request, infinity) of
+            case gen_fsm:sync_send_event(Pid, Request, infinity) of
                 {ok, Result} ->
                     Result;
                 {error, Error} ->
@@ -573,7 +577,12 @@ foreach_in_queue(Fun, Queue) ->
 start(Function, OptionsList) when is_list(OptionsList) ->
     case erlport_options:parse(OptionsList) of
         {ok, Options=#options{start_timeout=Timeout}} ->
-            gen_fsm:Function(?MODULE, Options, [{timeout, Timeout}]);
+            case gen_fsm:Function(?MODULE, Options, [{timeout, Timeout}]) of
+                {ok, Pid} ->
+                    {ok, #python{pid=Pid}};
+                {error, _}=Error ->
+                    Error
+            end;
         Error={error, _} ->
             Error
     end.

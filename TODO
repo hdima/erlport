@@ -1,6 +1,3 @@
-- Instance can be not only pid but a record in which we also can store default
-  timeout and some other info?
-
 - Check Python version by calling python -V
 
 - Maybe return expected type in case of option error?
