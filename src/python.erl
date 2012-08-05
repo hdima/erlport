@@ -66,6 +66,7 @@
 
 -record(state, {
     timeout :: pos_integer() | infinity,
+    compressed = 0 :: 0..9,
     port :: port(),
     % TODO: Rename to 'waiting'
     queue = queue:new() :: queue(),
@@ -240,16 +241,19 @@ switch(Instance, Module, Function, Args, Options) when is_pid(Instance),
     Reason :: term().
 
 init(#options{python=Python,use_stdio=UseStdio, packet=Packet,
-        port_options=PortOptions, call_timeout=Timeout}) ->
+        compressed=Compressed, port_options=PortOptions,
+        call_timeout=Timeout}) ->
     Path = lists:concat([Python,
         % Binary STDIO
         " -u",
         " -m erlport.cli",
         " --packet=", Packet,
-        " --", UseStdio]),
+        " --", UseStdio,
+        " --compressed=", Compressed]),
     try open_port({spawn, Path}, PortOptions) of
         Port ->
-            {ok, client, #state{port=Port, timeout=Timeout}}
+            {ok, client, #state{port=Port, timeout=Timeout,
+                compressed=Compressed}}
     catch
         error:Error ->
             {stop, {open_port_error, Error}}
@@ -277,24 +281,26 @@ init(#options{python=Python,use_stdio=UseStdio, packet=Packet,
     State :: #state{}.
 
 client({call, Module, Function, Args, Options}, From, State=#state{
-        timeout=DefaultTimeout}) when is_atom(Module), is_atom(Function),
-        is_list(Args), is_list(Options) ->
+        timeout=DefaultTimeout, compressed=Compressed})
+        when is_atom(Module), is_atom(Function), is_list(Args),
+        is_list(Options) ->
     Timeout = proplists:get_value(timeout, Options, DefaultTimeout),
     case erlport_options:timeout(Timeout) of
         {ok, Timeout} ->
-            Data = encode({'C', Module, Function, Args}),
+            Data = encode({'C', Module, Function, Args}, Compressed),
             send_request(call, From, Data, client, State, Timeout);
         error ->
             Error = {error, {invalid_option, {timeout, Timeout}}},
             {reply, Error, client, State}
     end;
 client({switch, Module, Function, Args, Options}, From, State=#state{
-        timeout=DefaultTimeout}) when is_atom(Module), is_atom(Function),
-        is_list(Args), is_list(Options) ->
+        timeout=DefaultTimeout, compressed=Compressed})
+        when is_atom(Module), is_atom(Function), is_list(Args),
+        is_list(Options) ->
     Timeout = proplists:get_value(timeout, Options, DefaultTimeout),
     case erlport_options:timeout(Timeout) of
         {ok, Timeout} ->
-            Data = encode({'S', Module, Function, Args}),
+            Data = encode({'S', Module, Function, Args}, Compressed),
             case proplists:get_value(wait, Options, false) of
                 false ->
                     send_request(switch, From, Data, server, State, Timeout);
@@ -351,9 +357,9 @@ server(_Event, _From, State) ->
     State :: #state{},
     Response :: {next_state, server, State}.
 
-server(timeout, State=#state{port=Port}) ->
+server(timeout, State=#state{port=Port, compressed=Compressed}) ->
     % TODO: We need to add request ID
-    Data = encode({'e', {error, timeout, []}}),
+    Data = encode({'e', {error, timeout, []}}, Compressed),
     case send_data(Port, Data) of
         ok ->
             {next_state, server, State#state{call=undefined}};
@@ -446,7 +452,8 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
             {stop, {invalid_request_data, Data}, State}
     end;
 handle_info({'DOWN', Monitor, process, Pid, Result}, StateName=server,
-        State=#state{port=Port, call={Monitor, Timer, Pid}}) ->
+        State=#state{port=Port, call={Monitor, Timer, Pid},
+        compressed=Compressed}) ->
     gen_fsm:cancel_timer(Timer),
     R = case Result of
         {ok, Response} ->
@@ -456,7 +463,7 @@ handle_info({'DOWN', Monitor, process, Pid, Result}, StateName=server,
         Response ->
             {'e', {error, Response, []}}
     end,
-    case send_data(Port, encode(R)) of
+    case send_data(Port, encode(R, Compressed)) of
         ok ->
             {next_state, StateName, State#state{call=undefined}};
         error ->
@@ -551,8 +558,8 @@ handle_response(ExpectedType, Response, State=#state{in_process=InProcess},
             {stop, unexpected_response, State}
     end.
 
-encode(Term) ->
-    term_to_binary(Term, [{minor_version, 1}]).
+encode(Term, Compressed) ->
+    term_to_binary(Term, [{minor_version, 1}, {compressed, Compressed}]).
 
 foreach_in_queue(Fun, Queue) ->
     case queue:out(Queue) of

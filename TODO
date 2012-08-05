@@ -18,8 +18,6 @@
 
 - Comments for modules
 
-- Add 'compressed' option
-
 - Use bigger buffer for port in Python
 
 - We can allow to send some number (configurable?) of backlog request while

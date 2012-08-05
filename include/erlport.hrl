@@ -32,6 +32,7 @@
 -record(options, {
     python = ?DEFAULT_PYTHON :: string(),
     use_stdio = use_stdio :: use_stdio | nouse_stdio,
+    compressed = 0 :: 0..9,
     packet = 4 :: 1 | 2 | 4,
     env = [] :: [{EnvName :: string(), EnvValue :: string()}],
     python_path = [] :: [Path :: string()],

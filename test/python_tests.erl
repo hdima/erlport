@@ -51,6 +51,21 @@ call_test_() -> {setup,
         ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
     end}.
 
+compressed_test_() -> {setup,
+    fun () ->
+        {ok, P} = python:start_link([{compressed, 9}]),
+        P
+    end,
+    fun cleanup/1,
+    fun (P) ->
+        fun () ->
+            S1 = list_to_binary(lists:duplicate(200, $0)),
+            S2 = list_to_binary(lists:duplicate(200, $1)),
+            ?assertEqual(<<S1/binary, S2/binary>>,
+                python:call(P, operator, add, [S1, S2]))
+        end
+    end}.
+
 call_queue_test_() -> {setup,
     fun setup/0,
     fun cleanup/1,

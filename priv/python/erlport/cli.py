@@ -38,6 +38,11 @@ def get_option_parser():
             raise OptionValueError("Valid values for --packet are 1, 2, or 4")
         setattr(parser.values, option.dest, value)
 
+    def compress_level(option, opt_str, value, parser):
+        if value < 0 or value > 9:
+            raise OptionValueError("Valid values for --compressed are 0..9")
+        setattr(parser.values, option.dest, value)
+
     parser = OptionParser()
     parser.add_option("--packet", action="callback", type="int",
         help="Message length sent in N bytes. Valid values are 1, 2, or 4",
@@ -48,13 +53,16 @@ def get_option_parser():
     parser.add_option("--use_stdio", action="store_true", dest="stdio",
         default=True,
         help="Use file descriptors 0 and 1 for communication with Erlang")
+    parser.add_option("--compressed", action="callback", type="int", default=0,
+        help="Compression level", metavar="LEVEL", callback=compress_level)
     return parser
 
 
 def main(args=None):
     parser = get_option_parser()
     options, args = parser.parse_args(args)
-    port = Port(use_stdio=options.stdio, packet=options.packet)
+    port = Port(use_stdio=options.stdio, packet=options.packet,
+        compressed=options.compressed)
     erlang.start(port)
 
 

@@ -35,7 +35,8 @@ parse_test_() ->
     fun () ->
         {ok, #options{python=Python, use_stdio=use_stdio, call_timeout=10000,
             packet=4, python_path=PythonPath, start_timeout=10000,
-            env=Env, port_options=PortOptions}} = erlport_options:parse([]),
+            compressed=0, env=Env, port_options=PortOptions}}
+            = erlport_options:parse([]),
         ?assertEqual(match, re:run(Python, "/python$", [{capture, none}])),
         ?assertEqual(match, re:run(PythonPath, "/priv/python$",
             [{capture, none}])),
@@ -49,6 +50,13 @@ use_stdio_option_test_() -> [
         erlport_options:parse([])),
     ?_assertMatch({ok, #options{use_stdio=nouse_stdio}},
         erlport_options:parse([nouse_stdio]))
+    ].
+
+compressed_option_test_() -> [
+    ?_assertMatch({ok, #options{compressed=0}},
+        erlport_options:parse([])),
+    ?_assertMatch({ok, #options{compressed=9}},
+        erlport_options:parse([{compressed, 9}]))
     ].
 
 packet_option_test_() -> [

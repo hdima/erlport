@@ -42,6 +42,7 @@
 
 
 -type option() :: nouse_stdio
+    | {compressed, 0..9}
     | {packet, 1 | 2 | 4}
     | {python, Python :: string()}
     | {python_path, Path :: string() | [Path :: string()]}
@@ -72,6 +73,13 @@ parse([nouse_stdio=UseStdio | Tail],
         Options=#options{port_options=PortOptions}) ->
     parse(Tail, Options#options{use_stdio=UseStdio,
         port_options=[UseStdio | PortOptions]});
+parse([{compressed, Level}=Value | Tail], Options) ->
+    if
+        Level >= 0 andalso Level =< 9 ->
+            parse(Tail, Options#options{compressed=Level});
+        true ->
+            {error, {invalid_option, Value}}
+    end;
 parse([{packet, Packet}=Value | Tail], Options) ->
     case lists:member(Packet, [1, 2, 4]) of
         true ->
