@@ -1,17 +1,14 @@
+- Instance can be not only pid but a record in which we also can store default
+  timeout and some other info?
+
 - Check Python version by calling python -V
 
 - Maybe return expected type in case of option error?
 
 - Check code with older versions of Erlang/Python
 
-- Add ID to requests? Calls from Python can be multi-threaded for example and
-  it can be good if we will support pippelined requests. It seems IDs only
-  useful for Python requests in server mode.
-
 - Optionally call Erlang functions in one process without spawning new process
   for each call?
-
-- Thread safety in Python?
 
 - Add info() function with statistics and information, for example number
   of requests/responses, number of sent/received bytes, number of
@@ -47,7 +44,7 @@
 
 - Python 3, other languages? Ruby? What about different Ruby versions?
 
-- Maybe we can try variable length length field as in
-  Twisted Banana/Protocol Buffers protocols
+- Maybe we can try variable length length field as in Twisted Banana/Protocol
+  Buffers protocols
 
 - Add workers_pool module with pluggable workers selection policies
