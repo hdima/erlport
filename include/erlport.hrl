@@ -31,6 +31,7 @@
 
 -record(options, {
     python = ?DEFAULT_PYTHON :: string(),
+    cd :: Path :: string(),
     use_stdio = use_stdio :: use_stdio | nouse_stdio,
     compressed = 0 :: 0..9,
     packet = 4 :: 1 | 2 | 4,

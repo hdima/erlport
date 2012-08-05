@@ -20,9 +20,6 @@
 - We can allow to send some number (configurable?) of backlog request while
   we waiting for response. We just can use 'nosuspend' options for port_command
 
-- Add {'cd', Dir} option to python:start(_link)/1. And make absolute names
-  for python path.
-
 - How to handle Python <-> Python exceptions? We can pass it inside some error
   term. Errors/exceptions should be like opaque types marked with the language
   but store some known structures as values

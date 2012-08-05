@@ -38,7 +38,7 @@ test_callback(PrevResult, N) ->
 
 setup() ->
     % Test working directory is .eunit
-    {ok, P} = python:start_link([{python_path, "../test/python"}]),
+    {ok, P} = python:start_link([{cd, "../test/python"}]),
     P.
 
 cleanup(P) ->

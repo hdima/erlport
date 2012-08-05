@@ -150,6 +150,28 @@ python_option_test_() -> {setup,
             erlport_options:parse([{python, not_string}]))
     ] end}.
 
+cd_option_test_() -> {setup,
+    fun () ->
+        erlport_test_utils:tmp_dir("erlport_options_tests")
+    end,
+    fun erlport_test_utils:remove_object/1,
+    fun (TmpDir) -> [
+        fun () ->
+            {ok, #options{cd=undefined, port_options=PortOptions, env=Env}}
+                = erlport_options:parse([]),
+            ?assertEqual([{env, Env}, {packet, 4}, binary, hide, exit_status],
+                PortOptions)
+        end,
+        fun () ->
+            {ok, #options{cd=TmpDir, port_options=PortOptions, env=Env}}
+                = erlport_options:parse([{cd, TmpDir}]),
+            ?assertEqual([{env, Env}, {packet, 4}, {cd, TmpDir},
+                binary, hide, exit_status], PortOptions)
+        end,
+        ?_assertEqual({error, {invalid_option, {cd, "invalid_directory"}}},
+            erlport_options:parse([{cd, "invalid_directory"}]))
+    ] end}.
+
 python_path_option_test_() -> {setup,
     fun () ->
         TmpDir = erlport_test_utils:tmp_dir("erlport_options_tests"),
@@ -202,6 +224,16 @@ python_path_option_test_() -> {setup,
                 port_options=[{env, Env} | _]}} = erlport_options:parse(
                     [{python_path, [TestPath1]},
                     {env, [{"PYTHONPATH", TestPath2}]}]),
+            ?assertEqual(match, re:run(PythonPath,
+                "/priv/python:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$",
+                [{capture, none}]))
+        end,
+        fun () ->
+            {ok, #options{python_path=PythonPath,
+                env=[{"PYTHONPATH", PythonPath}]=Env,
+                port_options=[{env, Env} | _]}} = erlport_options:parse(
+                    [{env, [{"PYTHONPATH", TestPath1},
+                    {"PYTHONPATH", TestPath2}]}]),
             ?assertEqual(match, re:run(PythonPath,
                 "/priv/python:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$",
                 [{capture, none}]))

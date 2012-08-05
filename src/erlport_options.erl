@@ -43,6 +43,7 @@
 
 -type option() :: nouse_stdio
     | {compressed, 0..9}
+    | {cd, Path :: string()}
     | {packet, 1 | 2 | 4}
     | {python, Python :: string()}
     | {python_path, Path :: string() | [Path :: string()]}
@@ -84,6 +85,14 @@ parse([{packet, Packet}=Value | Tail], Options) ->
     case lists:member(Packet, [1, 2, 4]) of
         true ->
             parse(Tail, Options#options{packet=Packet});
+        false ->
+            {error, {invalid_option, Value}}
+    end;
+parse([{cd, Path}=Value | Tail], Options=#options{port_options=PortOptions}) ->
+    case filelib:is_dir(Path) of
+        true ->
+            parse(Tail, Options#options{cd=Path,
+                port_options=[{cd, Path} | PortOptions]});
         false ->
             {error, {invalid_option, Value}}
     end;
@@ -177,12 +186,7 @@ update_python_path(Env0, PythonPath0) ->
             {error, {not_found, "erlport/priv"}};
         PrivDir ->
             ErlPortPath = filename:join(PrivDir, "python"),
-            {PathFromEnv, Env2} = case lists:keytake("PYTHONPATH", 1, Env0) of
-                false ->
-                    {"", Env0};
-                {value, {"PYTHONPATH", P}, Env1} ->
-                    {P, Env1}
-            end,
+            {PathFromEnv, Env2} = extract_python_path(Env0, "", []),
             case join_python_path([[ErlPortPath], PythonPath0,
                     string:tokens(PathFromEnv, ":")]) of
                 {ok, PythonPath} ->
@@ -203,10 +207,11 @@ remove_duplicate_path([P | Tail], Paths, Seen) ->
         P ->
             case filelib:is_dir(P) of
                 true ->
-                    case sets:is_element(P, Seen) of
+                    AP = filename:absname(P),
+                    case sets:is_element(AP, Seen) of
                         false ->
-                            Seen2 = sets:add_element(P, Seen),
-                            remove_duplicate_path(Tail, [P | Paths], Seen2);
+                            Seen2 = sets:add_element(AP, Seen),
+                            remove_duplicate_path(Tail, [AP | Paths], Seen2);
                         true ->
                             remove_duplicate_path(Tail, Paths, Seen)
                     end;
@@ -241,3 +246,10 @@ timeout(Timeout=infinity) ->
     {ok, Timeout};
 timeout(_) ->
     error.
+
+extract_python_path([{"PYTHONPATH", P} | Tail], Path, Env) ->
+    extract_python_path(Tail, [P, ":" | Path], Env);
+extract_python_path([Item | Tail], Path, Env) ->
+    extract_python_path(Tail, Path, [Item | Env]);
+extract_python_path([], Path, Env) ->
+    {lists:append(lists:reverse(Path)), lists:reverse(Env)}.
