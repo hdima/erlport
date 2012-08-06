@@ -6,9 +6,6 @@
 
 - Check code with older versions of Erlang/Python
 
-- Optionally call Erlang functions in one process without spawning new process
-  for each call?
-
 - Add info() function with statistics and information, for example number
   of requests/responses, number of sent/received bytes, number of
   errors for requests/responses, uptime?
@@ -28,7 +25,8 @@
 
 - Check default port options on Windows
 
-- Maybe force strings with {string, String}? Check with JSON EEP?
+- Maybe force strings with {string, String} and {struct, Dict}? It can be done
+  with pluggable encoder/decoder.
 
 - Pluggable encoders/decoders? We can register proxy encoder/decoder functions.
   If encoder/decoder is defined we just scan through hierarchy of objects and
@@ -38,7 +36,7 @@
 
 - Python 3, other languages? Ruby? What about different Ruby versions?
 
-- Maybe we can try variable length length field as in Twisted Banana/Protocol
-  Buffers protocols
+- Add worker_pool module with pluggable workers selection policies
 
-- Add workers_pool module with pluggable workers selection policies
+- Maybe we can try variable length length field as in Twisted Banana/Protocol
+  Buffers protocols?
