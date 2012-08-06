@@ -14,8 +14,6 @@
 
 - Comments for modules
 
-- Use bigger buffer for port in Python
-
 - We can allow to send some number (configurable?) of backlog request while
   we waiting for response. We just can use 'nosuspend' options for port_command
 

@@ -46,7 +46,7 @@ class Port(object):
         }
 
     def __init__(self, packet=1, use_stdio=False, compressed=False,
-            descriptors=None):
+            descriptors=None, buffer_size=4096):
         self._format = self._formats.get(packet)
         if self._format is None:
             raise ValueError("invalid packet size value: %s" % packet)
@@ -60,27 +60,30 @@ class Port(object):
         else:
             self.in_d, self.out_d = 3, 4
 
-    def _read_data(self, length):
-        data = ""
-        while length > 0:
-            try:
-                buf = os.read(self.in_d, length)
-            except IOError, why:
-                if why.errno == errno.EPIPE:
-                    raise EOFError()
-                raise
-            if not buf:
+        self.buffer = ""
+        self.buffer_size = buffer_size
+
+    def _read_data(self):
+        try:
+            buf = os.read(self.in_d, self.buffer_size)
+        except IOError, why:
+            if why.errno == errno.EPIPE:
                 raise EOFError()
-            data += buf
-            length -= len(buf)
-        return data
+            raise
+        if not buf:
+            raise EOFError()
+        return buf
 
     def read(self):
         """Read incoming message."""
-        data = self._read_data(self.packet)
-        length, = unpack(self._format, data)
-        data = self._read_data(length)
-        return decode(data)[0]
+        while len(self.buffer) < self.packet:
+            self.buffer += self._read_data()
+        length, = unpack(self._format, self.buffer[:self.packet])
+        self.buffer = self.buffer[self.packet:]
+        while len(self.buffer) < length:
+            self.buffer += self._read_data()
+        term, self.buffer = decode(self.buffer)
+        return term
 
     def write(self, message):
         """Write outgoing message."""
