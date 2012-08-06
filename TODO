@@ -1,3 +1,5 @@
+- Replace rebar with custom scripts?
+
 - Check Python version by calling python -V
 
 - Maybe return expected type in case of option error?
