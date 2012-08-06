@@ -95,6 +95,9 @@ class MessageHandler(object):
                 raise UnknownMessage(message)
 
     def call(self, module, function, args):
+        if not self.client:
+            raise InvalidMode("call() is unsupported in server mode")
+
         if not isinstance(module, Atom):
             raise InvalidArgument(module)
         if not isinstance(function, Atom):
@@ -102,18 +105,9 @@ class MessageHandler(object):
         if not isinstance(args, list):
             raise InvalidArgument(args)
 
-        if not self.client:
-            raise InvalidMode("call() is unsupported in server mode")
-
-        request = Atom('C'), module, function, args
-        # TODO: EOFError
-        self.port.write(request)
-        try:
-            response = self.port.read()
-        except EOFError:
-            # TODO: Raise some other error?
-            raise
-
+        # TODO: Conver EOFError to some other exception?
+        self.port.write((Atom('C'), module, function, args))
+        response = self.port.read()
         try:
             mtype, value = response
         except ValueError:

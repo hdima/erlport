@@ -86,7 +86,8 @@ class Port(object):
         """Write outgoing message."""
         data = encode(message, compressed=self.compressed)
         data = pack(self._format, len(data)) + data
-        while len(data) != 0:
+        length = len(data)
+        while data:
             try:
                 n = os.write(self.out_d, data)
             except OSError, why:
@@ -96,6 +97,7 @@ class Port(object):
             if n == 0:
                 raise EOFError()
             data = data[n:]
+        return length
 
     def close(self):
         """Close port."""

@@ -60,8 +60,8 @@ class String(unicode):
 
     def __new__(cls, s):
         if isinstance(s, list):
-            # Raise TypeError
-            s = u"".join(unichr(i) for i in s)
+            # Will raise TypeError if can't be converted
+            s = u"".join(map(unichr, s))
         elif not isinstance(s, unicode):
             raise TypeError("list or unicode object expected")
         return super(String, cls).__new__(cls, s)
@@ -78,17 +78,15 @@ def decode(string):
     """Decode Erlang external term."""
     if not string:
         raise IncompleteData("incomplete data: %r" % string)
-    version = ord(string[0])
-    if version != 131:
-        raise ValueError("unknown protocol version: %i" % version)
+    if string[0] != '\x83':
+        raise ValueError("unknown protocol version: %i" % string[0])
     if string[1:2] == '\x50':
         # compressed term
         if len(string) < 6:
             raise IncompleteData("incomplete data: %r" % string)
         d = decompressobj()
-        zlib_data = string[6:]
-        term_string = d.decompress(zlib_data) + d.flush()
-        uncompressed_size = unpack('>I', string[2:6])[0]
+        term_string = d.decompress(string[6:]) + d.flush()
+        uncompressed_size, = unpack('>I', string[2:6])
         if len(term_string) != uncompressed_size:
             raise ValueError(
                 "invalid compressed tag, "
@@ -99,61 +97,14 @@ def decode(string):
 
 
 def decode_term(string,
-                # Hack to turn globals into locals
-                len=len, ord=ord, unpack=unpack, tuple=tuple, float=float,
-                Atom=Atom, opaque=_opaque, python=_python, erlang=_erlang):
+        # Hack to turn globals into locals
+        len=len, ord=ord, unpack=unpack, tuple=tuple, float=float,
+        Atom=Atom, opaque=_opaque, python=_python, erlang=_erlang):
     if not string:
         raise IncompleteData("incomplete data: %r" % string)
     tag = ord(string[0])
     tail = string[1:]
-    if tag == 97:
-        # SMALL_INTEGER_EXT
-        if not tail:
-            raise IncompleteData("incomplete data: %r" % string)
-        return ord(tail[0]), tail[1:]
-    elif tag == 98:
-        # INTEGER_EXT
-        if len(tail) < 4:
-            raise IncompleteData("incomplete data: %r" % string)
-        i, = unpack(">i", tail[:4])
-        return i, tail[4:]
-    elif tag == 106:
-        # NIL_EXT
-        return [], tail
-    elif tag == 107:
-        # STRING_EXT
-        if len(tail) < 2:
-            raise IncompleteData("incomplete data: %r" % string)
-        length, = unpack(">H", tail[:2])
-        tail = tail[2:]
-        if len(tail) < length:
-            raise IncompleteData("incomplete data: %r" % string)
-        return [ord(i) for i in tail[:length]], tail[length:]
-    elif tag == 108:
-        # LIST_EXT
-        if len(tail) < 4:
-            raise IncompleteData("incomplete data: %r" % string)
-        length, = unpack(">I", tail[:4])
-        tail = tail[4:]
-        lst = []
-        append = lst.append
-        _decode_term = decode_term
-        while length > 0:
-            term, tail = _decode_term(tail)
-            append(term)
-            length -= 1
-        ignored, tail = _decode_term(tail)
-        return lst, tail
-    elif tag == 109:
-        # BINARY_EXT
-        if len(tail) < 4:
-            raise IncompleteData("incomplete data: %r" % string)
-        length, = unpack(">I", tail[:4])
-        tail = tail[4:]
-        if len(tail) < length:
-            raise IncompleteData("incomplete data: %r" % string)
-        return tail[:length], tail[length:]
-    elif tag == 100:
+    if tag == 100:
         # ATOM_EXT
         if len(tail) < 2:
             raise IncompleteData("incomplete data: %r" % string)
@@ -170,28 +121,63 @@ def decode_term(string,
         elif name == "undefined":
             return None, tail
         return Atom(name), tail
-    elif tag == 104 or tag == 105:
-        # SMALL_TUPLE_EXT, LARGE_TUPLE_EXT
+    elif tag == 106:
+        # NIL_EXT
+        return [], tail
+    elif tag == 107:
+        # STRING_EXT
+        if len(tail) < 2:
+            raise IncompleteData("incomplete data: %r" % string)
+        length, = unpack(">H", tail[:2])
+        tail = tail[2:]
+        if len(tail) < length:
+            raise IncompleteData("incomplete data: %r" % string)
+        return array("B", tail[:length]).tolist(), tail[length:]
+    elif tag == 108 or tag == 104 or tag == 105:
+        # LIST_EXT, SMALL_TUPLE_EXT, LARGE_TUPLE_EXT
         if tag == 104:
             if not tail:
                 raise IncompleteData("incomplete data: %r" % string)
-            arity = ord(tail[0])
+            length = ord(tail[0])
             tail = tail[1:]
         else:
             if len(tail) < 4:
                 raise IncompleteData("incomplete data: %r" % string)
-            arity, = unpack(">I", tail[:4])
+            length, = unpack(">I", tail[:4])
             tail = tail[4:]
         lst = []
         append = lst.append
         _decode_term = decode_term
-        while arity > 0:
+        while length > 0:
             term, tail = _decode_term(tail)
             append(term)
-            arity -= 1
+            length -= 1
+        if tag == 108:
+            _ignored, tail = _decode_term(tail)
+            return lst, tail
         if len(lst) == 3 and lst[0] == opaque and lst[1] == python:
             return loads(lst[2]), tail
         return tuple(lst), tail
+    elif tag == 97:
+        # SMALL_INTEGER_EXT
+        if not tail:
+            raise IncompleteData("incomplete data: %r" % string)
+        return ord(tail[0]), tail[1:]
+    elif tag == 98:
+        # INTEGER_EXT
+        if len(tail) < 4:
+            raise IncompleteData("incomplete data: %r" % string)
+        i, = unpack(">i", tail[:4])
+        return i, tail[4:]
+    elif tag == 109:
+        # BINARY_EXT
+        if len(tail) < 4:
+            raise IncompleteData("incomplete data: %r" % string)
+        length, = unpack(">I", tail[:4])
+        tail = tail[4:]
+        if len(tail) < length:
+            raise IncompleteData("incomplete data: %r" % string)
+        return tail[:length], tail[length:]
     elif tag == 70:
         # NEW_FLOAT_EXT
         if len(tail) < 8:
@@ -203,7 +189,7 @@ def decode_term(string,
         if tag == 110:
             if len(tail) < 2:
                 raise IncompleteData("incomplete data: %r" % string)
-            length, sign = unpack(">BB", tail[:2])
+            length, sign = unpack("BB", tail[:2])
             tail = tail[2:]
         else:
             if len(tail) < 5:
@@ -238,13 +224,13 @@ def encode(term, compressed=False):
 
 
 def encode_term(term,
-                # Hack to turn globals into locals
-                pack=pack, tuple=tuple, len=len, isinstance=isinstance,
-                list=list, int=int, long=long, array=array, unicode=unicode,
-                Atom=Atom, str=str, float=float, ord=ord,
-                dict=dict, True=True, False=False,
-                ValueError=ValueError, OverflowError=OverflowError,
-                opaque=_opaque, erlang=_erlang, python=_python):
+        # Hack to turn globals into locals
+        pack=pack, tuple=tuple, len=len, isinstance=isinstance,
+        list=list, int=int, long=long, array=array, unicode=unicode,
+        Atom=Atom, str=str, float=float, ord=ord,
+        dict=dict, True=True, False=False,
+        ValueError=ValueError, OverflowError=OverflowError,
+        opaque=_opaque, erlang=_erlang, python=_python):
     if isinstance(term, tuple):
         arity = len(term)
         if arity <= 255:
@@ -252,11 +238,10 @@ def encode_term(term,
                 return term[2]
             header = 'h%c' % arity
         elif arity <= 4294967295:
-            header = pack(">BI", 105, arity)
+            header = pack(">cI", 'i', arity)
         else:
             raise ValueError("invalid tuple arity")
-        _encode_term = encode_term
-        return header + "".join(_encode_term(t) for t in term)
+        return header + "".join(map(encode_term, term))
     elif isinstance(term, list):
         length = len(term)
         if length == 0:
@@ -272,12 +257,11 @@ def encode_term(term,
                 pass
             else:
                 if len(bytes) == length:
-                    return pack(">BH", 107, length) + bytes
+                    return pack(">cH", 'k', length) + bytes
         elif length > 4294967295:
             raise ValueError("invalid list length")
-        header = pack(">BI", 108, length)
-        _encode_term = encode_term
-        return header + "".join(_encode_term(t) for t in term) + "j"
+        header = pack(">cI", 'l', length)
+        return header + "".join(map(encode_term, term)) + "j"
     elif isinstance(term, unicode):
         length = len(term)
         if length == 0:
@@ -288,15 +272,15 @@ def encode_term(term,
             except UnicodeEncodeError:
                 pass
             else:
-                return pack(">BH", 107, length) + bytes
-        return encode_term([ord(i) for i in term])
+                return pack(">cH", 'k', length) + bytes
+        return encode_term(map(ord, term))
     elif isinstance(term, Atom):
-        return pack(">BH", 100, len(term)) + term
+        return pack(">cH", 'd', len(term)) + term
     elif isinstance(term, str):
         length = len(term)
         if length > 4294967295:
             raise ValueError("invalid binary length")
-        return pack(">BI", 109, length) + term
+        return pack(">cI", 'm', length) + term
     # Must be before int type
     elif term is True:
         return "\x64\x00\x04true"
@@ -306,7 +290,7 @@ def encode_term(term,
         if 0 <= term <= 255:
             return 'a%c' % term
         elif -2147483648 <= term <= 2147483647:
-            return pack(">Bi", 98, term)
+            return pack(">ci", 'b', term)
 
         if term >= 0:
             sign = 0
@@ -315,18 +299,18 @@ def encode_term(term,
             term = -term
 
         bytes = array('B')
-        while term > 0:
+        while term:
             bytes.append(term & 0xff)
             term >>= 8
 
         length = len(bytes)
         if length <= 255:
-            return pack(">BBB", 110, length, sign) + bytes.tostring()
+            return pack("cBB", 'n', length, sign) + bytes.tostring()
         elif length <= 4294967295:
-            return pack(">BIB", 111, length, sign) + bytes.tostring()
+            return pack(">cIB", 'o', length, sign) + bytes.tostring()
         raise ValueError("invalid integer value")
     elif isinstance(term, float):
-        return pack(">Bd", 70, term)
+        return pack(">cd", 'F', term)
     elif isinstance(term, dict):
         # encode dict as proplist, but will be orddict compatible if keys
         # are all of the same type.
