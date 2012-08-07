@@ -72,7 +72,7 @@
     queue = queue:new() :: queue(),
     % TODO: Rename to 'sent' and convert to queue
     in_process :: {call | switch | switch_wait, From::term(), Timer::term()},
-    call :: {Monitor::reference(), Timer::reference(), Pid::pid()}
+    call :: {Pid::pid(), Timer::reference()}
     }).
 
 -record(python, {
@@ -208,7 +208,7 @@ switch(Instance, Module, Function, Args) ->
     Function :: atom(),
     Args :: list(),
     Options :: [Option],
-    Option :: {timeout, Timeout} | wait,
+    Option :: {timeout, Timeout} | block,
     Timeout :: pos_integer() | infinity,
     Result :: ok | term() | {error, Reason},
     Reason :: term().
@@ -216,7 +216,7 @@ switch(Instance, Module, Function, Args) ->
 switch(#python{pid=Pid}, Module, Function, Args, Options) when is_atom(Module),
         is_atom(Function), is_list(Args), is_list(Options) ->
     Request = {switch, Module, Function, Args, Options},
-    case proplists:get_value(wait, Options, false) of
+    case proplists:get_value(block, Options, false) of
         false ->
             gen_fsm:sync_send_event(Pid, Request, infinity);
         _ ->
@@ -256,6 +256,7 @@ init(#options{python=Python,use_stdio=UseStdio, packet=Packet,
         " --compressed=", Compressed]),
     try open_port({spawn, Path}, PortOptions) of
         Port ->
+            process_flag(trap_exit, true),
             {ok, client, #state{port=Port, timeout=Timeout,
                 compressed=Compressed}}
     catch
@@ -305,7 +306,7 @@ client({switch, Module, Function, Args, Options}, From, State=#state{
     case erlport_options:timeout(Timeout) of
         {ok, Timeout} ->
             Data = encode({'S', Module, Function, Args}, Compressed),
-            case proplists:get_value(wait, Options, false) of
+            case proplists:get_value(block, Options, false) of
                 false ->
                     send_request(switch, From, Data, server, State, Timeout);
                 _ ->
@@ -361,15 +362,9 @@ server(_Event, _From, State) ->
     State :: #state{},
     Response :: {next_state, server, State}.
 
-server(timeout, State=#state{port=Port, compressed=Compressed}) ->
-    % TODO: We need to add request ID
-    Data = encode({'e', {error, timeout, []}}, Compressed),
-    case send_data(Port, Data) of
-        ok ->
-            {next_state, server, State#state{call=undefined}};
-        error ->
-            {stop, port_closed, State#state{call=undefined}}
-    end;
+server(timeout, State=#state{call={Pid, _Timer}}) ->
+    true = exit(Pid, timeout),
+    {next_state, server, State};
 server(_Event, State) ->
     {next_state, server, State}.
 
@@ -409,11 +404,11 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
         's' ->
             case InProcess of
                 {switch, From, Timer} ->
-                    gen_fsm:cancel_timer(Timer),
+                    stop_timer(Timer),
                     gen_fsm:reply(From, ok),
                     {next_state, StateName, State#state{in_process=undefined}};
                 {switch_wait, _From, Timer} ->
-                    gen_fsm:cancel_timer(Timer),
+                    stop_timer(Timer),
                     {next_state, StateName, State};
                 undefined ->
                     {stop, orphan_response, State};
@@ -422,16 +417,14 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
             end;
         {'C', Module, Function, Args} when is_atom(Module), is_atom(Function),
                 is_list(Args) ->
-            Timer = gen_fsm:send_event_after(Timeout, timeout),
-            % FIXME: proc_lib:spawn and monitor?
-            {Pid, Monitor} = spawn_monitor(fun () ->
+            Pid = proc_lib:spawn_link(fun () ->
                 exit(try {ok, apply(Module, Function, Args)}
                     catch
                         Class:Reason ->
                             {error, {Class, Reason, erlang:get_stacktrace()}}
                     end)
                 end),
-            Info = {Monitor, Timer, Pid},
+            Info = {Pid, start_timer(Timeout)},
             {next_state, StateName, State#state{call=Info}};
         {'r', Result} ->
             case InProcess of
@@ -455,10 +448,9 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
         error:badarg ->
             {stop, {invalid_request_data, Data}, State}
     end;
-handle_info({'DOWN', Monitor, process, Pid, Result}, StateName=server,
-        State=#state{port=Port, call={Monitor, Timer, Pid},
-        compressed=Compressed}) ->
-    gen_fsm:cancel_timer(Timer),
+handle_info({'EXIT', Pid, Result}, StateName=server, State=#state{port=Port,
+	call={Pid, Timer}, compressed=Compressed}) ->
+    stop_timer(Timer),
     R = case Result of
         {ok, Response} ->
             {'r', Response};
@@ -488,14 +480,19 @@ handle_sync_event(Event, From, StateName, State) ->
 %% @hidden
 
 terminate(Reason, _StateName, #state{in_process=InProcess, queue=Queue}) ->
-    Error = {error, Reason},
+    Error = case Reason of
+        normal ->
+            {error, stopped};
+        Reason ->
+            {error, Reason}
+    end,
     case InProcess of
         undefined ->
             ok;
         {_Type, From, _Timer} ->
             gen_fsm:reply(From, Error)
     end,
-    foreach_in_queue(fun ({_Type, From, _Data}) ->
+    queue_foreach(fun ({_Type, From, _Data}) ->
         gen_fsm:reply(From, Error)
         end, Queue).
 
@@ -527,7 +524,7 @@ process_queue(StateName=client, State=#state{queue=Queue}) ->
 
 send_request(Type, From, Data, StateName, State=#state{port=Port,
         queue=Queue, in_process=InProcess}, Timeout) ->
-    Info = {Type, From, gen_fsm:send_event_after(Timeout, timeout)},
+    Info = {Type, From, start_timer(Timeout)},
     case InProcess of
         undefined ->
             case send_data(Port, Data) of
@@ -553,7 +550,7 @@ handle_response(ExpectedType, Response, State=#state{in_process=InProcess},
         StateName) ->
     case InProcess of
         {ExpectedType, From, Timer} ->
-            gen_fsm:cancel_timer(Timer),
+            stop_timer(Timer),
             gen_fsm:reply(From, Response),
             process_queue(StateName, State#state{in_process=undefined});
         undefined ->
@@ -565,13 +562,13 @@ handle_response(ExpectedType, Response, State=#state{in_process=InProcess},
 encode(Term, Compressed) ->
     term_to_binary(Term, [{minor_version, 1}, {compressed, Compressed}]).
 
-foreach_in_queue(Fun, Queue) ->
+queue_foreach(Fun, Queue) ->
     case queue:out(Queue) of
         {empty, Queue} ->
             ok;
         {{value, Item}, Queue2} ->
             Fun(Item),
-            foreach_in_queue(Fun, Queue2)
+            queue_foreach(Fun, Queue2)
     end.
 
 start(Function, OptionsList) when is_list(OptionsList) ->
@@ -586,3 +583,13 @@ start(Function, OptionsList) when is_list(OptionsList) ->
         Error={error, _} ->
             Error
     end.
+
+start_timer(infinity) ->
+    undefined;
+start_timer(Timeout) ->
+    gen_fsm:send_event_after(Timeout, timeout).
+
+stop_timer(undefined) ->
+    ok;
+stop_timer(Timer) ->
+    gen_fsm:cancel_timer(Timer).

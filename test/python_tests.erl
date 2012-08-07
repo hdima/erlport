@@ -97,7 +97,7 @@ switch_test_() -> {setup,
                 ], get_events())
         end,
         fun () ->
-            ?assertEqual(5, python:switch(P, switch, switch, [5], [wait])),
+            ?assertEqual(5, python:switch(P, switch, switch, [5], [block])),
             ?assertEqual([
                 {test_callback, 0, 0},
                 {test_callback, 0, 1},
