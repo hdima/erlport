@@ -6,6 +6,8 @@
   If encoder/decoder is defined we just scan through hierarchy of objects and
   call encoder/decoder for each object.
 
+- Add lock for erlang.call and maybe for erlang.receive?
+
 - Add 'buffer_size' option?
 
 - Replace rebar with custom scripts?
