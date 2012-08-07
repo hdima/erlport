@@ -1,3 +1,13 @@
+- Add info() function with statistics and information, for example number
+  of requests/responses, number of sent/received bytes, number of
+  errors for requests/responses, uptime?
+
+- Pluggable encoders/decoders? We can register proxy encoder/decoder functions.
+  If encoder/decoder is defined we just scan through hierarchy of objects and
+  call encoder/decoder for each object.
+
+- Add 'buffer_size' option?
+
 - Replace rebar with custom scripts?
 
 - Check Python version by calling python -V
@@ -6,16 +16,9 @@
 
 - Check code with older versions of Erlang/Python
 
-- Add info() function with statistics and information, for example number
-  of requests/responses, number of sent/received bytes, number of
-  errors for requests/responses, uptime?
-
 - Update tests for Python. Add tests for all data types for Erlang <-> Python
 
 - Comments for modules
-
-- We can allow to send some number (configurable?) of backlog request while
-  we waiting for response. We just can use 'nosuspend' options for port_command
 
 - How to handle Python <-> Python exceptions? We can pass it inside some error
   term. Errors/exceptions should be like opaque types marked with the language
@@ -24,11 +27,8 @@
 - Check default port options on Windows
 
 - Maybe force strings with {string, String} and {struct, Dict}? It can be done
-  with pluggable encoder/decoder.
-
-- Pluggable encoders/decoders? We can register proxy encoder/decoder functions.
-  If encoder/decoder is defined we just scan through hierarchy of objects and
-  call encoder/decoder for each object.
+  with pluggable encoder/decoder. We can add 'reach' encoder/decoder plugin
+  functions
 
 - Support argparse instead of optparse on Python 3?
 

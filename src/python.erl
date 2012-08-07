@@ -68,10 +68,9 @@
     timeout :: pos_integer() | infinity,
     compressed = 0 :: 0..9,
     port :: port(),
-    % TODO: Rename to 'waiting'
     queue = queue:new() :: queue(),
-    % TODO: Rename to 'sent' and convert to queue
-    in_process :: {call | switch | switch_wait, From::term(), Timer::term()},
+    % {call | switch | swtich_wait, From::term(), Timer::reference()}
+    sent = queue:new() :: queue(),
     call :: {Pid::pid(), Timer::reference()}
     }).
 
@@ -399,18 +398,18 @@ handle_info({Port, {data, Data}}, StateName=client, State=#state{port=Port}) ->
             {stop, {invalid_response_data, Data}, State}
     end;
 handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
-        timeout=Timeout, in_process=InProcess}) ->
+        timeout=Timeout, sent=Sent}) ->
     try binary_to_term(Data) of
         's' ->
-            case InProcess of
-                {switch, From, Timer} ->
+            case queue:out(Sent) of
+                {{value, {switch, From, Timer}}, Sent2} ->
                     stop_timer(Timer),
                     gen_fsm:reply(From, ok),
-                    {next_state, StateName, State#state{in_process=undefined}};
-                {switch_wait, _From, Timer} ->
+                    {next_state, StateName, State#state{sent=Sent2}};
+                {{value, {switch_wait, _From, Timer}}, _Sent2} ->
                     stop_timer(Timer),
                     {next_state, StateName, State};
-                undefined ->
+                {empty, Sent} ->
                     {stop, orphan_response, State};
                 _ ->
                     {stop, unexpected_response, State}
@@ -427,19 +426,21 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
             Info = {Pid, start_timer(Timeout)},
             {next_state, StateName, State#state{call=Info}};
         {'r', Result} ->
-            case InProcess of
-                {switch_wait, From, _} ->
+            case queue:out(Sent) of
+                {{value, {switch_wait, From, _}}, Sent2} ->
                     gen_fsm:reply(From, {ok, Result}),
-                    {next_state, client, State#state{in_process=undefined}};
-                undefined ->
+                    {next_state, client, State#state{sent=Sent2}};
+                {empty, Sent} ->
+                    % switch(_wait) should be the last request in the queue
                     {next_state, client, State}
             end;
         {'e', Error} ->
-            case InProcess of
-                {switch_wait, From, _} ->
+            case queue:out(Sent) of
+                {{value, {switch_wait, From, _}}, Sent2} ->
                     gen_fsm:reply(From, {error, Error}),
-                    {next_state, client, State#state{in_process=undefined}};
-                undefined ->
+                    {next_state, client, State#state{sent=Sent2}};
+                {empty, Sent} ->
+                    % switch(_wait) should be the last request in the queue
                     {stop, {switch_failed, Error}, State}
             end;
         Request ->
@@ -479,19 +480,16 @@ handle_sync_event(Event, From, StateName, State) ->
 
 %% @hidden
 
-terminate(Reason, _StateName, #state{in_process=InProcess, queue=Queue}) ->
+terminate(Reason, _StateName, #state{sent=Sent, queue=Queue}) ->
     Error = case Reason of
         normal ->
             {error, stopped};
         Reason ->
             {error, Reason}
     end,
-    case InProcess of
-        undefined ->
-            ok;
-        {_Type, From, _Timer} ->
-            gen_fsm:reply(From, Error)
-    end,
+    queue_foreach(fun ({_Type, From, _Data}) ->
+        gen_fsm:reply(From, Error)
+        end, Sent),
     queue_foreach(fun ({_Type, From, _Data}) ->
         gen_fsm:reply(From, Error)
         end, Queue).
@@ -514,6 +512,54 @@ send_data(Port, Data) ->
             error
     end.
 
+try_to_send_data(Port, Data) ->
+    try port_command(Port, Data, [nosuspend]) of
+        true ->
+            ok;
+        false ->
+            wait
+    catch
+        error:badarg ->
+            error
+    end.
+
+send_request(Type, From, Data, StateName, State=#state{port=Port,
+        queue=Queue, sent=Sent}, Timeout) ->
+    Info = {Type, From, start_timer(Timeout)},
+    case queue:is_empty(Sent) of
+        true ->
+            case send_data(Port, Data) of
+                ok ->
+                    Sent2 = queue:in(Info, Sent),
+                    {next_state, StateName, State#state{sent=Sent2}};
+                error ->
+                    {stop, port_closed, State}
+            end;
+        false ->
+            case try_to_send_data(Port, Data) of
+                ok ->
+                    Sent2 = queue:in(Info, Sent),
+                    {next_state, StateName, State#state{sent=Sent2}};
+                wait ->
+                    Queue2 = queue:in({Info, Data}, Queue),
+                    {next_state, StateName, State#state{queue=Queue2}};
+                error ->
+                    {stop, port_closed, State}
+            end
+    end.
+
+handle_response(ExpectedType, Response, State=#state{sent=Sent}, StateName) ->
+    case queue:out(Sent) of
+        {{value, {ExpectedType, From, Timer}}, Sent2} ->
+            stop_timer(Timer),
+            gen_fsm:reply(From, Response),
+            process_queue(StateName, State#state{sent=Sent2});
+        {empty, Sent} ->
+            {stop, orphan_response, State};
+        _ ->
+            {stop, unexpected_response, State}
+    end.
+
 process_queue(StateName=client, State=#state{queue=Queue}) ->
     case queue:out(Queue) of
         {empty, Queue} ->
@@ -522,41 +568,29 @@ process_queue(StateName=client, State=#state{queue=Queue}) ->
             send_from_queue(Queued, Queue2, StateName, State)
     end.
 
-send_request(Type, From, Data, StateName, State=#state{port=Port,
-        queue=Queue, in_process=InProcess}, Timeout) ->
-    Info = {Type, From, start_timer(Timeout)},
-    case InProcess of
-        undefined ->
+send_from_queue({Info, Data}, Queue, StateName, State=#state{port=Port,
+        sent=Sent}) ->
+    case queue:is_empty(Sent) of
+        true ->
             case send_data(Port, Data) of
                 ok ->
-                    {next_state, StateName, State#state{in_process=Info}};
+                    Sent2 = queue:in(Info, Sent),
+                    {next_state, StateName, State#state{sent=Sent2,
+                        queue=Queue}};
                 error ->
                     {stop, port_closed, State}
             end;
-        _ ->
-            Queue2 = queue:in({Info, Data}, Queue),
-            {next_state, StateName, State#state{queue=Queue2}}
-    end.
-
-send_from_queue({Info, Data}, Queue, StateName, State=#state{port=Port}) ->
-    case send_data(Port, Data) of
-        ok ->
-            {next_state, StateName, State#state{in_process=Info, queue=Queue}};
-        error ->
-            {stop, port_closed, State}
-    end.
-
-handle_response(ExpectedType, Response, State=#state{in_process=InProcess},
-        StateName) ->
-    case InProcess of
-        {ExpectedType, From, Timer} ->
-            stop_timer(Timer),
-            gen_fsm:reply(From, Response),
-            process_queue(StateName, State#state{in_process=undefined});
-        undefined ->
-            {stop, orphan_response, State};
-        _ ->
-            {stop, unexpected_response, State}
+        false ->
+            case try_to_send_data(Port, Data) of
+                ok ->
+                    Sent2 = queue:in(Info, Sent),
+                    {next_state, StateName, State#state{sent=Sent2,
+                        queue=Queue}};
+                wait ->
+                    {next_state, StateName, State};
+                error ->
+                    {stop, port_closed, State}
+            end
     end.
 
 encode(Term, Compressed) ->
@@ -564,11 +598,11 @@ encode(Term, Compressed) ->
 
 queue_foreach(Fun, Queue) ->
     case queue:out(Queue) of
-        {empty, Queue} ->
-            ok;
         {{value, Item}, Queue2} ->
             Fun(Item),
-            queue_foreach(Fun, Queue2)
+            queue_foreach(Fun, Queue2);
+        {empty, Queue} ->
+            ok
     end.
 
 start(Function, OptionsList) when is_list(OptionsList) ->
