@@ -46,7 +46,7 @@ class Port(object):
         }
 
     def __init__(self, packet=1, use_stdio=False, compressed=False,
-            descriptors=None, buffer_size=4096):
+            descriptors=None, buffer_size=65536):
         self._format = self._formats.get(packet)
         if self._format is None:
             raise ValueError("invalid packet size value: %s" % packet)
