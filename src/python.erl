@@ -33,8 +33,6 @@
 
 -module(python).
 
--compile(inline).
-
 -author('Dmitry Vasiliev <dima@hlabs.org>').
 
 -behaviour(gen_fsm).
@@ -400,6 +398,17 @@ handle_info({Port, {data, Data}}, StateName=client, State=#state{port=Port}) ->
 handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
         timeout=Timeout, sent=Sent}) ->
     try binary_to_term(Data) of
+        {'C', Module, Function, Args} when is_atom(Module), is_atom(Function),
+                is_list(Args) ->
+            Pid = proc_lib:spawn_link(fun () ->
+                exit(try {ok, apply(Module, Function, Args)}
+                    catch
+                        Class:Reason ->
+                            {error, {Class, Reason, erlang:get_stacktrace()}}
+                    end)
+                end),
+            Info = {Pid, start_timer(Timeout)},
+            {next_state, StateName, State#state{call=Info}};
         's' ->
             case queue:out(Sent) of
                 {{value, {switch, From, Timer}}, Sent2} ->
@@ -414,17 +423,6 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
                 _ ->
                     {stop, unexpected_response, State}
             end;
-        {'C', Module, Function, Args} when is_atom(Module), is_atom(Function),
-                is_list(Args) ->
-            Pid = proc_lib:spawn_link(fun () ->
-                exit(try {ok, apply(Module, Function, Args)}
-                    catch
-                        Class:Reason ->
-                            {error, {Class, Reason, erlang:get_stacktrace()}}
-                    end)
-                end),
-            Info = {Pid, start_timer(Timeout)},
-            {next_state, StateName, State#state{call=Info}};
         {'r', Result} ->
             case queue:out(Sent) of
                 {{value, {switch_wait, From, _}}, Sent2} ->
@@ -487,7 +485,7 @@ terminate(Reason, _StateName, #state{sent=Sent, queue=Queue}) ->
         Reason ->
             {error, Reason}
     end,
-    queue_foreach(fun ({_Type, From, _Data}) ->
+    queue_foreach(fun ({_Type, From, _Timer}) ->
         gen_fsm:reply(From, Error)
         end, Sent),
     queue_foreach(fun ({_Type, From, _Data}) ->
@@ -528,13 +526,7 @@ send_request(Type, From, Data, StateName, State=#state{port=Port,
     Info = {Type, From, start_timer(Timeout)},
     case queue:is_empty(Sent) of
         true ->
-            case send_data(Port, Data) of
-                ok ->
-                    Sent2 = queue:in(Info, Sent),
-                    {next_state, StateName, State#state{sent=Sent2}};
-                error ->
-                    {stop, port_closed, State}
-            end;
+            send_request(Info, Data, Queue, StateName, State);
         false ->
             case try_to_send_data(Port, Data) of
                 ok ->
@@ -546,6 +538,16 @@ send_request(Type, From, Data, StateName, State=#state{port=Port,
                 error ->
                     {stop, port_closed, State}
             end
+    end.
+
+send_request(Info, Data, Queue, StateName, State=#state{port=Port,
+        sent=Sent}) ->
+    case send_data(Port, Data) of
+        ok ->
+            Sent2 = queue:in(Info, Sent),
+            {next_state, StateName, State#state{sent=Sent2, queue=Queue}};
+        error ->
+            {stop, port_closed, State}
     end.
 
 handle_response(ExpectedType, Response, State=#state{sent=Sent}, StateName) ->
@@ -572,14 +574,7 @@ send_from_queue({Info, Data}, Queue, StateName, State=#state{port=Port,
         sent=Sent}) ->
     case queue:is_empty(Sent) of
         true ->
-            case send_data(Port, Data) of
-                ok ->
-                    Sent2 = queue:in(Info, Sent),
-                    {next_state, StateName, State#state{sent=Sent2,
-                        queue=Queue}};
-                error ->
-                    {stop, port_closed, State}
-            end;
+            send_request(Info, Data, Queue, StateName, State);
         false ->
             case try_to_send_data(Port, Data) of
                 ok ->
