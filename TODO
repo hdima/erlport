@@ -8,6 +8,8 @@
 
 - Convert Python tests from doctests to unittest
 
+- Tests for erlterms.OpaqueObject encoding/decoding
+
 - Check exports in erlport.__init__
 
 - Add lock for erlang.call and maybe for erlang.receive?

@@ -101,12 +101,10 @@ class OpaqueObject(object):
 
 
 _python = Atom("python")
-_erlang = Atom("erlang")
 
 
 def decode(string):
     """Decode Erlang external term."""
-    # TODO: It seems we don't need to return tail here
     if not string:
         raise IncompleteData("incomplete data: %r" % string)
     if string[0] != '\x83':
@@ -130,7 +128,7 @@ def decode(string):
 def decode_term(string,
         # Hack to turn globals into locals
         len=len, ord=ord, unpack=unpack, tuple=tuple, float=float,
-        Atom=Atom, opaque=OpaqueObject.marker, erlang=_erlang):
+        Atom=Atom, opaque=OpaqueObject.marker):
     if not string:
         raise IncompleteData("incomplete data: %r" % string)
     tag = ord(string[0])
@@ -236,9 +234,7 @@ def decode_term(string,
             n = -n
         return n, tail[length:]
 
-    # FIXME: It seems we need decode full objects only and don't return tail
-    # in erlterms.decode()
-    return OpaqueObject.decode(string, erlang), ""
+    raise ValueError("unsupported data: %r" % (string,))
 
 
 def encode(term, compressed=False):

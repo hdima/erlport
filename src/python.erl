@@ -80,6 +80,8 @@
 
 -include("erlport.hrl").
 
+-define(is_allowed_term(T), (is_atom(T) orelse is_list(T) orelse is_tuple(T)
+    orelse is_number(T) orelse is_binary(T))).
 
 %%
 %% @equiv start([])
@@ -589,7 +591,13 @@ send_from_queue({Info, Data}, Queue, StateName, State=#state{port=Port,
     end.
 
 encode(Term, Compressed) ->
-    term_to_binary(Term, [{minor_version, 1}, {compressed, Compressed}]).
+    T = if
+        ?is_allowed_term(Term) ->
+            Term;
+        true ->
+            {'$opaque', erlang, term_to_binary(Term, [{minor_version, 1}])}
+    end,
+    term_to_binary(T, [{minor_version, 1}, {compressed, Compressed}]).
 
 queue_foreach(Fun, Queue) ->
     case queue:out(Queue) of

@@ -128,13 +128,6 @@ All other Python terms encoded as pickle data:
     >>> encoded_object
     '\x83h\x03d\x00\x07$opaqued\x00\x06pythonm\x00\x00\x00\x1d\x80\x02c__builtin__\nobject\nq\x01)\x81q\x02.'
 
-Data encoded in Erlang passed as is:
-
-    >>> erlang_opaque = OpaqueObject("\x83\x4d\0\0\0\1\1\x80", Atom("erlang"))
-    >>> erlang_encoded_bits = encode(erlang_opaque)
-    >>> erlang_encoded_bits
-    '\x83\x83M\x00\x00\x00\x01\x01\x80'
-
 
 Decoding
 --------
@@ -265,15 +258,3 @@ Opaque Python types decoded from pickle:
 
     >>> decode(encoded_object) # doctest: +ELLIPSIS
     (<object object at 0x...>, '')
-
-Opaque Erlang objects decoded as opaque object:
-
-    >>> erlang_opaque2, tail = decode(erlang_encoded_bits)
-    >>> tail
-    ''
-    >>> erlang_opaque == erlang_opaque2
-    True
-    >>> erlang_opaque2
-    opaque(erlang)
-    >>> erlang_opaque2.data
-    '\x83M\x00\x00\x00\x01\x01\x80'
