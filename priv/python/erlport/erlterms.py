@@ -69,13 +69,44 @@ class String(unicode):
     def __repr__(self):
         return "string(%s)" % super(String, self).__repr__()
 
-_opaque = Atom("$opaque")
+
+class OpaqueObject(object):
+    """Opaque object data."""
+
+    __slots__ = "data", "language"
+
+    marker = Atom("$opaque")
+
+    def __init__(self, data, language):
+        self.data = data
+        self.language = language
+
+    def decode(cls, data, language):
+        if language == "python":
+            return loads(data)
+        return cls(data, language)
+    decode = classmethod(decode)
+
+    def encode(self):
+        if self.language == "erlang":
+            return self.data
+        return encode_term((self.marker, self.language, self.data))
+
+    def __eq__(self, other):
+        return (type(self) == type(other) and self.language == other.language
+            and self.data == other.data)
+
+    def __repr__(self):
+        return "opaque(%s)" % self.language
+
+
 _python = Atom("python")
 _erlang = Atom("erlang")
 
 
 def decode(string):
     """Decode Erlang external term."""
+    # TODO: It seems we don't need to return tail here
     if not string:
         raise IncompleteData("incomplete data: %r" % string)
     if string[0] != '\x83':
@@ -99,7 +130,7 @@ def decode(string):
 def decode_term(string,
         # Hack to turn globals into locals
         len=len, ord=ord, unpack=unpack, tuple=tuple, float=float,
-        Atom=Atom, opaque=_opaque, python=_python, erlang=_erlang):
+        Atom=Atom, opaque=OpaqueObject.marker, erlang=_erlang):
     if not string:
         raise IncompleteData("incomplete data: %r" % string)
     tag = ord(string[0])
@@ -155,8 +186,8 @@ def decode_term(string,
         if tag == 108:
             _ignored, tail = _decode_term(tail)
             return lst, tail
-        if len(lst) == 3 and lst[0] == opaque and lst[1] == python:
-            return loads(lst[2]), tail
+        if len(lst) == 3 and lst[0] == opaque:
+            return OpaqueObject.decode(lst[2], lst[1]), tail
         return tuple(lst), tail
     elif tag == 97:
         # SMALL_INTEGER_EXT
@@ -205,7 +236,9 @@ def decode_term(string,
             n = -n
         return n, tail[length:]
 
-    return opaque, erlang, string
+    # FIXME: It seems we need decode full objects only and don't return tail
+    # in erlterms.decode()
+    return OpaqueObject.decode(string, erlang), ""
 
 
 def encode(term, compressed=False):
@@ -230,12 +263,10 @@ def encode_term(term,
         Atom=Atom, str=str, float=float, ord=ord,
         dict=dict, True=True, False=False,
         ValueError=ValueError, OverflowError=OverflowError,
-        opaque=_opaque, erlang=_erlang, python=_python):
+        python=_python):
     if isinstance(term, tuple):
         arity = len(term)
         if arity <= 255:
-            if arity == 3 and term[0] == opaque and term[1] == erlang:
-                return term[2]
             header = 'h%c' % arity
         elif arity <= 4294967295:
             header = pack(">cI", 'i', arity)
@@ -320,9 +351,11 @@ def encode_term(term,
         return encode_term(items)
     elif term is None:
         return "\x64\x00\x09undefined"
+    elif isinstance(term, OpaqueObject):
+        return term.encode()
 
     try:
         data = dumps(term, HIGHEST_PROTOCOL)
     except:
         raise ValueError("unsupported data type: %s" % type(term))
-    return encode_term((opaque, python, data))
+    return OpaqueObject(data, python).encode()

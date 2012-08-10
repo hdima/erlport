@@ -82,7 +82,9 @@ class Port(object):
         self.buffer = self.buffer[self.packet:]
         while len(self.buffer) < length:
             self.buffer += self._read_data()
-        term, self.buffer = decode(self.buffer)
+        # TODO: It seems we don't need to return tail from decode()
+        term, _ignored = decode(self.buffer[:length])
+        self.buffer = self.buffer[length:]
         return term
 
     def write(self, message):

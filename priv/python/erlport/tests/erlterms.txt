@@ -7,7 +7,7 @@ Encoding
 Function encode() can encode Python types to Erlang external term format:
 
     >>> from erlport.erlterms import encode
-    >>> from erlport.erlterms import Atom, String
+    >>> from erlport.erlterms import Atom, String, OpaqueObject
 
 Binary strings:
 
@@ -130,8 +130,9 @@ All other Python terms encoded as pickle data:
 
 Data encoded in Erlang passed as is:
 
-    >>> encoded_bits = encode((Atom("$opaque"), Atom("erlang"), "\x83\x4d\0\0\0\1\1\x80"))
-    >>> encoded_bits
+    >>> erlang_opaque = OpaqueObject("\x83\x4d\0\0\0\1\1\x80", Atom("erlang"))
+    >>> erlang_encoded_bits = encode(erlang_opaque)
+    >>> erlang_encoded_bits
     '\x83\x83M\x00\x00\x00\x01\x01\x80'
 
 
@@ -265,7 +266,14 @@ Opaque Python types decoded from pickle:
     >>> decode(encoded_object) # doctest: +ELLIPSIS
     (<object object at 0x...>, '')
 
-Opaque Erlang types constructed as opaque tuple:
+Opaque Erlang objects decoded as opaque object:
 
-    >>> decode(encoded_bits)
-    (atom('$opaque'), atom('erlang'), '\x83M\x00\x00\x00\x01\x01\x80')
+    >>> erlang_opaque2, tail = decode(erlang_encoded_bits)
+    >>> tail
+    ''
+    >>> erlang_opaque == erlang_opaque2
+    True
+    >>> erlang_opaque2
+    opaque(erlang)
+    >>> erlang_opaque2.data
+    '\x83M\x00\x00\x00\x01\x01\x80'
