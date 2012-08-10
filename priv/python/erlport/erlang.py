@@ -25,7 +25,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from sys import modules, exc_info
+import sys
+from sys import exc_info
 from traceback import extract_tb
 
 from erlport import Atom
@@ -48,16 +49,11 @@ class InvalidMode(Error):
 class ErlangError(Error):
     """Erlang error()."""
 
-    def __init__(self, value, stacktrace):
+    def __init__(self, type, value, stacktrace):
+        self.type = type
         self.value = value
         self.stacktrace = stacktrace
-        Error.__init__(self, (value, stacktrace))
-
-class ThrowErlangError(ErlangError):
-    """Erlang throw()."""
-
-class ExitErlangError(ErlangError):
-    """Erlang exit()."""
+        Error.__init__(self, (type, value, stacktrace))
 
 
 class MessageHandler(object):
@@ -65,32 +61,51 @@ class MessageHandler(object):
     def __init__(self, port):
         self.port = port
         self.client = False
+        self.encoder = None
+        self.decoder = None
+
+    def set_encoder(self, encoder):
+        if encoder:
+            encoder = self.object_iterator(encoder)
+        self.encoder = encoder
+
+    def set_decoder(self, decoder):
+        if decoder:
+            decoder = self.object_iterator(decoder)
+        self.decoder = decoder
+
+    def object_iterator(self, handler,
+            isinstance=isinstance, list=list, tuple=tuple, map=map):
+        def iterator(obj):
+            obj = handler(obj)
+            if isinstance(obj, (list, tuple)):
+                return obj.__class__(map(iterator, obj))
+            return obj
+        return iterator
 
     def start(self):
-        read = self.port.read
-        write = self.port.write
-        handle = self.handle
-        while True:
-            try:
-                handle(read(), write)
-            except EOFError:
-                break
-
-    def handle(self, message, write):
+        call = self.call_with_error_handler
         try:
-            mtype, module, function, args = message
-        except ValueError:
-            raise InvalidMessage(message)
-        else:
+            self.loop(self.port.read, self.port.write, call)
+        except EOFError:
+            pass
+
+    def loop(self, read, write, call):
+        switch_ack = Atom("s")
+        while True:
+            message = read()
+            try:
+                mtype, module, function, args = message
+            except ValueError:
+                raise InvalidMessage(message)
+
             if mtype == "C":
-                write(self.call_with_error_handler(module, function, args))
+                write(call(module, function, args))
             elif mtype == "S":
-                write(Atom("s"))
+                write(switch_ack)
                 self.client = True
-                try:
-                    write(self.call_with_error_handler(module, function, args))
-                finally:
-                    self.client = False
+                write(call(module, function, args))
+                self.client = False
             else:
                 raise UnknownMessage(message)
 
@@ -105,42 +120,66 @@ class MessageHandler(object):
         if not isinstance(args, list):
             raise InvalidArgument(args)
 
-        # TODO: Conver EOFError to some other exception?
-        self.port.write((Atom('C'), module, function, args))
+        encode = self.encoder
+        if encode:
+            req = Atom('C'), module, function, map(encode, args)
+        else:
+            req = Atom('C'), module, function, args
+        self.port.write(req)
         response = self.port.read()
         try:
             mtype, value = response
         except ValueError:
             raise InvalidMessage(response)
 
+        decode = self.decoder
         if mtype != "r":
             if mtype == "e":
                 # TODO: Raise error based on error value
+                # TODO: Decode exception terms
                 raise Exception("error")
             raise UnknownMessage(response)
+        if decode:
+            return decode(value)
         return value
 
     def call_with_error_handler(self, module, function, args):
         # TODO: Need to check this code
         try:
-            f = modules.get(module)
-            if f is None:
+            f = sys.modules.get(module)
+            if not f:
                 f = __import__(module, {}, {}, [function])
             f = getattr(f, function)
-            result = Atom("r"), f(*args)
+            decode = self.decoder
+            if decode:
+                r = f(*map(decode, args))
+            else:
+                r = f(*args)
+            encode = self.encoder
+            if encode:
+                result = Atom("r"), encode(r)
+            else:
+                result = Atom("r"), r
         except:
             # TODO: Update exception format
             t, val, tb = exc_info()
             exc = Atom("%s.%s" % (t.__module__, t.__name__))
             exc_tb = extract_tb(tb)
             exc_tb.reverse()
-            result = Atom("e"), (exc, unicode(val), exc_tb)
+            e = exc, unicode(val), exc_tb
+            encode = self.encoder
+            if encode:
+                result = Atom("e"), tuple(map(encode, e))
+            else:
+                result = Atom("e"), e
         return result
 
 
 def start(port):
-    global MessageHandler, call
+    global MessageHandler, call, set_encoder, set_decoder
     handler = MessageHandler(port)
     call = handler.call
+    set_encoder = handler.set_encoder
+    set_decoder = handler.set_decoder
     del MessageHandler
     handler.start()
