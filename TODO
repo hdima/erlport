@@ -10,8 +10,6 @@
 
 - Tests for erlterms.OpaqueObject encoding/decoding
 
-- Maybe decode Erlang opaque object on Erlang side also?
-
 - Check exports in erlport.__init__
 
 - Add lock for erlang.call and maybe for erlang.receive?
