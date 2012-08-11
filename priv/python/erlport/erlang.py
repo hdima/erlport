@@ -135,10 +135,12 @@ class MessageHandler(object):
 
     def call_with_error_handler(self, module, function, args):
         try:
+            objects = function.split(".")
             f = sys.modules.get(module)
             if not f:
-                f = __import__(module, {}, {}, [function])
-            f = getattr(f, function)
+                f = __import__(module, {}, {}, [objects[0]])
+            for o in objects:
+                f = getattr(f, o)
             result = Atom("r"), self.encoder(f(*map(self.decoder, args)))
         except:
             # TODO: Update exception format
