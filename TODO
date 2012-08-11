@@ -1,16 +1,18 @@
+- It should be possible to call erlang.modules.Module.Function like functions
+  from Erlang. We should split function name by '.'
+
 - Add info() function with statistics and information, for example number
   of requests/responses, number of sent/received bytes, number of
-  errors for requests/responses, uptime?
+  errors for requests/responses, uptime? I think we only need to add info
+  function in Erlang and just call port_info.
 
 - Convert Python tests from doctests to unittest
 
 - Tests for erlterms.OpaqueObject encoding/decoding
 
-- Check exports in erlport.__init__
+- Check exports in erlport/__init__.py
 
 - Add lock for erlang.call and maybe for erlang.receive?
-
-- Add 'buffer_size' option?
 
 - Replace rebar with custom scripts?
 
