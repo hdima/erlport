@@ -2,8 +2,6 @@
   of requests/responses, number of sent/received bytes, number of
   errors for requests/responses, uptime?
 
-- Can we use identity function by default to simplify encode/decode code?
-
 - Convert Python tests from doctests to unittest
 
 - Tests for erlterms.OpaqueObject encoding/decoding

@@ -46,8 +46,12 @@ class IncompleteData(ValueError):
 class Atom(str):
     """Erlang atom."""
 
+    __slots__ = ()
+
     def __new__(cls, s):
-        if len(s) > 255:
+        if isinstance(s, Atom):
+            return s
+        elif len(s) > 255:
             raise ValueError("invalid atom length")
         return super(Atom, cls).__new__(cls, s)
 
@@ -58,10 +62,14 @@ class Atom(str):
 class String(unicode):
     """Erlang list/string wrapper."""
 
+    __slots__ = ()
+
     def __new__(cls, s):
         if isinstance(s, list):
             # Will raise TypeError if can't be converted
             s = u"".join(map(unichr, s))
+        elif isinstance(s, String):
+            return s
         elif not isinstance(s, unicode):
             raise TypeError("list or unicode object expected")
         return super(String, cls).__new__(cls, s)

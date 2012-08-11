@@ -40,9 +40,6 @@ class InvalidMessage(Error):
 class UnknownMessage(Error):
     """Unknown message."""
 
-class InvalidArgument(Error):
-    """Invalid argument."""
-
 class InvalidMode(Error):
     """Invalid mode."""
 
@@ -61,18 +58,20 @@ class MessageHandler(object):
     def __init__(self, port):
         self.port = port
         self.client = False
-        self.encoder = None
-        self.decoder = None
+        self.set_encoder(None)
+        self.set_decoder(None)
 
     def set_encoder(self, encoder):
         if encoder:
-            encoder = self.object_iterator(encoder)
-        self.encoder = encoder
+            self.encoder = self.object_iterator(encoder)
+        else:
+            self.encoder = lambda o: o
 
     def set_decoder(self, decoder):
         if decoder:
-            decoder = self.object_iterator(decoder)
-        self.decoder = decoder
+            self.decoder = self.object_iterator(decoder)
+        else:
+            self.decoder = lambda o: o
 
     def object_iterator(self, handler,
             isinstance=isinstance, list=list, tuple=tuple, map=map):
@@ -114,34 +113,25 @@ class MessageHandler(object):
             raise InvalidMode("call() is unsupported in server mode")
 
         if not isinstance(module, Atom):
-            raise InvalidArgument(module)
+            raise ValueError(module)
         if not isinstance(function, Atom):
-            raise InvalidArgument(function)
+            raise ValueError(function)
         if not isinstance(args, list):
-            raise InvalidArgument(args)
+            raise ValueError(args)
 
-        encode = self.encoder
-        if encode:
-            req = Atom('C'), module, function, map(encode, args)
-        else:
-            req = Atom('C'), module, function, args
-        self.port.write(req)
+        self.port.write((Atom('C'), module, function, map(self.encoder, args)))
         response = self.port.read()
         try:
             mtype, value = response
         except ValueError:
             raise InvalidMessage(response)
 
-        decode = self.decoder
         if mtype != "r":
             if mtype == "e":
                 # TODO: Raise error based on error value
-                # TODO: Decode exception terms
                 raise Exception("error")
             raise UnknownMessage(response)
-        if decode:
-            return decode(value)
-        return value
+        return self.decoder(value)
 
     def call_with_error_handler(self, module, function, args):
         # TODO: Need to check this code
@@ -150,36 +140,48 @@ class MessageHandler(object):
             if not f:
                 f = __import__(module, {}, {}, [function])
             f = getattr(f, function)
-            decode = self.decoder
-            if decode:
-                r = f(*map(decode, args))
-            else:
-                r = f(*args)
-            encode = self.encoder
-            if encode:
-                result = Atom("r"), encode(r)
-            else:
-                result = Atom("r"), r
+            result = Atom("r"), self.encoder(f(*map(self.decoder, args)))
         except:
             # TODO: Update exception format
             t, val, tb = exc_info()
             exc = Atom("%s.%s" % (t.__module__, t.__name__))
             exc_tb = extract_tb(tb)
             exc_tb.reverse()
-            e = exc, unicode(val), exc_tb
-            encode = self.encoder
-            if encode:
-                result = Atom("e"), tuple(map(encode, e))
-            else:
-                result = Atom("e"), e
+            result = Atom("e"), (exc, unicode(val), exc_tb)
         return result
+
+class Function(object):
+
+    __slots__ = ()
+
+    def __new__(cls, name, module):
+        cls.__call__ = lambda s, *args: call(module, name, list(args))
+        return super(Function, cls).__new__(cls)
+
+class Module(object):
+
+    __slots__ = ()
+
+    def __new__(cls, name):
+        cls.__getattribute__ = lambda s, fname: Function(Atom(fname), name)
+        return super(Module, cls).__new__(cls)
+
+class Modules(object):
+
+    __slots__ = ()
+
+    def __getattribute__(self, module):
+        return Module(Atom(module))
+
+modules = Modules()
+del Modules
 
 
 def start(port):
-    global MessageHandler, call, set_encoder, set_decoder
+    global MessageHandler, start, call, set_encoder, set_decoder
     handler = MessageHandler(port)
     call = handler.call
     set_encoder = handler.set_encoder
     set_decoder = handler.set_decoder
-    del MessageHandler
+    del MessageHandler, start
     handler.start()
