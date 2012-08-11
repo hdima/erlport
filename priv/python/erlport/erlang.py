@@ -134,7 +134,6 @@ class MessageHandler(object):
         return self.decoder(value)
 
     def call_with_error_handler(self, module, function, args):
-        # TODO: Need to check this code
         try:
             f = sys.modules.get(module)
             if not f:
