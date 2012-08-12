@@ -58,7 +58,7 @@ class Atom(str):
         return super(Atom, cls).__new__(cls, s)
 
     def __repr__(self):
-        return "atom(%s)" % super(Atom, self).__repr__()
+        return "Atom(%s)" % super(Atom, self).__repr__()
 
 
 class String(unicode):
@@ -77,7 +77,25 @@ class String(unicode):
         return super(String, cls).__new__(cls, s)
 
     def __repr__(self):
-        return "string(%s)" % super(String, self).__repr__()
+        return "String(%s)" % super(String, self).__repr__()
+
+
+class ImproperList(list):
+    """Improper list."""
+
+    __slots__ = "tail"
+
+    def __init__(self, lst, tail):
+        if not isinstance(lst, list):
+            raise TypeError("list object expected")
+        if isinstance(tail, list):
+            raise TypeError("non list object expected for tail")
+        self.tail = tail
+        return super(ImproperList, self).__init__(lst)
+
+    def __repr__(self):
+        return "ImproperList(%s, %r)" % (
+            super(ImproperList, self).__repr__(), self.tail)
 
 
 class OpaqueObject(object):
@@ -111,7 +129,7 @@ class OpaqueObject(object):
             and self.data == other.data)
 
     def __repr__(self):
-        return "opaque(%r, %r)" % (self.language, self.data)
+        return "OpaqueObject(%r, %r)" % (self.data, self.language)
 
 
 _python = Atom("python")
@@ -122,7 +140,7 @@ def decode(string):
     if not string:
         raise IncompleteData("incomplete data: %r" % string)
     if string[0] != '\x83':
-        raise ValueError("unknown protocol version: %i" % string[0])
+        raise ValueError("unknown protocol version: %r" % string[0])
     if string[1:2] == '\x50':
         # compressed term
         if len(string) < 6:
@@ -196,8 +214,12 @@ def decode_term(string,
             append(term)
             length -= 1
         if tag == 108:
-            _ignored, tail = _decode_term(tail)
-            return lst, tail
+            if not tail:
+                raise IncompleteData("incomplete data: %r" % string)
+            if tail[0] == "j":
+                return lst, tail[1:]
+            improper_tail, tail = _decode_term(tail)
+            return ImproperList(lst, improper_tail), tail
         if len(lst) == 3 and lst[0] == opaque:
             return OpaqueObject.decode(lst[2], lst[1]), tail
         return tuple(lst), tail
@@ -242,10 +264,11 @@ def decode_term(string,
         if len(tail) < length:
             raise IncompleteData("incomplete data: %r" % string)
         n = 0
-        for i in array('B', tail[length-1::-1]):
-            n = (n << 8) | i
-        if sign:
-            n = -n
+        if length:
+            for i in array("B", tail[length-1::-1]):
+                n = (n << 8) | i
+            if sign:
+                n = -n
         return n, tail[length:]
 
     raise ValueError("unsupported data: %r" % (string,))
@@ -285,7 +308,8 @@ def encode_term(term,
         return header + "".join(map(encode_term, term))
     elif isinstance(term, list):
         length = len(term)
-        if length == 0:
+        is_improper = isinstance(ImproperList, term)
+        if not term and not is_improper:
             return "j"
         elif length <= 65535:
             try:
@@ -298,11 +322,17 @@ def encode_term(term,
                 pass
             else:
                 if len(bytes) == length:
-                    return pack(">cH", 'k', length) + bytes
+                    lst = pack(">cH", 'k', length) + bytes
+                    if not is_improper:
+                        return lst + "j"
+                    return lst + encode_term(term.tail)
         elif length > 4294967295:
             raise ValueError("invalid list length")
         header = pack(">cI", 'l', length)
-        return header + "".join(map(encode_term, term)) + "j"
+        lst = header + "".join(map(encode_term, term))
+        if not is_improper:
+            return lst + "j"
+        return lst + encode_term(term.tail)
     elif isinstance(term, unicode):
         length = len(term)
         if length == 0:
