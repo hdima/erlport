@@ -51,6 +51,8 @@ class Atom(str):
     def __new__(cls, s):
         if isinstance(s, Atom):
             return s
+        elif not isinstance(s, str):
+            raise TypeError("str object expected")
         elif len(s) > 255:
             raise ValueError("invalid atom length")
         return super(Atom, cls).__new__(cls, s)
@@ -65,11 +67,11 @@ class String(unicode):
     __slots__ = ()
 
     def __new__(cls, s):
-        if isinstance(s, list):
+        if isinstance(s, String):
+            return s
+        elif isinstance(s, list):
             # Will raise TypeError if can't be converted
             s = u"".join(map(unichr, s))
-        elif isinstance(s, String):
-            return s
         elif not isinstance(s, unicode):
             raise TypeError("list or unicode object expected")
         return super(String, cls).__new__(cls, s)
@@ -86,6 +88,10 @@ class OpaqueObject(object):
     marker = Atom("$opaque")
 
     def __init__(self, data, language):
+        if not isinstance(data, str):
+            raise TypeError("data must be instance of str")
+        if not isinstance(language, Atom):
+            raise TypeError("language must be instance of Atom")
         self.data = data
         self.language = language
 
@@ -105,7 +111,7 @@ class OpaqueObject(object):
             and self.data == other.data)
 
     def __repr__(self):
-        return "opaque(%s)" % self.language
+        return "opaque(%r, %r)" % (self.language, self.data)
 
 
 _python = Atom("python")

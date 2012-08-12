@@ -28,10 +28,13 @@
 import doctest
 import unittest
 
+import erlterms_tests
+
 
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(doctest.DocFileSuite("erlterms.txt"))
+    suite.addTests(erlterms_tests.get_suite())
     return suite
 
 

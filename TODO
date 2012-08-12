@@ -1,6 +1,12 @@
 - It should be possible to call erlang.modules.Module.Function like functions
   from Erlang. We should split function name by '.'
 
+- Hide erlang.call and rename erlang.modules to erlang.Erlang?
+
+- Check if pickle formats are compatible between different Python versions
+
+- Test coverage tool for Python
+
 - Convert Python tests from doctests to unittest
 
 - Tests for erlterms.OpaqueObject encoding/decoding
