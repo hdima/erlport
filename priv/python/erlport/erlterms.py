@@ -308,7 +308,7 @@ def encode_term(term,
         return header + "".join(map(encode_term, term))
     elif isinstance(term, list):
         length = len(term)
-        is_improper = isinstance(ImproperList, term)
+        is_improper = isinstance(term, ImproperList)
         if not term and not is_improper:
             return "j"
         elif length <= 65535:
