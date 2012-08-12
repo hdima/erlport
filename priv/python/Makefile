@@ -26,4 +26,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 test:
+	# Test coverage information will be written to .cover directory if coverage
+	# package is installed
+	rm -rf .cover
 	python -m erlport.tests.__init__

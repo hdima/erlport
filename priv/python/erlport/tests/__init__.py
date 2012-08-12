@@ -25,18 +25,39 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import os
 import doctest
 import unittest
+
+try:
+    import coverage
+except ImportError:
+    coverage = None
 
 import erlterms_tests
 
 
 def test_suite():
     suite = unittest.TestSuite()
-    suite.addTest(doctest.DocFileSuite("erlterms.txt"))
+    #suite.addTest(doctest.DocFileSuite("erlterms.txt"))
     suite.addTests(erlterms_tests.get_suite())
     return suite
 
+def test_cover(fun, *args, **kwargs):
+    cov = coverage.coverage()
+    cov.start()
+    try:
+        fun(*args, **kwargs)
+    finally:
+        cov.stop()
+        modules = [os.path.join("erlport", n) for n in os.listdir("erlport")
+            if n.endswith(".py")]
+        cov.report(morfs=modules, show_missing=False)
+        cov.html_report(morfs=modules, directory=".cover")
+
 
 if __name__ == "__main__":
-    unittest.main(defaultTest="test_suite")
+    if coverage:
+        test_cover(unittest.main, defaultTest="test_suite")
+    else:
+        unittest.main(defaultTest="test_suite")
