@@ -1,6 +1,8 @@
 - It should be possible to call erlang.modules.Module.Function like functions
   from Erlang. We should split function name by '.'
 
+- Rename opaque object marker to include 'erlport' name?
+
 - Remove encode(dict)?
 
 - Hide erlang.call and rename erlang.modules to erlang.Erlang?
