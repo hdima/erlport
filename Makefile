@@ -32,8 +32,14 @@ compile:
 test: python-test
 	./rebar eunit
 
+test-verbose: python-test-verbose
+	./rebar eunit -v
+
 python-test:
 	cd priv/python; make test
+
+python-test-verbose:
+	cd priv/python; make test-verbose
 
 check: compile
 	dialyzer ebin
@@ -45,4 +51,5 @@ clean:
 	./rebar clean
 
 
-.PHONY: compile test check doc clean python-test
+.PHONY: compile test test-verbose check doc clean python-test
+.PHONY: python-test-verbose

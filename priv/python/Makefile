@@ -25,8 +25,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-test:
-	# Test coverage information will be written to .cover directory if coverage
-	# package is installed
-	rm -rf .cover
+test: cleanup-test
 	python -m erlport.tests.__init__
+
+test-verbose: cleanup-test
+	python -m erlport.tests.__init__ -v
+
+cleanup-test:
+	#
+	# Tests coverage information will be written to .cover directory if coverage
+	# package is installed
+	#
+	rm -rf .cover
+
+.PHONY: test test-verbose cleanup-test
