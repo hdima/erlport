@@ -134,12 +134,12 @@ class OpaqueObject(object):
 
 _python = Atom("python")
 
-_big_int_unpack = Struct(">I").unpack
-_small_int_unpack = Struct(">H").unpack
-_big_signed_int_unpack = Struct(">i").unpack
+_int4_unpack = Struct(">I").unpack
+_int2_unpack = Struct(">H").unpack
+_signed_int4_unpack = Struct(">i").unpack
 _float_unpack = Struct(">d").unpack
 _double_bytes_unpack = Struct("BB").unpack
-_big_int_byte_unpack = Struct(">IB").unpack
+_int4_byte_unpack = Struct(">IB").unpack
 
 
 def decode(string):
@@ -154,7 +154,7 @@ def decode(string):
             raise IncompleteData("incomplete data: %r" % string)
         d = decompressobj()
         term_string = d.decompress(string[6:]) + d.flush()
-        uncompressed_size, = _big_int_unpack(string[2:6])
+        uncompressed_size, = _int4_unpack(string[2:6])
         if len(term_string) != uncompressed_size:
             raise ValueError(
                 "invalid compressed tag, "
@@ -168,10 +168,10 @@ def decode(string):
 def decode_term(string,
         # Hack to turn globals into locals
         len=len, ord=ord, tuple=tuple, float=float,
-        big_int_unpack=_big_int_unpack, small_int_unpack=_small_int_unpack,
-        big_signed_int_unpack=_big_signed_int_unpack,
+        int4_unpack=_int4_unpack, int2_unpack=_int2_unpack,
+        signed_int4_unpack=_signed_int4_unpack,
         float_unpack=_float_unpack, double_bytes_unpack=_double_bytes_unpack,
-        big_int_byte_unpack=_big_int_byte_unpack,
+        int4_byte_unpack=_int4_byte_unpack,
         Atom=Atom, opaque=OpaqueObject.marker):
     if not string:
         raise IncompleteData("incomplete data: %r" % string)
@@ -181,7 +181,7 @@ def decode_term(string,
         ln = len(string)
         if ln < 3:
             raise IncompleteData("incomplete data: %r" % string)
-        length = small_int_unpack(string[1:3])[0] + 3
+        length = int2_unpack(string[1:3])[0] + 3
         if ln < length:
             raise IncompleteData("incomplete data: %r" % string)
         name = string[3:length]
@@ -200,7 +200,7 @@ def decode_term(string,
         ln = len(string)
         if ln < 3:
             raise IncompleteData("incomplete data: %r" % string)
-        length = small_int_unpack(string[1:3])[0] + 3
+        length = int2_unpack(string[1:3])[0] + 3
         if ln < length:
             raise IncompleteData("incomplete data: %r" % string)
         return array("B", string[3:length]).tolist(), string[length:]
@@ -214,7 +214,7 @@ def decode_term(string,
         else:
             if len(string) < 5:
                 raise IncompleteData("incomplete data: %r" % string)
-            length, = big_int_unpack(string[1:5])
+            length, = int4_unpack(string[1:5])
             tail = string[5:]
         lst = []
         append = lst.append
@@ -242,14 +242,14 @@ def decode_term(string,
         # INTEGER_EXT
         if len(string) < 5:
             raise IncompleteData("incomplete data: %r" % string)
-        i, = big_signed_int_unpack(string[1:5])
+        i, = signed_int4_unpack(string[1:5])
         return i, string[5:]
     elif tag == "m":
         # BINARY_EXT
         ln = len(string)
         if ln < 5:
             raise IncompleteData("incomplete data: %r" % string)
-        length = big_int_unpack(string[1:5])[0] + 5
+        length = int4_unpack(string[1:5])[0] + 5
         if ln < length:
             raise IncompleteData("incomplete data: %r" % string)
         return string[5:length], string[length:]
@@ -269,7 +269,7 @@ def decode_term(string,
         else:
             if len(string) < 6:
                 raise IncompleteData("incomplete data: %r" % string)
-            length, sign = big_int_byte_unpack(string[1:6])
+            length, sign = int4_byte_unpack(string[1:6])
             tail = string[6:]
         if len(tail) < length:
             raise IncompleteData("incomplete data: %r" % string)
