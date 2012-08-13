@@ -88,6 +88,8 @@ class ImproperList(list):
     def __init__(self, lst, tail):
         if not isinstance(lst, list):
             raise TypeError("list object expected")
+        elif not lst:
+            raise ValueError("empty list not allowed")
         if isinstance(tail, list):
             raise TypeError("non list object expected for tail")
         self.tail = tail
@@ -148,7 +150,7 @@ def decode(string):
         raise IncompleteData("incomplete data: %r" % string)
     if string[0] != '\x83':
         raise ValueError("unknown protocol version: %r" % string[0])
-    if string[1:2] == '\x50':
+    if string[1:2] == 'P':
         # compressed term
         if len(string) < 6:
             raise IncompleteData("incomplete data: %r" % string)
@@ -295,7 +297,7 @@ def encode(term, compressed=False):
         zlib_term = compress(encoded_term, compressed)
         if len(zlib_term) + 5 <= len(encoded_term):
             # compressed term is smaller
-            return '\x83\x50' + pack('>I', len(encoded_term)) + zlib_term
+            return '\x83P' + pack('>I', len(encoded_term)) + zlib_term
     return "\x83" + encoded_term
 
 
@@ -310,16 +312,22 @@ def encode_term(term,
     if isinstance(term, tuple):
         arity = len(term)
         if arity <= 255:
-            header = 'h%c' % arity
+            header = "h%c" % arity
         elif arity <= 4294967295:
             header = pack(">cI", 'i', arity)
         else:
             raise ValueError("invalid tuple arity")
         return header + "".join(map(encode_term, term))
+    # Must be before list
+    elif isinstance(term, ImproperList):
+        length = len(term)
+        if length > 4294967295:
+            raise ValueError("invalid improper list length")
+        header = pack(">cI", 'l', length)
+        return header + "".join(map(encode_term, term)) + encode_term(term.tail)
     elif isinstance(term, list):
         length = len(term)
-        is_improper = isinstance(term, ImproperList)
-        if not term and not is_improper:
+        if not term:
             return "j"
         elif length <= 65535:
             try:
@@ -332,28 +340,11 @@ def encode_term(term,
                 pass
             else:
                 if len(bytes) == length:
-                    lst = pack(">cH", 'k', length) + bytes
-                    if not is_improper:
-                        return lst + "j"
-                    return lst + encode_term(term.tail)
+                    return pack(">cH", 'k', length) + bytes + "j"
         elif length > 4294967295:
             raise ValueError("invalid list length")
-        header = pack(">cI", 'l', length)
-        lst = header + "".join(map(encode_term, term))
-        if not is_improper:
-            return lst + "j"
-        return lst + encode_term(term.tail)
+        return pack(">cI", 'l', length) + "".join(map(encode_term, term)) + "j"
     elif isinstance(term, unicode):
-        length = len(term)
-        if length == 0:
-            return "j"
-        elif length <= 65535:
-            try:
-                bytes = term.encode("latin1")
-            except UnicodeEncodeError:
-                pass
-            else:
-                return pack(">cH", 'k', length) + bytes
         return encode_term(map(ord, term))
     elif isinstance(term, Atom):
         return pack(">cH", 'd', len(term)) + term
@@ -364,9 +355,9 @@ def encode_term(term,
         return pack(">cI", 'm', length) + term
     # Must be before int type
     elif term is True:
-        return "\x64\x00\x04true"
+        return "d\0\4true"
     elif term is False:
-        return "\x64\x00\x05false"
+        return "d\0\5false"
     elif isinstance(term, (int, long)):
         if 0 <= term <= 255:
             return 'a%c' % term
@@ -400,7 +391,7 @@ def encode_term(term,
         items.sort()
         return encode_term(items)
     elif term is None:
-        return "\x64\x00\x09undefined"
+        return "d\0\11undefined"
     elif isinstance(term, OpaqueObject):
         return term.encode()
 

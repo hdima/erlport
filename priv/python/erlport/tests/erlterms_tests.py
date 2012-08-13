@@ -68,6 +68,7 @@ class ImproperListTestCase(unittest.TestCase):
         self.assertEqual("ImproperList([1, 2, 3], 'tail')", repr(improper))
         self.assertRaises(TypeError, ImproperList, "invalid", "tail")
         self.assertRaises(TypeError, ImproperList, [1, 2, 3], ["invalid"])
+        self.assertRaises(ValueError, ImproperList, [], "tail")
 
 class OpaqueObjectTestCase(unittest.TestCase):
 
@@ -155,14 +156,14 @@ class DecodeTestCase(unittest.TestCase):
 
     def test_decode_improper_list(self):
         self.assertRaises(IncompleteData, decode, "\x83l\0\0\0\0k")
-        improper, tail = decode("\x83l\0\0\0\0d\0\4tail")
+        improper, tail = decode("\x83l\0\0\0\1jd\0\4tail")
         self.assertEqual(ImproperList, type(improper))
-        self.assertEqual([], improper)
+        self.assertEqual([[]], improper)
         self.assertEqual(Atom("tail"), improper.tail)
         self.assertEqual("", tail)
-        improper, tail = decode("\x83l\0\0\0\0d\0\4tailtail")
+        improper, tail = decode("\x83l\0\0\0\1jd\0\4tailtail")
         self.assertEqual(ImproperList, type(improper))
-        self.assertEqual([], improper)
+        self.assertEqual([[]], improper)
         self.assertEqual(Atom("tail"), improper.tail)
         self.assertEqual("tail", tail)
 
@@ -284,6 +285,81 @@ class DecodeTestCase(unittest.TestCase):
         self.assertEqual((6618611909121, "tail"),
             decode("\x83o\0\0\0\6\0\1\2\3\4\5\6tail"))
 
+    def test_decode_compressed_term(self):
+        self.assertRaises(IncompleteData, decode, "\x83P")
+        self.assertRaises(IncompleteData, decode, "\x83P\0")
+        self.assertRaises(IncompleteData, decode, "\x83P\0\0")
+        self.assertRaises(IncompleteData, decode, "\x83P\0\0\0")
+        self.assertRaises(IncompleteData, decode, "\x83P\0\0\0\0")
+        self.assertRaises(ValueError, decode, "\x83P\0\0\0\x16"
+            "\x78\xda\xcb\x66\x10\x49\xc1\2\0\x5d\x60\x08\x50")
+        self.assertEqual(([100] * 20, ""), decode("\x83P\0\0\0\x17"
+            "\x78\xda\xcb\x66\x10\x49\xc1\2\0\x5d\x60\x08\x50"))
+        self.assertEqual(([100] * 20, "tail"), decode("\x83P\0\0\0\x17"
+            "\x78\xda\xcb\x66\x10\x49\xc1\2\0\x5d\x60\x08\x50tail"))
+
+class EncodeTestCase(unittest.TestCase):
+
+    def test_encode_tuple(self):
+        self.assertEqual("\x83h\0", encode(()))
+        self.assertEqual("\x83h\2h\0h\0", encode(((), ())))
+        self.assertEqual("\x83h\xff" + "h\0" * 255, encode(tuple([()] * 255)))
+        self.assertEqual("\x83i\0\0\1\0" + "h\0" * 256,
+            encode(tuple([()] * 256)))
+
+    def test_encode_empty_list(self):
+        self.assertEqual("\x83j", encode([]))
+
+    def test_encode_string_list(self):
+        self.assertEqual("\x83k\0\1\0j", encode([0]))
+        r = range(0, 256)
+        self.assertEqual("\x83k\1\0" + "".join(map(chr, r)) + "j", encode(r))
+
+    def test_encode_list(self):
+        self.assertEqual("\x83l\0\0\0\1jj", encode([[]]))
+        self.assertEqual("\x83l\0\0\0\5jjjjjj", encode([[], [], [], [], []]))
+
+    def test_encode_improper_list(self):
+        self.assertEqual("\x83l\0\0\0\1h\0h\0", encode(ImproperList([()], ())))
+
+    def test_encode_unicode(self):
+        self.assertEqual("\x83j", encode(u""))
+        self.assertEqual("\x83k\0\4testj", encode(u"test"))
+        self.assertEqual("\x83l\0\0\0\4b\0\0\4Bb\0\0\x045b\0\0\4Ab\0\0\4Bj",
+            encode(u"\u0442\u0435\u0441\u0442"))
+
+    def test_encode_atom(self):
+        self.assertEqual("\x83d\0\0", encode(Atom("")))
+        self.assertEqual("\x83d\0\4test", encode(Atom("test")))
+
+    def test_encode_string(self):
+        self.assertEqual("\x83m\0\0\0\0", encode(""))
+        self.assertEqual("\x83m\0\0\0\4test", encode("test"))
+
+    def test_encode_boolean(self):
+        self.assertEqual("\x83d\0\4true", encode(True))
+        self.assertEqual("\x83d\0\5false", encode(False))
+
+    def test_encode_none(self):
+        self.assertEqual("\x83d\0\11undefined", encode(None))
+
+    def test_encode_short_integer(self):
+        self.assertEqual("\x83a\0", encode(0))
+        self.assertEqual("\x83a\xff", encode(255))
+
+    def test_encode_integer(self):
+        self.assertEqual("\x83b\xff\xff\xff\xff", encode(-1))
+        self.assertEqual("\x83b\x80\0\0\0", encode(-2147483648))
+        self.assertEqual("\x83b\0\0\1\0", encode(256))
+        self.assertEqual("\x83b\x7f\xff\xff\xff", encode(2147483647))
+
+    def test_encode_long_integer(self):
+        self.assertEqual("\x83n\4\0\0\0\0\x80", encode(2147483648))
+        self.assertEqual("\x83n\4\1\1\0\0\x80", encode(-2147483649))
+        self.assertEqual("\x83o\0\0\1\0\0" + "\0" * 255 + "\1",
+            encode(2 ** 2040))
+        self.assertEqual("\x83o\0\0\1\0\1" + "\0" * 255 + "\1",
+            encode(-2 ** 2040))
 
 def get_suite():
     load = unittest.TestLoader().loadTestsFromTestCase
@@ -293,4 +369,5 @@ def get_suite():
     suite.addTests(load(ImproperListTestCase))
     suite.addTests(load(OpaqueObjectTestCase))
     suite.addTests(load(DecodeTestCase))
+    suite.addTests(load(EncodeTestCase))
     return suite
