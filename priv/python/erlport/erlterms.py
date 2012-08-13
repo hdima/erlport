@@ -33,7 +33,7 @@ See Erlang External Term Format for details:
 
 __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 
-from struct import pack, unpack
+from struct import pack, Struct
 from array import array
 from zlib import decompressobj, compress
 from cPickle import loads, dumps, HIGHEST_PROTOCOL
@@ -134,6 +134,13 @@ class OpaqueObject(object):
 
 _python = Atom("python")
 
+_big_int_unpack = Struct(">I").unpack
+_small_int_unpack = Struct(">H").unpack
+_big_signed_int_unpack = Struct(">i").unpack
+_float_unpack = Struct(">d").unpack
+_double_bytes_unpack = Struct("BB").unpack
+_big_int_byte_unpack = Struct(">IB").unpack
+
 
 def decode(string):
     """Decode Erlang external term."""
@@ -147,65 +154,68 @@ def decode(string):
             raise IncompleteData("incomplete data: %r" % string)
         d = decompressobj()
         term_string = d.decompress(string[6:]) + d.flush()
-        uncompressed_size, = unpack('>I', string[2:6])
+        uncompressed_size, = _big_int_unpack(string[2:6])
         if len(term_string) != uncompressed_size:
             raise ValueError(
                 "invalid compressed tag, "
                 "%d bytes but got %d" % (uncompressed_size, len(term_string)))
         # tail data returned by decode_term() can be simple ignored
-        return decode_term(term_string)[0], d.unused_data
+        term, _tail = decode_term(term_string)
+        return term, d.unused_data
     return decode_term(string[1:])
 
 
 def decode_term(string,
         # Hack to turn globals into locals
-        len=len, ord=ord, unpack=unpack, tuple=tuple, float=float,
+        len=len, ord=ord, tuple=tuple, float=float,
+        big_int_unpack=_big_int_unpack, small_int_unpack=_small_int_unpack,
+        big_signed_int_unpack=_big_signed_int_unpack,
+        float_unpack=_float_unpack, double_bytes_unpack=_double_bytes_unpack,
+        big_int_byte_unpack=_big_int_byte_unpack,
         Atom=Atom, opaque=OpaqueObject.marker):
     if not string:
         raise IncompleteData("incomplete data: %r" % string)
-    tag = ord(string[0])
-    tail = string[1:]
-    if tag == 100:
+    tag = string[0]
+    if tag == "d":
         # ATOM_EXT
-        if len(tail) < 2:
+        ln = len(string)
+        if ln < 3:
             raise IncompleteData("incomplete data: %r" % string)
-        length, = unpack(">H", tail[:2])
-        tail = tail[2:]
-        if len(tail) < length:
+        length = small_int_unpack(string[1:3])[0] + 3
+        if ln < length:
             raise IncompleteData("incomplete data: %r" % string)
-        name = tail[:length]
-        tail = tail[length:]
+        name = string[3:length]
         if name == "true":
-            return True, tail
+            return True, string[length:]
         elif name == "false":
-            return False, tail
+            return False, string[length:]
         elif name == "undefined":
-            return None, tail
-        return Atom(name), tail
-    elif tag == 106:
+            return None, string[length:]
+        return Atom(name), string[length:]
+    elif tag == "j":
         # NIL_EXT
-        return [], tail
-    elif tag == 107:
+        return [], string[1:]
+    elif tag == "k":
         # STRING_EXT
-        if len(tail) < 2:
+        ln = len(string)
+        if ln < 3:
             raise IncompleteData("incomplete data: %r" % string)
-        length, = unpack(">H", tail[:2])
-        tail = tail[2:]
-        if len(tail) < length:
+        length = small_int_unpack(string[1:3])[0] + 3
+        if ln < length:
             raise IncompleteData("incomplete data: %r" % string)
-        return array("B", tail[:length]).tolist(), tail[length:]
-    elif tag == 108 or tag == 104 or tag == 105:
+        return array("B", string[3:length]).tolist(), string[length:]
+    elif tag in "lhi":
         # LIST_EXT, SMALL_TUPLE_EXT, LARGE_TUPLE_EXT
-        if tag == 104:
-            if not tail:
+        if tag == "h":
+            if len(string) < 2:
                 raise IncompleteData("incomplete data: %r" % string)
-            length = ord(tail[0])
-            tail = tail[1:]
+            length = ord(string[1])
+            tail = string[2:]
         else:
-            if len(tail) < 4:
+            if len(string) < 5:
                 raise IncompleteData("incomplete data: %r" % string)
-            length, = unpack(">I", tail[:4])
-            tail = tail[4:]
+            length, = big_int_unpack(string[1:5])
+            tail = string[5:]
         lst = []
         append = lst.append
         _decode_term = decode_term
@@ -213,54 +223,54 @@ def decode_term(string,
             term, tail = _decode_term(tail)
             append(term)
             length -= 1
-        if tag == 108:
+        if tag == "l":
             if not tail:
                 raise IncompleteData("incomplete data: %r" % string)
-            if tail[0] == "j":
-                return lst, tail[1:]
-            improper_tail, tail = _decode_term(tail)
-            return ImproperList(lst, improper_tail), tail
+            if tail[0] != "j":
+                improper_tail, tail = _decode_term(tail)
+                return ImproperList(lst, improper_tail), tail
+            return lst, tail[1:]
         if len(lst) == 3 and lst[0] == opaque:
             return OpaqueObject.decode(lst[2], lst[1]), tail
         return tuple(lst), tail
-    elif tag == 97:
+    elif tag == "a":
         # SMALL_INTEGER_EXT
-        if not tail:
+        if len(string) < 2:
             raise IncompleteData("incomplete data: %r" % string)
-        return ord(tail[0]), tail[1:]
-    elif tag == 98:
+        return ord(string[1]), string[2:]
+    elif tag == "b":
         # INTEGER_EXT
-        if len(tail) < 4:
+        if len(string) < 5:
             raise IncompleteData("incomplete data: %r" % string)
-        i, = unpack(">i", tail[:4])
-        return i, tail[4:]
-    elif tag == 109:
+        i, = big_signed_int_unpack(string[1:5])
+        return i, string[5:]
+    elif tag == "m":
         # BINARY_EXT
-        if len(tail) < 4:
+        ln = len(string)
+        if ln < 5:
             raise IncompleteData("incomplete data: %r" % string)
-        length, = unpack(">I", tail[:4])
-        tail = tail[4:]
-        if len(tail) < length:
+        length = big_int_unpack(string[1:5])[0] + 5
+        if ln < length:
             raise IncompleteData("incomplete data: %r" % string)
-        return tail[:length], tail[length:]
-    elif tag == 70:
+        return string[5:length], string[length:]
+    elif tag == "F":
         # NEW_FLOAT_EXT
-        if len(tail) < 8:
+        if len(string) < 9:
             raise IncompleteData("incomplete data: %r" % string)
-        f, = unpack(">d", tail[:8])
-        return f, tail[8:]
-    elif tag == 110 or tag == 111:
+        f, = float_unpack(string[1:9])
+        return f, string[9:]
+    elif tag in "no":
         # SMALL_BIG_EXT, LARGE_BIG_EXT
-        if tag == 110:
-            if len(tail) < 2:
+        if tag == "n":
+            if len(string) < 3:
                 raise IncompleteData("incomplete data: %r" % string)
-            length, sign = unpack("BB", tail[:2])
-            tail = tail[2:]
+            length, sign = double_bytes_unpack(string[1:3])
+            tail = string[3:]
         else:
-            if len(tail) < 5:
+            if len(string) < 6:
                 raise IncompleteData("incomplete data: %r" % string)
-            length, sign = unpack(">IB", tail[:5])
-            tail = tail[5:]
+            length, sign = big_int_byte_unpack(string[1:6])
+            tail = string[6:]
         if len(tail) < length:
             raise IncompleteData("incomplete data: %r" % string)
         n = 0
