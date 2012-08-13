@@ -108,6 +108,41 @@ switch_test_() -> {setup,
         end
     ] end}.
 
+data_types_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (P) -> [
+        ?_assertEqual(0, python:call(P, identity, identity, [0])),
+        ?_assertEqual(1, python:call(P, identity, identity, [1])),
+        ?_assertEqual(-1, python:call(P, identity, identity, [-1])),
+        ?_assertEqual(1000000000,
+            python:call(P, identity, identity, [1000000000])),
+        ?_assertEqual(-1000000000,
+            python:call(P, identity, identity, [-1000000000])),
+        ?_assertEqual(0.0, python:call(P, identity, identity, [0.0])),
+        ?_assertEqual(0.5, python:call(P, identity, identity, [0.5])),
+        ?_assertEqual(-0.5, python:call(P, identity, identity, [-0.5])),
+        ?_assertEqual('', python:call(P, identity, identity, [''])),
+        ?_assertEqual('test', python:call(P, identity, identity, ['test'])),
+        ?_assertEqual('true', python:call(P, identity, identity, ['true'])),
+        ?_assertEqual('false', python:call(P, identity, identity, ['false'])),
+        ?_assertEqual('undefined',
+            python:call(P, identity, identity, ['undefined'])),
+        ?_assertEqual([], python:call(P, identity, identity, [[]])),
+        ?_assertEqual([1, 2, 3],
+            python:call(P, identity, identity, [[1, 2, 3]])),
+        ?_assertEqual([[], []], python:call(P, identity, identity, [[[], []]])),
+        % TODO: Doesn't work as expected
+        %?_assertEqual([0|1], python:call(P, identity, identity, [0|1])),
+        ?_assertEqual({}, python:call(P, identity, identity, [{}])),
+        ?_assertEqual({{}, {}}, python:call(P, identity, identity, [{{}, {}}])),
+        ?_assertEqual(<<>>, python:call(P, identity, identity, [<<>>])),
+        ?_assertEqual(<<"test">>,
+            python:call(P, identity, identity, [<<"test">>]))
+        % TODO: Doesn't work as expected
+        %?_assertEqual(self(), python:call(P, identity, identity, [self()]))
+    ] end}.
+
 log_event(Event) ->
     true = ets:insert(events, {events, Event}).
 
