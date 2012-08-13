@@ -603,7 +603,8 @@ prepare_term(Term) ->
         ?is_allowed_term(Term) ->
             Term;
         true ->
-            {'$opaque', erlang, term_to_binary(Term, [{minor_version, 1}])}
+            <<131, Data/binary>> = term_to_binary(Term, [{minor_version, 1}]),
+            {'$opaque', erlang, Data}
     end.
 
 queue_foreach(Fun, Queue) ->

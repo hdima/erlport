@@ -138,9 +138,8 @@ data_types_test_() -> {setup,
         ?_assertEqual({{}, {}}, python:call(P, identity, identity, [{{}, {}}])),
         ?_assertEqual(<<>>, python:call(P, identity, identity, [<<>>])),
         ?_assertEqual(<<"test">>,
-            python:call(P, identity, identity, [<<"test">>]))
-        % TODO: Doesn't work as expected
-        %?_assertEqual(self(), python:call(P, identity, identity, [self()]))
+            python:call(P, identity, identity, [<<"test">>])),
+        ?_assertEqual(self(), python:call(P, identity, identity, [self()]))
     ] end}.
 
 log_event(Event) ->
