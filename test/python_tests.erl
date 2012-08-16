@@ -27,9 +27,14 @@
 
 -module(python_tests).
 
+-export([test_callback/2]).
+
 -include_lib("eunit/include/eunit.hrl").
 
--export([test_callback/2]).
+-define(_assertIdentity(P, V), ?_assertEqual((V),
+    python:call(P, identity, identity, [(V)]))).
+-define(assertIdentity(P, V), ?assertEqual((V),
+    python:call(P, identity, identity, [(V)]))).
 
 
 test_callback(PrevResult, N) ->
@@ -107,38 +112,101 @@ switch_test_() -> {setup,
         end
     ] end}.
 
-data_types_test_() -> {setup,
+integer_type_test_() -> {setup,
     fun setup/0,
     fun cleanup/1,
     fun (P) -> [
-        ?_assertEqual(0, python:call(P, identity, identity, [0])),
-        ?_assertEqual(1, python:call(P, identity, identity, [1])),
-        ?_assertEqual(-1, python:call(P, identity, identity, [-1])),
-        ?_assertEqual(1000000000,
-            python:call(P, identity, identity, [1000000000])),
-        ?_assertEqual(-1000000000,
-            python:call(P, identity, identity, [-1000000000])),
-        ?_assertEqual(0.0, python:call(P, identity, identity, [0.0])),
-        ?_assertEqual(0.5, python:call(P, identity, identity, [0.5])),
-        ?_assertEqual(-0.5, python:call(P, identity, identity, [-0.5])),
-        ?_assertEqual('', python:call(P, identity, identity, [''])),
-        ?_assertEqual('test', python:call(P, identity, identity, ['test'])),
-        ?_assertEqual('true', python:call(P, identity, identity, ['true'])),
-        ?_assertEqual('false', python:call(P, identity, identity, ['false'])),
-        ?_assertEqual('undefined',
-            python:call(P, identity, identity, ['undefined'])),
-        ?_assertEqual([], python:call(P, identity, identity, [[]])),
-        ?_assertEqual([1, 2, 3],
-            python:call(P, identity, identity, [[1, 2, 3]])),
-        ?_assertEqual([[], []], python:call(P, identity, identity, [[[], []]])),
-        % TODO: Doesn't work as expected
-        %?_assertEqual([0|1], python:call(P, identity, identity, [0|1])),
-        ?_assertEqual({}, python:call(P, identity, identity, [{}])),
-        ?_assertEqual({{}, {}}, python:call(P, identity, identity, [{{}, {}}])),
-        ?_assertEqual(<<>>, python:call(P, identity, identity, [<<>>])),
-        ?_assertEqual(<<"test">>,
-            python:call(P, identity, identity, [<<"test">>])),
-        ?_assertEqual(self(), python:call(P, identity, identity, [self()]))
+        ?_assertIdentity(P, 0),
+        ?_assertIdentity(P, 1),
+        ?_assertIdentity(P, -1),
+        ?_assertIdentity(P, 100000),
+        ?_assertIdentity(P, -100000)
+    ] end}.
+
+big_integer_type_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (P) -> [
+        ?_assertIdentity(P, 1000000000000),
+        ?_assertIdentity(P, -1000000000000),
+        ?_assertIdentity(P, 2 bsl 2040),
+        ?_assertIdentity(P, -2 bsl 2040)
+    ] end}.
+
+float_type_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (P) -> [
+        ?_assertIdentity(P, 0.0),
+        ?_assertIdentity(P, 0.5),
+        ?_assertIdentity(P, -0.5),
+        ?_assertIdentity(P, 3.1415926),
+        ?_assertIdentity(P, -3.1415926)
+    ] end}.
+
+atom_type_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (P) -> [
+        ?_assertIdentity(P, ''),
+        ?_assertIdentity(P, test),
+        ?_assertIdentity(P, 'TEST'),
+        ?_assertIdentity(P, true),
+        ?_assertIdentity(P, false),
+        ?_assertIdentity(P, undefined)
+    ] end}.
+
+list_type_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (P) -> [
+        ?_assertIdentity(P, []),
+        ?_assertIdentity(P, [0]),
+        ?_assertIdentity(P, [1, 2, 3]),
+        ?_assertIdentity(P, [[]]),
+        ?_assertIdentity(P, [[], [], []]),
+        ?_assertIdentity(P, lists:seq(1, 10000))
+    ] end}.
+
+improper_list_type_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (P) -> [
+        ?_assertIdentity(P, [0 | 1]),
+        ?_assertIdentity(P, [1, 2, 3 | 4]),
+        ?_assertIdentity(P, [head | tail])
+    ] end}.
+
+tuple_type_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (P) -> [
+        ?_assertIdentity(P, {}),
+        ?_assertIdentity(P, {0}),
+        ?_assertIdentity(P, {1, 2, 3}),
+        ?_assertIdentity(P, {{}}),
+        ?_assertIdentity(P, {{}, {}}),
+        ?_assertIdentity(P, list_to_tuple(lists:seq(1, 10000)))
+    ] end}.
+
+binary_type_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (P) -> [
+        ?_assertIdentity(P, <<>>),
+        ?_assertIdentity(P, <<"test">>),
+        ?_assertIdentity(P, <<0, 1, 2, 3, 4, 5>>)
+    ] end}.
+
+opaque_type_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (P) -> [
+        ?_assertIdentity(P, self()),
+        ?_assertIdentity(P, <<1:2>>),
+        fun () -> R = make_ref(), ?assertIdentity(P, R) end,
+        ?_assertIdentity(P, fun erlang:is_atom/1),
+        fun () -> F = fun () -> true end, ?assertIdentity(P, F) end
     ] end}.
 
 log_event(Event) ->

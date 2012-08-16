@@ -516,15 +516,22 @@ encode(Term, Compressed) ->
 prepare_term(Term) ->
     if
         is_list(Term) ->
-            lists:map(fun prepare_term/1, Term);
+            map(Term);
         is_tuple(Term) ->
-            list_to_tuple(lists:map(fun prepare_term/1, tuple_to_list(Term)));
+            list_to_tuple(map(tuple_to_list(Term)));
         ?is_allowed_term(Term) ->
             Term;
         true ->
             <<131, Data/binary>> = term_to_binary(Term, [{minor_version, 1}]),
             {'$opaque', erlang, Data}
     end.
+
+map([Item | Tail]) ->
+    [prepare_term(Item) | map(Tail)];
+map([]) ->
+    [];
+map(ImproperTail) ->
+    prepare_term(ImproperTail).
 
 queue_foreach(Fun, Queue) ->
     case queue:out(Queue) of

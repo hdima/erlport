@@ -321,6 +321,7 @@ class EncodeTestCase(unittest.TestCase):
 
     def test_encode_improper_list(self):
         self.assertEqual("\x83l\0\0\0\1h\0h\0", encode(ImproperList([()], ())))
+        self.assertEqual("\x83l\0\0\0\1a\0a\1", encode(ImproperList([0], 1)))
 
     def test_encode_unicode(self):
         self.assertEqual("\x83j", encode(u""))
