@@ -1,19 +1,15 @@
 - It should be possible to call erlang.modules.Module.Function like functions
   from Erlang. We should split function name by '.'
 
-- Rename opaque object marker to include 'erlport' name?
+- Add custom encode/decode handlers in Erlang
 
-- Remove encode(dict)?
+- Use struct.Struct for erlterms.encode
 
 - Hide erlang.call and rename erlang.modules to erlang.Erlang?
 
 - Check if pickle formats are compatible between different Python versions
 
-- Test coverage tool for Python
-
 - Convert Python tests from doctests to unittest
-
-- Tests for erlterms.OpaqueObject encoding/decoding
 
 - Check exports in erlport/__init__.py
 

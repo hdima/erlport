@@ -98,7 +98,7 @@ class OpaqueObjectTestCase(unittest.TestCase):
 
     def test_encode(self):
         obj = OpaqueObject("data", Atom("language"))
-        term = Atom("$opaque"), Atom("language"), "data"
+        term = Atom("$erlport.opaque"), Atom("language"), "data"
         self.assertEqual(erlterms.encode_term(term), obj.encode())
 
     def test_encode_erlang(self):
@@ -188,12 +188,13 @@ class DecodeTestCase(unittest.TestCase):
         self.assertEqual((([], []), "tail"), decode("\x83i\0\0\0\2jjtail"))
 
     def test_decode_opaque_object(self):
-        opaque, tail = decode("\x83h\3d\0\7$opaqued\0\10languagem\0\0\0\4data")
+        opaque, tail = decode("\x83h\3d\0\x0f$erlport.opaqued\0\10language"
+            "m\0\0\0\4data")
         self.assertEqual(OpaqueObject, type(opaque))
         self.assertEqual("data", opaque.data)
         self.assertEqual("language", opaque.language)
         self.assertEqual("", tail)
-        opaque, tail = decode("\x83h\3d\0\7$opaqued\0\10language"
+        opaque, tail = decode("\x83h\3d\0\x0f$erlport.opaqued\0\10language"
             "m\0\0\0\4datatail")
         self.assertEqual(OpaqueObject, type(opaque))
         self.assertEqual("data", opaque.data)
@@ -201,11 +202,11 @@ class DecodeTestCase(unittest.TestCase):
         self.assertEqual("tail", tail)
 
     def test_decode_python_opaque_object(self):
-        data, tail = decode("\x83h\3d\0\7$opaqued\0\6python"
+        data, tail = decode("\x83h\3d\0\x0f$erlport.opaqued\0\6python"
             "m\0\0\0\14S'test'\np0\n.")
         self.assertEqual("test", data)
         self.assertEqual("", tail)
-        data, tail = decode("\x83h\3d\0\7$opaqued\0\6python"
+        data, tail = decode("\x83h\3d\0\x0f$erlport.opaqued\0\6python"
             "m\0\0\0\14S'test'\np0\n.tail")
         self.assertEqual("test", data)
         self.assertEqual("tail", tail)
@@ -361,6 +362,22 @@ class EncodeTestCase(unittest.TestCase):
             encode(2 ** 2040))
         self.assertEqual("\x83o\0\0\1\0\1" + "\0" * 255 + "\1",
             encode(-2 ** 2040))
+
+    def test_encode_float(self):
+        self.assertEqual("\x83F\0\0\0\0\0\0\0\0", encode(0.0))
+        self.assertEqual("\x83F?\xe0\0\0\0\0\0\0", encode(0.5))
+        self.assertEqual("\x83F\xbf\xe0\0\0\0\0\0\0", encode(-0.5))
+        self.assertEqual("\x83F@\t!\xfbM\x12\xd8J", encode(3.1415926))
+        self.assertEqual("\x83F\xc0\t!\xfbM\x12\xd8J", encode(-3.1415926))
+
+    def test_opaque_object(self):
+        self.assertEqual("\x83h\3d\0\x0f$erlport.opaqued\0\10language"
+            "m\0\0\0\4data", encode(OpaqueObject("data", Atom("language"))))
+        self.assertEqual("\x83data",
+            encode(OpaqueObject("data", Atom("erlang"))))
+        self.assertEqual("\x83h\x03d\x00\x0f$erlport.opaqued\x00\x06python"
+            "m\x00\x00\x00\x06\x80\x02}q\x01.", encode(dict()))
+        self.assertRaises(ValueError, encode, compile("0", "<string>", "eval"))
 
 def get_suite():
     load = unittest.TestLoader().loadTestsFromTestCase

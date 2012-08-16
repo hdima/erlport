@@ -203,6 +203,7 @@ opaque_type_test_() -> {setup,
     fun cleanup/1,
     fun (P) -> [
         ?_assertIdentity(P, self()),
+        ?_assertIdentity(P, [{pid, self()}]),
         ?_assertIdentity(P, <<1:2>>),
         fun () -> R = make_ref(), ?assertIdentity(P, R) end,
         ?_assertIdentity(P, fun erlang:is_atom/1),

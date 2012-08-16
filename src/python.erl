@@ -523,7 +523,7 @@ prepare_term(Term) ->
             Term;
         true ->
             <<131, Data/binary>> = term_to_binary(Term, [{minor_version, 1}]),
-            {'$opaque', erlang, Data}
+            {'$erlport.opaque', erlang, Data}
     end.
 
 map([Item | Tail]) ->

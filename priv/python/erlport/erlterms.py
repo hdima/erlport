@@ -105,7 +105,7 @@ class OpaqueObject(object):
 
     __slots__ = "data", "language"
 
-    marker = Atom("$opaque")
+    marker = Atom("$erlport.opaque")
 
     def __init__(self, data, language):
         if not isinstance(data, str):
@@ -300,6 +300,7 @@ def encode(term, compressed=False):
             return '\x83P' + pack('>I', len(encoded_term)) + zlib_term
     return "\x83" + encoded_term
 
+# TODO: Use Struct for encoding
 
 def encode_term(term,
         # Hack to turn globals into locals
@@ -383,13 +384,6 @@ def encode_term(term,
         raise ValueError("invalid integer value")
     elif isinstance(term, float):
         return pack(">cd", 'F', term)
-    elif isinstance(term, dict):
-        # encode dict as proplist, but will be orddict compatible if keys
-        # are all of the same type.
-        items = term.items()
-        # Faster than sorted(term.iteritems())
-        items.sort()
-        return encode_term(items)
     elif term is None:
         return "d\0\11undefined"
     elif isinstance(term, OpaqueObject):
