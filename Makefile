@@ -25,15 +25,41 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+RELDIR = ebin
+TESTDIR = .eunit
 
-compile:
-	./rebar compile
+SOURCES = $(wildcard src/*.erl)
+BEAMS = $(patsubst src/%.erl,$(RELDIR)/%.beam,$(SOURCES))
+TESTSOURCES = $(wildcard test/*.erl)
+TESTBEAMS = $(patsubst src/%.erl,$(TESTDIR)/%.beam,$(SOURCES)) \
+    $(patsubst test/%.erl,$(TESTDIR)/%.beam,$(TESTSOURCES))
+ERLC = erlc -Wall -I include
+TESTERL = erl -pa $(TESTDIR) -pa ../erlport -noinput
+ 
+ 
+compile: $(BEAMS)
+ 
+$(RELDIR)/%.beam: src/%.erl
+	$(ERLC) -o $(RELDIR) $<
+ 
+$(TESTDIR)/%.beam: test/%.erl
+	$(ERLC) +debug_info -o $(TESTDIR) $<
+ 
+$(TESTDIR)/%.beam: src/%.erl
+	$(ERLC) +debug_info -o $(TESTDIR) $<
 
-test: python-test
-	./rebar eunit
+$(TESTDIR):
+	mkdir $@
 
-test-verbose: python-test-verbose
-	./rebar eunit -v
+$(TESTDIR)/erlport.app:
+	cp -l ebin/erlport.app $(TESTDIR)
+
+test: python-test $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
+	$(TESTERL) -eval 'eunit:test({application, erlport})' -s init stop
+
+test-verbose: python-test-verbose $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
+	$(TESTERL) -eval 'eunit:test({application, erlport}, [verbose])' \
+	    -s init stop
 
 python-test:
 	cd priv/python; make test
@@ -41,14 +67,14 @@ python-test:
 python-test-verbose:
 	cd priv/python; make test-verbose
 
-check: compile
-	dialyzer ebin
+check: compile $(TESTDIR) $(TESTBEAMS)
+	dialyzer $(TESTDIR)
 
 doc:
 	./rebar doc
 
 clean:
-	./rebar clean
+	rm -rf $(RELDIR)/*.beam $(TESTDIR)
 
 
 .PHONY: compile test test-verbose check doc clean python-test
