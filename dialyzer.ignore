@@ -1,0 +1,23 @@
+erlport_options_tests.erl:83: The created fun has no local return
+erlport_options_tests.erl:83: The created fun has no local return
+erlport_options_tests.erl:84: The call erlport_options:parse([{'start_timeout','invalid'},...]) breaks the contract (Options::options()) -> {'ok',#options{}} | {'error',Reason::term()}
+erlport_options_tests.erl:96: The created fun has no local return
+erlport_options_tests.erl:96: The created fun has no local return
+erlport_options_tests.erl:97: The call erlport_options:parse([{'call_timeout','invalid'},...]) breaks the contract (Options::options()) -> {'ok',#options{}} | {'error',Reason::term()}
+erlport_options_tests.erl:106: The created fun has no local return
+erlport_options_tests.erl:106: The created fun has no local return
+erlport_options_tests.erl:111: The created fun has no local return
+erlport_options_tests.erl:111: The created fun has no local return
+erlport_options_tests.erl:112: The call erlport_options:parse([{'env','invalid_env'},...]) breaks the contract (Options::options()) -> {'ok',#options{}} | {'error',Reason::term()}
+erlport_options_tests.erl:149: The created fun has no local return
+erlport_options_tests.erl:149: The created fun has no local return
+erlport_options_tests.erl:150: The call erlport_options:parse([{'python','not_string'},...]) breaks the contract (Options::options()) -> {'ok',#options{}} | {'error',Reason::term()}
+erlport_options_tests.erl:253: The created fun has no local return
+erlport_options_tests.erl:253: The created fun has no local return
+erlport_options_tests.erl:255: The call erlport_options:parse([{'python_path','invalid_path'},...]) breaks the contract (Options::options()) -> {'ok',#options{}} | {'error',Reason::term()}
+erlport_options_tests.erl:262: The created fun has no local return
+erlport_options_tests.erl:262: The created fun has no local return
+erlport_options_tests.erl:263: The call erlport_options:parse(['unknown',...]) breaks the contract (Options::options()) -> {'ok',#options{}} | {'error',Reason::term()}
+python_tests.erl:175: Cons will produce an improper list since its 2nd argument is 1
+python_tests.erl:176: Cons will produce an improper list since its 2nd argument is nonempty_improper_list(2 | 3,4)
+python_tests.erl:177: Cons will produce an improper list since its 2nd argument is 'tail'
