@@ -3,6 +3,10 @@
 
 - Add custom encode/decode handlers in Erlang
 
+- Test coverage for Erlang
+
+- Xref warnings for Erlang?
+
 - Use struct.Struct for erlterms.encode
 
 - Hide erlang.call and rename erlang.modules to erlang.Erlang?
@@ -14,8 +18,6 @@
 - Check exports in erlport/__init__.py
 
 - Add lock for erlang.call and maybe for erlang.receive?
-
-- Replace rebar with custom scripts?
 
 - Check Python version by calling python -V
 

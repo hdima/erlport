@@ -33,8 +33,9 @@ BEAMS = $(patsubst src/%.erl,$(RELDIR)/%.beam,$(SOURCES))
 TESTSOURCES = $(wildcard test/*.erl)
 TESTBEAMS = $(patsubst src/%.erl,$(TESTDIR)/%.beam,$(SOURCES)) \
     $(patsubst test/%.erl,$(TESTDIR)/%.beam,$(TESTSOURCES))
-ERLC = erlc -Wall -I include
-TESTERL = erl -pa $(TESTDIR) -pa ../erlport -noinput
+ERLC = erlc -Wall +warnings_as_errors -I include
+ERL = erl -noinput -pa ../erlport
+TESTERL = $(ERL) -pa $(TESTDIR)
  
  
 compile: $(BEAMS)
@@ -71,7 +72,7 @@ check: compile $(TESTDIR) $(TESTBEAMS)
 	dialyzer $(TESTDIR) | fgrep -v -f ./dialyzer.ignore
 
 doc:
-	./rebar doc
+	$(ERL) -eval 'edoc:application(erlport)' -s init stop
 
 clean:
 	rm -rf $(RELDIR)/*.beam $(TESTDIR)
