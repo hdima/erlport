@@ -312,9 +312,9 @@ class EncodeTestCase(unittest.TestCase):
         self.assertEqual("\x83j", encode([]))
 
     def test_encode_string_list(self):
-        self.assertEqual("\x83k\0\1\0j", encode([0]))
+        self.assertEqual("\x83k\0\1\0", encode([0]))
         r = range(0, 256)
-        self.assertEqual("\x83k\1\0" + "".join(map(chr, r)) + "j", encode(r))
+        self.assertEqual("\x83k\1\0" + "".join(map(chr, r)), encode(r))
 
     def test_encode_list(self):
         self.assertEqual("\x83l\0\0\0\1jj", encode([[]]))
@@ -326,9 +326,16 @@ class EncodeTestCase(unittest.TestCase):
 
     def test_encode_unicode(self):
         self.assertEqual("\x83j", encode(u""))
-        self.assertEqual("\x83k\0\4testj", encode(u"test"))
+        self.assertEqual("\x83j", encode(String(u"")))
+        self.assertEqual("\x83k\0\4test", encode(u"test"))
+        self.assertEqual("\x83k\0\2\0\xff", encode(u"\0\xff"))
+        self.assertEqual("\x83l\0\0\0\1b\0\0\1\0j", encode(u"\u0100"))
         self.assertEqual("\x83l\0\0\0\4b\0\0\4Bb\0\0\x045b\0\0\4Ab\0\0\4Bj",
             encode(u"\u0442\u0435\u0441\u0442"))
+        self.assertEqual("\x83l\0\1\0\0" + "aX" * 65536 + "j",
+            encode(u"X" * 65536))
+        self.assertEqual("\x83l\0\1\0\0" + "b\0\0\4\x10" * 65536 + "j",
+            encode(u"\u0410" * 65536))
 
     def test_encode_atom(self):
         self.assertEqual("\x83d\0\0", encode(Atom("")))
@@ -370,14 +377,33 @@ class EncodeTestCase(unittest.TestCase):
         self.assertEqual("\x83F@\t!\xfbM\x12\xd8J", encode(3.1415926))
         self.assertEqual("\x83F\xc0\t!\xfbM\x12\xd8J", encode(-3.1415926))
 
-    def test_opaque_object(self):
+    def test_encode_opaque_object(self):
         self.assertEqual("\x83h\3d\0\x0f$erlport.opaqued\0\10language"
             "m\0\0\0\4data", encode(OpaqueObject("data", Atom("language"))))
         self.assertEqual("\x83data",
             encode(OpaqueObject("data", Atom("erlang"))))
+
+    def test_encode_python_opaque_object(self):
         self.assertEqual("\x83h\x03d\x00\x0f$erlport.opaqued\x00\x06python"
             "m\x00\x00\x00\x06\x80\x02}q\x01.", encode(dict()))
         self.assertRaises(ValueError, encode, compile("0", "<string>", "eval"))
+
+    def test_encode_compressed_term(self):
+        self.assertEqual("\x83l\x00\x00\x00\x05jjjjjj", encode([[]] * 5, True))
+        self.assertEqual("\x83P\x00\x00\x00\x15"
+            "x\x9c\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
+            encode([[]] * 15, True))
+        self.assertEqual("\x83P\x00\x00\x00\x15"
+            "x\x9c\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
+            encode([[]] * 15, 6))
+        self.assertEqual("\x83P\x00\x00\x00\x15"
+            "x\xda\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
+            encode([[]] * 15, 9))
+        self.assertEqual("\x83l\0\0\0\x0f" + "j" * 15 + "j",
+            encode([[]] * 15, 0))
+        self.assertEqual("\x83P\x00\x00\x00\x15"
+            "x\x01\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
+            encode([[]] * 15, 1))
 
 def get_suite():
     load = unittest.TestLoader().loadTestsFromTestCase

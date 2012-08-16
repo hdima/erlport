@@ -296,7 +296,7 @@ def encode(term, compressed=False):
             compressed = 6
         zlib_term = compress(encoded_term, compressed)
         if len(zlib_term) + 5 <= len(encoded_term):
-            # compressed term is smaller
+            # Compressed term should be smaller
             return '\x83P' + pack('>I', len(encoded_term)) + zlib_term
     return "\x83" + encoded_term
 
@@ -341,7 +341,7 @@ def encode_term(term,
                 pass
             else:
                 if len(bytes) == length:
-                    return pack(">cH", 'k', length) + bytes + "j"
+                    return pack(">cH", 'k', length) + bytes
         elif length > 4294967295:
             raise ValueError("invalid list length")
         return pack(">cI", 'l', length) + "".join(map(encode_term, term)) + "j"
