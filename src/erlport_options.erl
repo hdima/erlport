@@ -54,7 +54,6 @@
 
 -export_type([option/0, options/0]).
 
--include_lib("kernel/include/file.hrl").
 -include("erlport.hrl").
 
 
@@ -62,10 +61,8 @@
 %% @doc Parse ErlPort options
 %%
 
--spec parse(Options) -> Result when
-    Options :: options(),
-    Result :: {ok, #options{}} | {error, Reason},
-    Reason :: term().
+-spec parse(Options::options()) ->
+    {ok, #options{}} | {error, Reason::term()}.
 
 parse(Options) ->
     parse(Options, #options{}).

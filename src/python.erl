@@ -87,10 +87,8 @@
 %% @equiv start([])
 %%
 
--spec start() -> Result when
-    Result :: {ok, Instance} | {error, Reason},
-    Instance :: instance(),
-    Reason :: term().
+-spec start() ->
+    {ok, instance()} | {error, Reason::term()}.
 
 start() ->
     start([]).
@@ -99,11 +97,8 @@ start() ->
 %% @doc Start Python instance
 %%
 
--spec start(Options) -> Result when
-    Options :: erlport_options:options(),
-    Result :: {ok, Instance} | {error, Reason},
-    Instance :: instance(),
-    Reason :: term().
+-spec start(Options::erlport_options:options()) ->
+    {ok, instance()} | {error, Reason::term()}.
 
 start(Options) ->
     start(start, Options).
@@ -112,10 +107,8 @@ start(Options) ->
 %% @equiv start_link([])
 %%
 
--spec start_link() -> Result when
-    Result :: {ok, Instance} | {error, Reason},
-    Instance :: instance(),
-    Reason :: term().
+-spec start_link() ->
+    {ok, instance()} | {error, Reason::term()}.
 
 start_link() ->
     start_link([]).
@@ -124,11 +117,8 @@ start_link() ->
 %% @doc Start linked Python instance
 %%
 
--spec start_link(Options) -> Result when
-    Options :: erlport_options:options(),
-    Result :: {ok, Instance} | {error, Reason},
-    Instance :: instance(),
-    Reason :: term().
+-spec start_link(Options::erlport_options:options()) ->
+    {ok, instance()} | {error, Reason::term()}.
 
 start_link(Options) ->
     start(start_link, Options).
@@ -137,8 +127,7 @@ start_link(Options) ->
 %% @doc Stop Python instance
 %%
 
--spec stop(Instance) -> ok when
-    Instance :: instance().
+-spec stop(Instance::instance()) -> ok.
 
 stop(#python{pid=Pid}) ->
     gen_fsm:send_all_state_event(Pid, stop).
@@ -147,12 +136,9 @@ stop(#python{pid=Pid}) ->
 %% @equiv call(Instance, Module, Function, Args, [])
 %%
 
--spec call(Instance, Module, Function, Args) -> Result when
-    Instance :: instance(),
-    Module :: atom(),
-    Function :: atom(),
-    Args :: list(),
-    Result :: term().
+-spec call(Instance::instance(), Module::atom(), Function::atom(),
+        Args::list()) ->
+    Result::term().
 
 call(Instance, Module, Function, Args) ->
     call(Instance, Module, Function, Args, []).
@@ -161,15 +147,10 @@ call(Instance, Module, Function, Args) ->
 %% @doc Call Python function with arguments and return result
 %%
 
--spec call(Instance, Module, Function, Args, Options) -> Result when
-    Instance :: instance(),
-    Module :: atom(),
-    Function :: atom(),
-    Args :: list(),
-    Options :: [Option],
-    Option :: {timeout, Timeout},
-    Timeout :: pos_integer() | infinity,
-    Result :: term().
+-spec call(Instance::instance(), Module::atom(), Function::atom(),
+        Args::list(),
+        Options::[{timeout, Timeout::pos_integer() | infinity}]) ->
+    Result::term().
 
 call(#python{pid=Pid}, Module, Function, Args, Options) when is_atom(Module),
         is_atom(Function), is_list(Args), is_list(Options) ->
@@ -186,13 +167,9 @@ call(#python{pid=Pid}, Module, Function, Args, Options) when is_atom(Module),
 %% @equiv switch(Instance, Module, Function, Args, [])
 %%
 
--spec switch(Instance, Module, Function, Args) -> Result when
-    Instance :: instance(),
-    Module :: atom(),
-    Function :: atom(),
-    Args :: list(),
-    Result :: ok | {error, Reason},
-    Reason :: term().
+-spec switch(Instance::instance(), Module::atom(), Function::atom(),
+        Args::list()) ->
+    Result::term().
 
 switch(Instance, Module, Function, Args) ->
     switch(Instance, Module, Function, Args, []).
@@ -201,16 +178,10 @@ switch(Instance, Module, Function, Args) ->
 %% @doc Pass control to Python by calling the function with arguments
 %%
 
--spec switch(Instance, Module, Function, Args, Options) -> Result when
-    Instance :: instance(),
-    Module :: atom(),
-    Function :: atom(),
-    Args :: list(),
-    Options :: [Option],
-    Option :: {timeout, Timeout} | block,
-    Timeout :: pos_integer() | infinity,
-    Result :: ok | term() | {error, Reason},
-    Reason :: term().
+-spec switch(Instance::instance(), Module::atom(), Function::atom(),
+        Args::list(),
+        Options::[{timeout, Timeout::pos_integer() | infinity} | block]) ->
+    Result::ok | term() | {error, Reason::term()}.
 
 switch(#python{pid=Pid}, Module, Function, Args, Options) when is_atom(Module),
         is_atom(Function), is_list(Args), is_list(Options) ->
@@ -237,12 +208,6 @@ switch(#python{pid=Pid}, Module, Function, Args, Options) when is_atom(Module),
 %% @doc Process initialization callback
 %% @hidden
 %%
-
--spec init(Options) -> Result when
-    Options :: #options{},
-    Result :: {ok, client, #state{}} | {stop, Reason},
-    Reason :: term().
-
 init(#options{python=Python,use_stdio=UseStdio, packet=Packet,
         compressed=Compressed, port_options=PortOptions,
         call_timeout=Timeout}) ->
@@ -267,23 +232,6 @@ init(#options{python=Python,use_stdio=UseStdio, packet=Packet,
 %% @doc Synchronous event handler in client mode
 %% @hidden
 %%
-
--spec client(Event, From, State) -> Response when
-    Event :: {Type, Module, Function, Args},
-    Type :: call | switch,
-    Module :: atom(),
-    Function :: atom(),
-    Args :: [term()],
-    From :: {Pid, Tag},
-    Pid :: pid(),
-    Tag :: reference(),
-    Response :: {reply, Result, StateName, State}
-        | {next_state, StateName, State}
-        | {stop, port_closed, State},
-    Result :: term(),
-    StateName :: atom(),
-    State :: #state{}.
-
 client({call, Module, Function, Args, Options}, From, State=#state{
         timeout=DefaultTimeout, compressed=Compressed})
         when is_atom(Module), is_atom(Function), is_list(Args),
@@ -323,13 +271,6 @@ client(Event, From, State) ->
 %% @doc Asynchronous event handler in client mode
 %% @hidden
 %%
-
--spec client(Event, State) -> Response when
-    Event :: timeout,
-    State :: #state{},
-    Response :: {next_state, client, State}
-        | {stop, timeout, State}.
-
 client(Error=timeout, State) ->
     {stop, Error, State};
 client(_Event, State) ->
@@ -339,15 +280,6 @@ client(_Event, State) ->
 %% @doc Synchronous event handler in server mode
 %% @hidden
 %%
-
--spec server(Event, From, State) -> Response when
-    Event :: term(),
-    From :: {Pid, Tag},
-    Pid :: pid(),
-    Tag :: reference(),
-    State :: #state{},
-    Response :: {reply, {error, server_mode}, server, State}.
-
 server(_Event, _From, State) ->
     {reply, {error, server_mode}, server, State}.
 
@@ -355,12 +287,6 @@ server(_Event, _From, State) ->
 %% @doc Asynchronous event handler in server mode
 %% @hidden
 %%
-
--spec server(Event, State) -> Response when
-    Event :: timeout,
-    State :: #state{},
-    Response :: {next_state, server, State}.
-
 server(timeout, State=#state{call={Pid, _Timer}}) ->
     true = exit(Pid, timeout),
     {next_state, server, State};
@@ -371,13 +297,6 @@ server(_Event, State) ->
 %% @doc Generic asynchronous event handler
 %% @hidden
 %%
-
--spec handle_event(Event, StateName, State) -> Response when
-    Event :: stop,
-    StateName :: atom(),
-    State :: #state{},
-    Response :: {stop, normal, State} | {next_state, StateName, State}.
-
 handle_event(stop, _StateName, State) ->
     {stop, normal, State};
 handle_event(_Event, StateName, State) ->
@@ -513,7 +432,7 @@ send_data(Port, Data) ->
     end.
 
 try_to_send_data(Port, Data) ->
-    try port_command(Port, Data, [nosuspend]) of
+    try erlang:port_command(Port, Data, [nosuspend]) of
         true ->
             ok;
         false ->
