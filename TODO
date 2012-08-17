@@ -12,7 +12,10 @@
 
 - Use struct.Struct for erlterms.encode
 
-- Hide erlang.call and rename erlang.modules to erlang.Erlang?
+- Rename erlang.Modules to erlang.Erlang?
+
+- Hide erlang.call and rename erlang.modules to erlang.Erlang? I think we just
+  need to leave erlang.call as a low level API.
 
 - Check if pickle formats are compatible between different Python versions
 
