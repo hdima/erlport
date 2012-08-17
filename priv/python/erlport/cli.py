@@ -29,7 +29,7 @@ import sys
 from optparse import OptionParser, OptionValueError
 
 from erlport import erlang
-from erlport import Port
+from erlport.erlproto import Port
 
 
 def get_option_parser():
@@ -63,7 +63,7 @@ def main(args=None):
     options, args = parser.parse_args(args)
     port = Port(use_stdio=options.stdio, packet=options.packet,
         compressed=options.compressed)
-    erlang.start(port)
+    erlang.setup(port)
 
 
 if __name__ == "__main__":

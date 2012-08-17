@@ -30,6 +30,5 @@
 __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 __version__ = "1.0"
 
-from erlport.erlproto import Port
-from erlport.erlterms import IncompleteData, decode, encode
-from erlport.erlterms import Atom, String
+from erlport.erlterms import Atom, String, ImproperList
+from erlport.erlang import Erlang

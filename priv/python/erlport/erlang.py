@@ -167,22 +167,21 @@ class Module(object):
         cls.__getattribute__ = lambda s, fname: Function(Atom(fname), name)
         return super(Module, cls).__new__(cls)
 
-class Modules(object):
+class Erlang(object):
 
     __slots__ = ()
 
     def __getattribute__(self, module):
         return Module(Atom(module))
 
-modules = Modules()
-del Modules
+Erlang = Erlang()
 
 
-def start(port):
-    global MessageHandler, start, call, set_encoder, set_decoder
+def setup(port):
+    global MessageHandler, setup, call, set_encoder, set_decoder
     handler = MessageHandler(port)
     call = handler.call
     set_encoder = handler.set_encoder
     set_decoder = handler.set_decoder
-    del MessageHandler, start
+    del MessageHandler, setup
     handler.start()

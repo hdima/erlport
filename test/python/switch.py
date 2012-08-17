@@ -1,8 +1,8 @@
-from erlport import Atom, erlang
+from erlport import Atom, Erlang
 
 
 def switch(n):
     result = 0
     for i in range(n):
-        result = erlang.modules.python_tests.test_callback(result, i)
+        result = Erlang.python_tests.test_callback(result, i)
     return n
