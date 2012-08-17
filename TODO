@@ -1,3 +1,6 @@
+- Add 'threaded' mode for switch and run switch call in threads in Python. We
+  just need to dissallow Erlang -> Python -> Erlang calls
+
 - It should be possible to call erlang.modules.Module.Function like functions
   from Erlang. We should split function name by '.'
 
