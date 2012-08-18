@@ -35,7 +35,6 @@ TESTBEAMS = $(patsubst src/%.erl,$(TESTDIR)/%.beam,$(SOURCES)) \
     $(patsubst test/%.erl,$(TESTDIR)/%.beam,$(TESTSOURCES))
 ERLC = erlc -Wall +warnings_as_errors -I include
 ERL = erl -noinput -pa ../erlport
-TESTERL = $(ERL) -pa $(TESTDIR)
  
  
 compile: $(BEAMS)
@@ -56,11 +55,10 @@ $(TESTDIR)/erlport.app:
 	cp -l ebin/erlport.app $(TESTDIR)
 
 test: python-test $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
-	$(TESTERL) -eval 'eunit:test({application, erlport})' -s init stop
+	./runtest
 
 test-verbose: python-test-verbose $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
-	$(TESTERL) -eval 'eunit:test({application, erlport}, [verbose])' \
-	    -s init stop
+	./runtest verbose
 
 python-test:
 	cd priv/python; make test
