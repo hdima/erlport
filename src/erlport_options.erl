@@ -73,7 +73,7 @@ parse([nouse_stdio=UseStdio | Tail],
         port_options=[UseStdio | PortOptions]});
 parse([{compressed, Level}=Value | Tail], Options) ->
     if
-        Level >= 0 andalso Level =< 9 ->
+        is_integer(Level) andalso Level >= 0 andalso Level =< 9 ->
             parse(Tail, Options#options{compressed=Level});
         true ->
             {error, {invalid_option, Value}}

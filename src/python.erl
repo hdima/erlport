@@ -515,12 +515,12 @@ encode(Term, Compressed) ->
 
 prepare_term(Term) ->
     if
+        ?is_allowed_term(Term) ->
+            Term;
         is_list(Term) ->
             map(Term);
         is_tuple(Term) ->
             list_to_tuple(map(tuple_to_list(Term)));
-        ?is_allowed_term(Term) ->
-            Term;
         true ->
             <<131, Data/binary>> = term_to_binary(Term, [{minor_version, 1}]),
             {'$erlport.opaque', erlang, Data}

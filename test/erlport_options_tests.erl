@@ -56,7 +56,9 @@ compressed_option_test_() -> [
     ?_assertMatch({ok, #options{compressed=0}},
         erlport_options:parse([])),
     ?_assertMatch({ok, #options{compressed=9}},
-        erlport_options:parse([{compressed, 9}]))
+        erlport_options:parse([{compressed, 9}])),
+    ?_assertMatch({error, {invalid_option, {compressed, invalid}}},
+        erlport_options:parse([{compressed, invalid}]))
     ].
 
 packet_option_test_() -> [
@@ -255,7 +257,13 @@ python_path_option_test_() -> {setup,
             erlport_options:parse([{python_path, invalid_path}])),
         ?_assertEqual({error, {invalid_option, {python_path, ""},
                 invalid_path}},
-            erlport_options:parse([{python_path, ""}]))
+            erlport_options:parse([{python_path, ""}])),
+        ?_assertEqual({error, {invalid_option, {python_path,
+                [TestPath1, invalid]}, [invalid]}},
+            erlport_options:parse([{python_path, [TestPath1, invalid]}])),
+        ?_assertEqual({error, {invalid_option, {python_path,
+                [$a, $b, invalid]}, [invalid]}},
+            erlport_options:parse([{python_path, [$a, $b, invalid]}]))
     ] end}.
 
 unknown_option_test_() ->
