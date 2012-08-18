@@ -70,7 +70,7 @@ compressed_test_() -> {setup,
         end
     end}.
 
-call_queue_test_() -> {setup,
+call_pipeline_test_() -> {setup,
     fun setup/0,
     fun cleanup/1,
     fun (P) ->

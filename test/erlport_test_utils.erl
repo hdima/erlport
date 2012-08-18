@@ -45,10 +45,12 @@
 
 
 tmp_file(BaseName) when is_list(BaseName) ->
+    % Only needed for Erlang R13
+    crypto:start(),
     tmp_file(BaseName, 3).
 
 tmp_file(_BaseName, 0) ->
-    error(unable_to_create);
+    erlang:error(unable_to_create);
 tmp_file(BaseName, N) ->
     FileName = tmp_name(BaseName),
     case file:write_file(FileName, <<>>, [exclusive, raw]) of
@@ -57,14 +59,16 @@ tmp_file(BaseName, N) ->
         {error, eexist} ->
             tmp_file(BaseName, N - 1);
         {error, Reason} ->
-            error(Reason)
+            erlang:error(Reason)
     end.
 
 tmp_dir(BaseName) when is_list(BaseName) ->
+    % Only needed for Erlang R13
+    crypto:start(),
     tmp_dir(BaseName, 3).
 
 tmp_dir(_BaseName, 0) ->
-    error(unable_to_create);
+    erlang:error(unable_to_create);
 tmp_dir(BaseName, N) ->
     DirName = tmp_name(BaseName),
     case file:make_dir(DirName) of
@@ -75,7 +79,7 @@ tmp_dir(BaseName, N) ->
         {error, enotdir} ->
             tmp_dir(BaseName, N - 1);
         {error, Reason} ->
-            error(Reason)
+            erlang:error(Reason)
     end.
 
 remove_object(DirName=[_|_]) ->
