@@ -2,3 +2,4 @@
 *.py[co]
 *.beam
 .eunit
+sandbox

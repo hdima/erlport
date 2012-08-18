@@ -1,0 +1,33 @@
+#! /bin/sh
+
+SANDBOX="sandbox"
+
+ERLANG=" \
+    $SANDBOX/otp_src_R13B04/bin \
+    $SANDBOX/otp_src_R14B04/bin \
+    $SANDBOX/otp_src_R15B01/bin \
+    "
+
+PYTHON=" \
+    $SANDBOX/Python-2.5.6 \
+    $SANDBOX/Python-2.6.8 \
+    $SANDBOX/Python-2.7.3 \
+    "
+
+for erlang in $ERLANG; do
+    for python in $PYTHON; do
+        echo
+        echo "****************************************************************"
+        echo
+        echo "Test $erlang and $python"
+        echo
+        echo "****************************************************************"
+        echo
+        make clean || exit
+        PATH="$erlang:$python:$PATH" make test || exit
+    done
+done
+
+echo
+echo "ALL TEST OK!"
+echo
