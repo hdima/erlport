@@ -232,7 +232,7 @@ get_python(Python=[_|_]) ->
                     {error, {invalid_option, {python, Python}, not_found}}
             end;
         Filename ->
-            {ok, Filename ++ Options}
+            {ok, filename:absname(Filename) ++ Options}
     end;
 get_python(Python) ->
     {error, {invalid_option, {python, Python}}}.
