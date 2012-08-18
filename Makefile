@@ -66,7 +66,7 @@ python-test:
 python-test-verbose:
 	cd priv/python; make test-verbose
 
-check: compile $(TESTDIR) $(TESTBEAMS)
+check: $(TESTDIR) $(TESTBEAMS)
 	dialyzer $(TESTDIR) | fgrep -v -f ./dialyzer.ignore
 
 doc:
