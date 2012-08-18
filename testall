@@ -28,6 +28,8 @@ for erlang in $ERLANG; do
     done
 done
 
+make clean
+
 echo
 echo "ALL TEST OK!"
 echo
