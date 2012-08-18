@@ -10,8 +10,6 @@
 
 - Add custom encode/decode handlers in Erlang
 
-- Check if pickle formats are compatible between different Python versions
-
 - Convert Python tests from doctests to unittest
 
 - Check exports in erlport/__init__.py

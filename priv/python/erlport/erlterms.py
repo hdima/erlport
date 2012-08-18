@@ -36,8 +36,11 @@ __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 from struct import Struct
 from array import array
 from zlib import decompressobj, compress
-from cPickle import loads, dumps, HIGHEST_PROTOCOL
+from cPickle import loads, dumps
 
+
+# It seems protocol version 2 supported by all Python versions from 2.5 to 3.2
+PICKLE_PROTOCOL = 2
 
 class IncompleteData(ValueError):
     """Need more data."""
@@ -314,7 +317,7 @@ def encode_term(term,
         tuple=tuple, len=len, isinstance=isinstance, list=list, int=int,
         long=long, array=array, unicode=unicode, Atom=Atom, str=str, map=map,
         float=float, ord=ord, dict=dict, True=True, False=False, dumps=dumps,
-        HIGHEST_PROTOCOL=HIGHEST_PROTOCOL, ValueError=ValueError,
+        PICKLE_PROTOCOL=PICKLE_PROTOCOL, ValueError=ValueError,
         OpaqueObject=OpaqueObject, OverflowError=OverflowError,
         char_int4_pack=_char_int4_pack, char_int2_pack=_char_int2_pack,
         char_signed_int4_pack=_char_signed_int4_pack,
@@ -402,7 +405,7 @@ def encode_term(term,
         return term.encode()
 
     try:
-        data = dumps(term, HIGHEST_PROTOCOL)
+        data = dumps(term, PICKLE_PROTOCOL)
     except:
         raise ValueError("unsupported data type: %s" % type(term))
     return OpaqueObject(data, python).encode()
