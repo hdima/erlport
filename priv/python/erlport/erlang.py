@@ -27,6 +27,7 @@
 
 import sys
 from sys import exc_info
+from threading import Lock
 from traceback import extract_tb
 
 from erlport import Atom
@@ -60,6 +61,9 @@ class MessageHandler(object):
         self.client = False
         self.set_encoder(None)
         self.set_decoder(None)
+        call_lock = Lock()
+        self._call_lock_acquire = call_lock.acquire
+        self._call_lock_release = call_lock.release
 
     def set_encoder(self, encoder):
         if encoder:
@@ -119,8 +123,13 @@ class MessageHandler(object):
         if not isinstance(args, list):
             raise ValueError(args)
 
-        self.port.write((Atom('C'), module, function, map(self.encoder, args)))
-        response = self.port.read()
+        self._call_lock_acquire()
+        try:
+            self.port.write((Atom('C'), module, function,
+                map(self.encoder, args)))
+            response = self.port.read()
+        finally:
+            self._call_lock_release()
         try:
             mtype, value = response
         except ValueError:
