@@ -35,12 +35,13 @@ except ImportError:
     coverage = None
 
 import erlterms_tests
+import erlproto_tests
 
 
 def test_suite():
     suite = unittest.TestSuite()
-    #suite.addTest(doctest.DocFileSuite("erlterms.txt"))
     suite.addTests(erlterms_tests.get_suite())
+    suite.addTests(erlproto_tests.get_suite())
     return suite
 
 def test_cover(fun, *args, **kwargs):

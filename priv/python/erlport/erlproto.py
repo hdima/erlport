@@ -46,11 +46,11 @@ class Port(object):
         4: Struct(">I"),
         }
 
-    def __init__(self, packet=4, use_stdio=False, compressed=False,
+    def __init__(self, packet=4, use_stdio=True, compressed=False,
             descriptors=None, buffer_size=65536):
         struct = self._formats.get(packet)
         if struct is None:
-            raise ValueError("invalid packet size value: %s" % packet)
+            raise ValueError("invalid packet size value: %s" % (packet,))
         self._pack = struct.pack
         self._unpack = struct.unpack
         self.packet = packet
@@ -64,6 +64,8 @@ class Port(object):
             self.in_d, self.out_d = 3, 4
 
         self.buffer = ""
+        if buffer_size < 1:
+            raise ValueError("invalid buffer size value: %s" % (buffer_size,))
         self.buffer_size = buffer_size
         read_lock = Lock()
         self._read_lock_acquire = read_lock.acquire
@@ -75,7 +77,7 @@ class Port(object):
     def _read_data(self):
         try:
             buf = os.read(self.in_d, self.buffer_size)
-        except IOError, why:
+        except OSError, why:
             if why.errno == errno.EPIPE:
                 raise EOFError()
             raise
@@ -117,7 +119,7 @@ class Port(object):
                 data = data[n:]
         finally:
             self._write_lock_release()
-        return length
+        return length + self.packet
 
     def close(self):
         """Close port."""
