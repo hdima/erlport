@@ -12,6 +12,9 @@
 
 - Convert Python tests from doctests to unittest
 
+- If port was closed and we have an error to report we can try to report it
+  with logging module
+
 - Check exports in erlport/__init__.py
 
 - Check Python version by calling python -V
