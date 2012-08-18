@@ -57,8 +57,9 @@ def test_cover(fun, *args, **kwargs):
         cov.html_report(morfs=modules, directory=".cover")
 
 
-if __name__ == "__main__":
+def main():
     if coverage:
-        test_cover(unittest.main, defaultTest="test_suite")
+        test_cover(unittest.main, module="erlport.tests",
+            defaultTest="test_suite")
     else:
-        unittest.main(defaultTest="test_suite")
+        unittest.main(module="erlport.tests", defaultTest="test_suite")
