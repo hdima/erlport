@@ -16,15 +16,9 @@
 
 - Check exports in erlport/__init__.py
 
-- Add lock for erlang.call and maybe for erlang.receive?
-
 - Check Python version by calling python -V
 
 - Maybe return expected type in case of option error?
-
-- Check code with older versions of Erlang/Python
-
-- Update tests for Python. Add tests for all data types for Erlang <-> Python
 
 - Comments for modules
 
