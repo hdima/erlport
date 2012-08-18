@@ -12,8 +12,6 @@
 
 - Test coverage support for Erlang
 
-- Use struct.Struct for erlterms.encode
-
 - Check if pickle formats are compatible between different Python versions
 
 - Convert Python tests from doctests to unittest

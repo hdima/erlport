@@ -33,7 +33,7 @@ See Erlang External Term Format for details:
 
 __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 
-from struct import pack, Struct
+from struct import Struct
 from array import array
 from zlib import decompressobj, compress
 from cPickle import loads, dumps, HIGHEST_PROTOCOL
@@ -169,12 +169,12 @@ def decode(string):
 
 def decode_term(string,
         # Hack to turn globals into locals
-        len=len, ord=ord, tuple=tuple, float=float,
+        len=len, ord=ord, tuple=tuple, float=float, array=array,
         int4_unpack=_int4_unpack, int2_unpack=_int2_unpack,
-        signed_int4_unpack=_signed_int4_unpack,
-        float_unpack=_float_unpack, double_bytes_unpack=_double_bytes_unpack,
-        int4_byte_unpack=_int4_byte_unpack,
-        Atom=Atom, opaque=OpaqueObject.marker):
+        signed_int4_unpack=_signed_int4_unpack, float_unpack=_float_unpack,
+        double_bytes_unpack=_double_bytes_unpack,
+        int4_byte_unpack=_int4_byte_unpack, Atom=Atom,
+        opaque=OpaqueObject.marker, decode_opaque=OpaqueObject.decode):
     if not string:
         raise IncompleteData("incomplete data: %r" % string)
     tag = string[0]
@@ -233,7 +233,7 @@ def decode_term(string,
                 return ImproperList(lst, improper_tail), tail
             return lst, tail[1:]
         if len(lst) == 3 and lst[0] == opaque:
-            return OpaqueObject.decode(lst[2], lst[1]), tail
+            return decode_opaque(lst[2], lst[1]), tail
         return tuple(lst), tail
     elif tag == "a":
         # SMALL_INTEGER_EXT
@@ -285,6 +285,13 @@ def decode_term(string,
 
     raise ValueError("unsupported data: %r" % (string,))
 
+_int4_pack = Struct(">I").pack
+_char_int4_pack = Struct(">cI").pack
+_char_int2_pack = Struct(">cH").pack
+_char_signed_int4_pack = Struct(">ci").pack
+_char_float_pack = Struct(">cd").pack
+_char_2bytes_pack = Struct("cBB").pack
+_char_int4_byte_pack = Struct(">cIB").pack
 
 def encode(term, compressed=False):
     """Encode Erlang external term."""
@@ -295,27 +302,30 @@ def encode(term, compressed=False):
             # default compression level of 6
             compressed = 6
         zlib_term = compress(encoded_term, compressed)
-        if len(zlib_term) + 5 <= len(encoded_term):
+        ln = len(encoded_term)
+        if len(zlib_term) + 5 <= ln:
             # Compressed term should be smaller
-            return '\x83P' + pack('>I', len(encoded_term)) + zlib_term
+            return '\x83P' + _int4_pack(ln) + zlib_term
     return "\x83" + encoded_term
 
-# TODO: Use Struct for encoding
 
 def encode_term(term,
         # Hack to turn globals into locals
-        pack=pack, tuple=tuple, len=len, isinstance=isinstance,
-        list=list, int=int, long=long, array=array, unicode=unicode,
-        Atom=Atom, str=str, float=float, ord=ord,
-        dict=dict, True=True, False=False,
-        ValueError=ValueError, OverflowError=OverflowError,
-        python=_python):
+        tuple=tuple, len=len, isinstance=isinstance, list=list, int=int,
+        long=long, array=array, unicode=unicode, Atom=Atom, str=str, map=map,
+        float=float, ord=ord, dict=dict, True=True, False=False, dumps=dumps,
+        HIGHEST_PROTOCOL=HIGHEST_PROTOCOL, ValueError=ValueError,
+        OpaqueObject=OpaqueObject, OverflowError=OverflowError,
+        char_int4_pack=_char_int4_pack, char_int2_pack=_char_int2_pack,
+        char_signed_int4_pack=_char_signed_int4_pack,
+        char_float_pack=_char_float_pack, char_2bytes_pack=_char_2bytes_pack,
+        char_int4_byte_pack=_char_int4_byte_pack, python=_python):
     if isinstance(term, tuple):
         arity = len(term)
         if arity <= 255:
             header = "h%c" % arity
         elif arity <= 4294967295:
-            header = pack(">cI", 'i', arity)
+            header = char_int4_pack('i', arity)
         else:
             raise ValueError("invalid tuple arity")
         return header + "".join(map(encode_term, term))
@@ -324,7 +334,7 @@ def encode_term(term,
         length = len(term)
         if length > 4294967295:
             raise ValueError("invalid improper list length")
-        header = pack(">cI", 'l', length)
+        header = char_int4_pack('l', length)
         return header + "".join(map(encode_term, term)) + encode_term(term.tail)
     elif isinstance(term, list):
         length = len(term)
@@ -341,19 +351,20 @@ def encode_term(term,
                 pass
             else:
                 if len(bytes) == length:
-                    return pack(">cH", 'k', length) + bytes
+                    return char_int2_pack('k', length) + bytes
         elif length > 4294967295:
             raise ValueError("invalid list length")
-        return pack(">cI", 'l', length) + "".join(map(encode_term, term)) + "j"
+        return (char_int4_pack('l', length)
+            + "".join(map(encode_term, term)) + "j")
     elif isinstance(term, unicode):
         return encode_term(map(ord, term))
     elif isinstance(term, Atom):
-        return pack(">cH", 'd', len(term)) + term
+        return char_int2_pack('d', len(term)) + term
     elif isinstance(term, str):
         length = len(term)
         if length > 4294967295:
             raise ValueError("invalid binary length")
-        return pack(">cI", 'm', length) + term
+        return char_int4_pack('m', length) + term
     # Must be before int type
     elif term is True:
         return "d\0\4true"
@@ -363,7 +374,7 @@ def encode_term(term,
         if 0 <= term <= 255:
             return 'a%c' % term
         elif -2147483648 <= term <= 2147483647:
-            return pack(">ci", 'b', term)
+            return char_signed_int4_pack('b', term)
 
         if term >= 0:
             sign = 0
@@ -372,18 +383,19 @@ def encode_term(term,
             term = -term
 
         bytes = array('B')
+        append = bytes.append
         while term:
-            bytes.append(term & 0xff)
+            append(term & 0xff)
             term >>= 8
 
         length = len(bytes)
         if length <= 255:
-            return pack("cBB", 'n', length, sign) + bytes.tostring()
+            return char_2bytes_pack('n', length, sign) + bytes.tostring()
         elif length <= 4294967295:
-            return pack(">cIB", 'o', length, sign) + bytes.tostring()
+            return char_int4_byte_pack('o', length, sign) + bytes.tostring()
         raise ValueError("invalid integer value")
     elif isinstance(term, float):
-        return pack(">cd", 'F', term)
+        return char_float_pack('F', term)
     elif term is None:
         return "d\0\11undefined"
     elif isinstance(term, OpaqueObject):
