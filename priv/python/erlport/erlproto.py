@@ -31,7 +31,8 @@ __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 
 import os
 import errno
-from struct import pack, unpack
+from struct import Struct
+from threading import Lock
 
 from erlport.erlterms import encode, decode
 
@@ -40,16 +41,18 @@ class Port(object):
     """Erlang port."""
 
     _formats = {
-        1: "B",
-        2: ">H",
-        4: ">I",
+        1: Struct("B"),
+        2: Struct(">H"),
+        4: Struct(">I"),
         }
 
-    def __init__(self, packet=1, use_stdio=False, compressed=False,
+    def __init__(self, packet=4, use_stdio=False, compressed=False,
             descriptors=None, buffer_size=65536):
-        self._format = self._formats.get(packet)
-        if self._format is None:
+        struct = self._formats.get(packet)
+        if struct is None:
             raise ValueError("invalid packet size value: %s" % packet)
+        self._pack = struct.pack
+        self._unpack = struct.unpack
         self.packet = packet
         self.compressed = compressed
 
@@ -62,6 +65,12 @@ class Port(object):
 
         self.buffer = ""
         self.buffer_size = buffer_size
+        read_lock = Lock()
+        self._read_lock_acquire = read_lock.acquire
+        self._read_lock_release = read_lock.release
+        write_lock = Lock()
+        self._write_lock_acquire = write_lock.acquire
+        self._write_lock_release = write_lock.release
 
     def _read_data(self):
         try:
@@ -76,30 +85,38 @@ class Port(object):
 
     def read(self):
         """Read incoming message."""
-        while len(self.buffer) < self.packet:
-            self.buffer += self._read_data()
-        length, = unpack(self._format, self.buffer[:self.packet])
-        self.buffer = self.buffer[self.packet:]
-        while len(self.buffer) < length:
-            self.buffer += self._read_data()
-        term, self.buffer = decode(self.buffer)
+        self._read_lock_acquire()
+        try:
+            while len(self.buffer) < self.packet:
+                self.buffer += self._read_data()
+            length, = self._unpack(self.buffer[:self.packet])
+            self.buffer = self.buffer[self.packet:]
+            while len(self.buffer) < length:
+                self.buffer += self._read_data()
+            term, self.buffer = decode(self.buffer)
+        finally:
+            self._read_lock_release()
         return term
 
     def write(self, message):
         """Write outgoing message."""
         data = encode(message, compressed=self.compressed)
-        data = pack(self._format, len(data)) + data
         length = len(data)
-        while data:
-            try:
-                n = os.write(self.out_d, data)
-            except OSError, why:
-                if why.errno == errno.EPIPE:
+        data = self._pack(length) + data
+        self._write_lock_acquire()
+        try:
+            while data:
+                try:
+                    n = os.write(self.out_d, data)
+                except OSError, why:
+                    if why.errno == errno.EPIPE:
+                        raise EOFError()
+                    raise
+                if not n:
                     raise EOFError()
-                raise
-            if n == 0:
-                raise EOFError()
-            data = data[n:]
+                data = data[n:]
+        finally:
+            self._write_lock_release()
         return length
 
     def close(self):
