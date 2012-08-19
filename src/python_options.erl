@@ -218,9 +218,9 @@ check_python_version(Python) ->
     case re:run(Out, "^Python ([0-9]+)\.([0-9]+)\.([0-9]+)$",
             [{capture, all_but_first, list}]) of
         {match, StrVersion} ->
-            Version = [list_to_integer(N) || N <- StrVersion],
+            Version = list_to_tuple([list_to_integer(N) || N <- StrVersion]),
             if
-                Version >= [2, 5, 0] ->
+                Version >= {2, 5, 0} ->
                     {ok, Version};
                 true ->
                     {error, {unsupported_python_version, Out}}
