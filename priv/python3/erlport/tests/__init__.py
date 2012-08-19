@@ -34,8 +34,8 @@ try:
 except ImportError:
     coverage = None
 
-import erlterms_tests
-import erlproto_tests
+from . import erlterms_tests
+from . import erlproto_tests
 
 
 def test_suite():

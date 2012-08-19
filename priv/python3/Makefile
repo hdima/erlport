@@ -26,10 +26,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 test: cleanup-test
-	python -c 'from erlport.tests import main; main()'
+	python3 -c 'from erlport.tests import main; main()'
 
 test-verbose: cleanup-test
-	python -m erlport.tests.__init__ -v
+	python3 -c 'from erlport.tests import main; main()' -v
 
 cleanup-test:
 	#

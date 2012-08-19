@@ -37,372 +37,373 @@ from erlport.erlterms import encode, decode, IncompleteData
 class AtomTestCase(unittest.TestCase):
 
     def test_atom(self):
-        atom = Atom("test")
+        atom = Atom(b"test")
         self.assertEqual(Atom, type(atom))
-        self.assertEqual("test", atom)
-        self.assertEqual("Atom('test')", repr(atom))
+        self.assertEqual(b"test", atom)
+        self.assertEqual("Atom(b'test')", repr(atom))
         self.assertTrue(atom is Atom(atom))
-        self.assertEqual("X" * 255, Atom("X" * 255))
-        self.assertRaises(ValueError, Atom, "X" * 256)
+        self.assertEqual(b"X" * 255, Atom(b"X" * 255))
+        self.assertRaises(ValueError, Atom, b"X" * 256)
         self.assertRaises(TypeError, Atom, [1, 2])
 
 class StringTestCase(unittest.TestCase):
 
     def test_string(self):
-        string = String(u"test")
+        string = String("test")
         self.assertEqual(String, type(string))
-        self.assertEqual(u"test", string)
-        self.assertEqual("String(u'test')", repr(string))
+        self.assertEqual("test", string)
+        self.assertEqual("String('test')", repr(string))
         self.assertTrue(string is String(string))
-        self.assertEqual(u"test", String([116, 101, 115, 116]))
+        self.assertEqual("test", String([116, 101, 115, 116]))
         self.assertRaises(TypeError, String, (1, 2))
         self.assertRaises(TypeError, String, ["a", "b"])
 
 class ImproperListTestCase(unittest.TestCase):
 
     def test_improper_list(self):
-        improper = ImproperList([1, 2, 3], "tail")
+        improper = ImproperList([1, 2, 3], b"tail")
         self.assertEqual(ImproperList, type(improper))
         self.assertEqual([1, 2, 3], improper)
-        self.assertEqual("tail", improper.tail)
-        self.assertEqual("ImproperList([1, 2, 3], 'tail')", repr(improper))
-        self.assertRaises(TypeError, ImproperList, "invalid", "tail")
+        self.assertEqual(b"tail", improper.tail)
+        self.assertEqual("ImproperList([1, 2, 3], b'tail')", repr(improper))
+        self.assertRaises(TypeError, ImproperList, "invalid", b"tail")
         self.assertRaises(TypeError, ImproperList, [1, 2, 3], ["invalid"])
-        self.assertRaises(ValueError, ImproperList, [], "tail")
+        self.assertRaises(ValueError, ImproperList, [], b"tail")
 
 class OpaqueObjectTestCase(unittest.TestCase):
 
     def test_opaque_object(self):
-        obj = OpaqueObject("data", Atom("language"))
+        obj = OpaqueObject(b"data", Atom(b"language"))
         self.assertEqual(OpaqueObject, type(obj))
-        self.assertEqual("data", obj.data)
-        self.assertEqual("language", obj.language)
-        self.assertEqual("OpaqueObject('data', Atom('language'))", repr(obj))
-        self.assertRaises(TypeError, OpaqueObject, "data", "language")
-        self.assertRaises(TypeError, OpaqueObject, [1, 2], Atom("language"))
+        self.assertEqual(b"data", obj.data)
+        self.assertEqual(b"language", obj.language)
+        self.assertEqual("OpaqueObject(b'data', Atom(b'language'))", repr(obj))
+        self.assertRaises(TypeError, OpaqueObject, b"data", "language")
+        self.assertRaises(TypeError, OpaqueObject, [1, 2], Atom(b"language"))
 
     def test_comparison(self):
-        obj = OpaqueObject("data", Atom("language"))
+        obj = OpaqueObject(b"data", Atom(b"language"))
         self.assertEqual(obj, obj)
-        self.assertEqual(OpaqueObject("data", Atom("language")), obj)
-        self.assertNotEqual(OpaqueObject("data", Atom("language2")), obj)
+        self.assertEqual(OpaqueObject(b"data", Atom(b"language")), obj)
+        self.assertNotEqual(OpaqueObject(b"data", Atom(b"language2")), obj)
 
     def test_decode(self):
-        obj = OpaqueObject.decode("data", Atom("language"))
-        self.assertEqual("data", obj.data)
-        self.assertEqual("language", obj.language)
+        obj = OpaqueObject.decode(b"data", Atom(b"language"))
+        self.assertEqual(b"data", obj.data)
+        self.assertEqual(b"language", obj.language)
 
     def test_decode_python(self):
-        data = OpaqueObject.decode(dumps("test"), Atom("python"))
-        self.assertEqual("test", data)
+        data = OpaqueObject.decode(dumps(b"test"), Atom(b"python"))
+        self.assertEqual(b"test", data)
 
     def test_encode(self):
-        obj = OpaqueObject("data", Atom("language"))
-        term = Atom("$erlport.opaque"), Atom("language"), "data"
+        obj = OpaqueObject(b"data", Atom(b"language"))
+        term = Atom(b"$erlport.opaque"), Atom(b"language"), b"data"
         self.assertEqual(erlterms.encode_term(term), obj.encode())
 
     def test_encode_erlang(self):
-        obj = OpaqueObject("data", Atom("erlang"))
-        self.assertEqual("data", obj.encode())
+        obj = OpaqueObject(b"data", Atom(b"erlang"))
+        self.assertEqual(b"data", obj.encode())
 
 class DecodeTestCase(unittest.TestCase):
 
     def test_decode(self):
-        self.assertRaises(IncompleteData, decode, "")
-        self.assertRaises(ValueError, decode, "\0")
-        self.assertRaises(IncompleteData, decode, "\x83")
-        self.assertRaises(ValueError, decode, "\x83z")
+        self.assertRaises(IncompleteData, decode, b"")
+        self.assertRaises(ValueError, decode, b"\0")
+        self.assertRaises(IncompleteData, decode, b"\x83")
+        self.assertRaises(ValueError, decode, b"\x83z")
 
     def test_decode_atom(self):
-        self.assertRaises(IncompleteData, decode, "\x83d")
-        self.assertRaises(IncompleteData, decode, "\x83d\0")
-        self.assertRaises(IncompleteData, decode, "\x83d\0\1")
-        self.assertEqual((Atom(""), ""), decode("\x83d\0\0"))
-        self.assertEqual((Atom(""), "tail"), decode("\x83d\0\0tail"))
-        self.assertEqual((Atom("test"), ""), decode("\x83d\0\4test"))
-        self.assertEqual((Atom("test"), "tail"), decode("\x83d\0\4testtail"))
+        self.assertRaises(IncompleteData, decode, b"\x83d")
+        self.assertRaises(IncompleteData, decode, b"\x83d\0")
+        self.assertRaises(IncompleteData, decode, b"\x83d\0\1")
+        self.assertEqual((Atom(b""), b""), decode(b"\x83d\0\0"))
+        self.assertEqual((Atom(b""), b"tail"), decode(b"\x83d\0\0tail"))
+        self.assertEqual((Atom(b"test"), b""), decode(b"\x83d\0\4test"))
+        self.assertEqual((Atom(b"test"), b"tail"), decode(b"\x83d\0\4testtail"))
 
     def test_decode_predefined_atoms(self):
-        self.assertEqual((True, ""), decode("\x83d\0\4true"))
-        self.assertEqual((False, ""), decode("\x83d\0\5false"))
-        self.assertEqual((None, ""), decode("\x83d\0\11undefined"))
+        self.assertEqual((True, b""), decode(b"\x83d\0\4true"))
+        self.assertEqual((False, b""), decode(b"\x83d\0\5false"))
+        self.assertEqual((None, b""), decode(b"\x83d\0\11undefined"))
 
     def test_decode_empty_list(self):
-        self.assertEqual(([], ""), decode("\x83j"))
-        self.assertEqual(([], "tail"), decode("\x83jtail"))
+        self.assertEqual(([], b""), decode(b"\x83j"))
+        self.assertEqual(([], b"tail"), decode(b"\x83jtail"))
 
     def test_decode_string_list(self):
-        self.assertRaises(IncompleteData, decode, "\x83k")
-        self.assertRaises(IncompleteData, decode, "\x83k\0")
-        self.assertRaises(IncompleteData, decode, "\x83k\0\1")
+        self.assertRaises(IncompleteData, decode, b"\x83k")
+        self.assertRaises(IncompleteData, decode, b"\x83k\0")
+        self.assertRaises(IncompleteData, decode, b"\x83k\0\1")
         # Erlang use 'j' tag for empty lists
-        self.assertEqual(([], ""), decode("\x83k\0\0"))
-        self.assertEqual(([], "tail"), decode("\x83k\0\0tail"))
-        self.assertEqual(([116, 101, 115, 116], ""), decode("\x83k\0\4test"))
-        self.assertEqual(([116, 101, 115, 116], "tail"),
-            decode("\x83k\0\4testtail"))
+        self.assertEqual(([], b""), decode(b"\x83k\0\0"))
+        self.assertEqual(([], b"tail"), decode(b"\x83k\0\0tail"))
+        self.assertEqual(([116, 101, 115, 116], b""), decode(b"\x83k\0\4test"))
+        self.assertEqual(([116, 101, 115, 116], b"tail"),
+            decode(b"\x83k\0\4testtail"))
 
     def test_decode_list(self):
-        self.assertRaises(IncompleteData, decode, "\x83l")
-        self.assertRaises(IncompleteData, decode, "\x83l\0")
-        self.assertRaises(IncompleteData, decode, "\x83l\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83l\0\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83l\0\0\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83l")
+        self.assertRaises(IncompleteData, decode, b"\x83l\0")
+        self.assertRaises(IncompleteData, decode, b"\x83l\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83l\0\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83l\0\0\0\0")
         # Elang use 'j' tag for empty lists
-        self.assertEqual(([], ""), decode("\x83l\0\0\0\0j"))
-        self.assertEqual(([], "tail"), decode("\x83l\0\0\0\0jtail"))
-        self.assertEqual(([[], []], ""), decode("\x83l\0\0\0\2jjj"))
-        self.assertEqual(([[], []], "tail"), decode("\x83l\0\0\0\2jjjtail"))
+        self.assertEqual(([], b""), decode(b"\x83l\0\0\0\0j"))
+        self.assertEqual(([], b"tail"), decode(b"\x83l\0\0\0\0jtail"))
+        self.assertEqual(([[], []], b""), decode(b"\x83l\0\0\0\2jjj"))
+        self.assertEqual(([[], []], b"tail"), decode(b"\x83l\0\0\0\2jjjtail"))
 
     def test_decode_improper_list(self):
-        self.assertRaises(IncompleteData, decode, "\x83l\0\0\0\0k")
-        improper, tail = decode("\x83l\0\0\0\1jd\0\4tail")
+        self.assertRaises(IncompleteData, decode, b"\x83l\0\0\0\0k")
+        improper, tail = decode(b"\x83l\0\0\0\1jd\0\4tail")
         self.assertEqual(ImproperList, type(improper))
         self.assertEqual([[]], improper)
-        self.assertEqual(Atom("tail"), improper.tail)
-        self.assertEqual("", tail)
-        improper, tail = decode("\x83l\0\0\0\1jd\0\4tailtail")
+        self.assertEqual(Atom(b"tail"), improper.tail)
+        self.assertEqual(b"", tail)
+        improper, tail = decode(b"\x83l\0\0\0\1jd\0\4tailtail")
         self.assertEqual(ImproperList, type(improper))
         self.assertEqual([[]], improper)
-        self.assertEqual(Atom("tail"), improper.tail)
-        self.assertEqual("tail", tail)
+        self.assertEqual(Atom(b"tail"), improper.tail)
+        self.assertEqual(b"tail", tail)
 
     def test_decode_small_tuple(self):
-        self.assertRaises(IncompleteData, decode, "\x83h")
-        self.assertRaises(IncompleteData, decode, "\x83h\1")
-        self.assertEqual(((), ""), decode("\x83h\0"))
-        self.assertEqual(((), "tail"), decode("\x83h\0tail"))
-        self.assertEqual((([], []), ""), decode("\x83h\2jj"))
-        self.assertEqual((([], []), "tail"), decode("\x83h\2jjtail"))
+        self.assertRaises(IncompleteData, decode, b"\x83h")
+        self.assertRaises(IncompleteData, decode, b"\x83h\1")
+        self.assertEqual(((), b""), decode(b"\x83h\0"))
+        self.assertEqual(((), b"tail"), decode(b"\x83h\0tail"))
+        self.assertEqual((([], []), b""), decode(b"\x83h\2jj"))
+        self.assertEqual((([], []), b"tail"), decode(b"\x83h\2jjtail"))
 
     def test_decode_large_tuple(self):
-        self.assertRaises(IncompleteData, decode, "\x83i")
-        self.assertRaises(IncompleteData, decode, "\x83i\0")
-        self.assertRaises(IncompleteData, decode, "\x83i\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83i\0\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83i\0\0\0\1")
+        self.assertRaises(IncompleteData, decode, b"\x83i")
+        self.assertRaises(IncompleteData, decode, b"\x83i\0")
+        self.assertRaises(IncompleteData, decode, b"\x83i\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83i\0\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83i\0\0\0\1")
         # Erlang use 'h' tag for small tuples
-        self.assertEqual(((), ""), decode("\x83i\0\0\0\0"))
-        self.assertEqual(((), "tail"), decode("\x83i\0\0\0\0tail"))
-        self.assertEqual((([], []), ""), decode("\x83i\0\0\0\2jj"))
-        self.assertEqual((([], []), "tail"), decode("\x83i\0\0\0\2jjtail"))
+        self.assertEqual(((), b""), decode(b"\x83i\0\0\0\0"))
+        self.assertEqual(((), b"tail"), decode(b"\x83i\0\0\0\0tail"))
+        self.assertEqual((([], []), b""), decode(b"\x83i\0\0\0\2jj"))
+        self.assertEqual((([], []), b"tail"), decode(b"\x83i\0\0\0\2jjtail"))
 
     def test_decode_opaque_object(self):
-        opaque, tail = decode("\x83h\3d\0\x0f$erlport.opaqued\0\10language"
-            "m\0\0\0\4data")
+        opaque, tail = decode(b"\x83h\3d\0\x0f$erlport.opaqued\0\10language"
+            b"m\0\0\0\4data")
         self.assertEqual(OpaqueObject, type(opaque))
-        self.assertEqual("data", opaque.data)
-        self.assertEqual("language", opaque.language)
-        self.assertEqual("", tail)
-        opaque, tail = decode("\x83h\3d\0\x0f$erlport.opaqued\0\10language"
-            "m\0\0\0\4datatail")
+        self.assertEqual(b"data", opaque.data)
+        self.assertEqual(b"language", opaque.language)
+        self.assertEqual(b"", tail)
+        opaque, tail = decode(b"\x83h\3d\0\x0f$erlport.opaqued\0\10language"
+            b"m\0\0\0\4datatail")
         self.assertEqual(OpaqueObject, type(opaque))
-        self.assertEqual("data", opaque.data)
-        self.assertEqual("language", opaque.language)
-        self.assertEqual("tail", tail)
+        self.assertEqual(b"data", opaque.data)
+        self.assertEqual(b"language", opaque.language)
+        self.assertEqual(b"tail", tail)
 
     def test_decode_python_opaque_object(self):
-        data, tail = decode("\x83h\3d\0\x0f$erlport.opaqued\0\6python"
-            "m\0\0\0\14S'test'\np0\n.")
+        data, tail = decode(b"\x83h\3d\0\x0f$erlport.opaqued\0\6python"
+            b"m\0\0\0\14S'test'\np0\n.")
         self.assertEqual("test", data)
-        self.assertEqual("", tail)
-        data, tail = decode("\x83h\3d\0\x0f$erlport.opaqued\0\6python"
-            "m\0\0\0\14S'test'\np0\n.tail")
+        self.assertEqual(b"", tail)
+        data, tail = decode(b"\x83h\3d\0\x0f$erlport.opaqued\0\6python"
+            b"m\0\0\0\14S'test'\np0\n.tail")
         self.assertEqual("test", data)
-        self.assertEqual("tail", tail)
+        self.assertEqual(b"tail", tail)
 
     def test_decode_small_integer(self):
-        self.assertRaises(IncompleteData, decode, "\x83a")
-        self.assertEqual((0, ""), decode("\x83a\0"))
-        self.assertEqual((0, "tail"), decode("\x83a\0tail"))
-        self.assertEqual((255, ""), decode("\x83a\xff"))
-        self.assertEqual((255, "tail"), decode("\x83a\xfftail"))
+        self.assertRaises(IncompleteData, decode, b"\x83a")
+        self.assertEqual((0, b""), decode(b"\x83a\0"))
+        self.assertEqual((0, b"tail"), decode(b"\x83a\0tail"))
+        self.assertEqual((255, b""), decode(b"\x83a\xff"))
+        self.assertEqual((255, b"tail"), decode(b"\x83a\xfftail"))
 
     def test_decode_integer(self):
-        self.assertRaises(IncompleteData, decode, "\x83b")
-        self.assertRaises(IncompleteData, decode, "\x83b\0")
-        self.assertRaises(IncompleteData, decode, "\x83b\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83b\0\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83b")
+        self.assertRaises(IncompleteData, decode, b"\x83b\0")
+        self.assertRaises(IncompleteData, decode, b"\x83b\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83b\0\0\0")
         # Erlang use 'a' tag for small integers
-        self.assertEqual((0, ""), decode("\x83b\0\0\0\0"))
-        self.assertEqual((0, "tail"), decode("\x83b\0\0\0\0tail"))
-        self.assertEqual((2147483647, ""), decode("\x83b\x7f\xff\xff\xff"))
-        self.assertEqual((2147483647, "tail"),
-            decode("\x83b\x7f\xff\xff\xfftail"))
-        self.assertEqual((-1, ""), decode("\x83b\xff\xff\xff\xff"))
-        self.assertEqual((-1, "tail"), decode("\x83b\xff\xff\xff\xfftail"))
+        self.assertEqual((0, b""), decode(b"\x83b\0\0\0\0"))
+        self.assertEqual((0, b"tail"), decode(b"\x83b\0\0\0\0tail"))
+        self.assertEqual((2147483647, b""), decode(b"\x83b\x7f\xff\xff\xff"))
+        self.assertEqual((2147483647, b"tail"),
+            decode(b"\x83b\x7f\xff\xff\xfftail"))
+        self.assertEqual((-1, b""), decode(b"\x83b\xff\xff\xff\xff"))
+        self.assertEqual((-1, b"tail"), decode(b"\x83b\xff\xff\xff\xfftail"))
 
     def test_decode_binary(self):
-        self.assertRaises(IncompleteData, decode, "\x83m")
-        self.assertRaises(IncompleteData, decode, "\x83m\0")
-        self.assertRaises(IncompleteData, decode, "\x83m\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83m\0\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83m\0\0\0\1")
-        self.assertEqual(("", ""), decode("\x83m\0\0\0\0"))
-        self.assertEqual(("", "tail"), decode("\x83m\0\0\0\0tail"))
-        self.assertEqual(("data", ""), decode("\x83m\0\0\0\4data"))
-        self.assertEqual(("data", "tail"), decode("\x83m\0\0\0\4datatail"))
+        self.assertRaises(IncompleteData, decode, b"\x83m")
+        self.assertRaises(IncompleteData, decode, b"\x83m\0")
+        self.assertRaises(IncompleteData, decode, b"\x83m\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83m\0\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83m\0\0\0\1")
+        self.assertEqual((b"", b""), decode(b"\x83m\0\0\0\0"))
+        self.assertEqual((b"", b"tail"), decode(b"\x83m\0\0\0\0tail"))
+        self.assertEqual((b"data", b""), decode(b"\x83m\0\0\0\4data"))
+        self.assertEqual((b"data", b"tail"), decode(b"\x83m\0\0\0\4datatail"))
 
     def test_decode_float(self):
-        self.assertRaises(IncompleteData, decode, "\x83F")
-        self.assertRaises(IncompleteData, decode, "\x83F\0")
-        self.assertRaises(IncompleteData, decode, "\x83F\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83F\0\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83F\0\0\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83F\0\0\0\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83F\0\0\0\0\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83F\0\0\0\0\0\0\0")
-        self.assertEqual((0.0, ""), decode("\x83F\0\0\0\0\0\0\0\0"))
-        self.assertEqual((0.0, "tail"), decode("\x83F\0\0\0\0\0\0\0\0tail"))
-        self.assertEqual((1.5, ""), decode("\x83F?\xf8\0\0\0\0\0\0"))
-        self.assertEqual((1.5, "tail"), decode("\x83F?\xf8\0\0\0\0\0\0tail"))
+        self.assertRaises(IncompleteData, decode, b"\x83F")
+        self.assertRaises(IncompleteData, decode, b"\x83F\0")
+        self.assertRaises(IncompleteData, decode, b"\x83F\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83F\0\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83F\0\0\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83F\0\0\0\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83F\0\0\0\0\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83F\0\0\0\0\0\0\0")
+        self.assertEqual((0.0, b""), decode(b"\x83F\0\0\0\0\0\0\0\0"))
+        self.assertEqual((0.0, b"tail"), decode(b"\x83F\0\0\0\0\0\0\0\0tail"))
+        self.assertEqual((1.5, b""), decode(b"\x83F?\xf8\0\0\0\0\0\0"))
+        self.assertEqual((1.5, b"tail"), decode(b"\x83F?\xf8\0\0\0\0\0\0tail"))
 
     def test_decode_small_big_integer(self):
-        self.assertRaises(IncompleteData, decode, "\x83n")
-        self.assertRaises(IncompleteData, decode, "\x83n\0")
-        self.assertRaises(IncompleteData, decode, "\x83n\1\0")
+        self.assertRaises(IncompleteData, decode, b"\x83n")
+        self.assertRaises(IncompleteData, decode, b"\x83n\0")
+        self.assertRaises(IncompleteData, decode, b"\x83n\1\0")
         # Erlang use 'a' tag for small integers
-        self.assertEqual((0, ""), decode("\x83n\0\0"))
-        self.assertEqual((0, "tail"), decode("\x83n\0\0tail"))
-        self.assertEqual((6618611909121, ""), decode("\x83n\6\0\1\2\3\4\5\6"))
-        self.assertEqual((-6618611909121, ""), decode("\x83n\6\1\1\2\3\4\5\6"))
-        self.assertEqual((6618611909121, "tail"),
-            decode("\x83n\6\0\1\2\3\4\5\6tail"))
+        self.assertEqual((0, b""), decode(b"\x83n\0\0"))
+        self.assertEqual((0, b"tail"), decode(b"\x83n\0\0tail"))
+        self.assertEqual((6618611909121, b""), decode(b"\x83n\6\0\1\2\3\4\5\6"))
+        self.assertEqual((-6618611909121, b""), decode(b"\x83n\6\1\1\2\3\4\5\6"))
+        self.assertEqual((6618611909121, b"tail"),
+            decode(b"\x83n\6\0\1\2\3\4\5\6tail"))
 
     def test_decode_big_integer(self):
-        self.assertRaises(IncompleteData, decode, "\x83o")
-        self.assertRaises(IncompleteData, decode, "\x83o\0")
-        self.assertRaises(IncompleteData, decode, "\x83o\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83o\0\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83o\0\0\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83o\0\0\0\1\0")
+        self.assertRaises(IncompleteData, decode, b"\x83o")
+        self.assertRaises(IncompleteData, decode, b"\x83o\0")
+        self.assertRaises(IncompleteData, decode, b"\x83o\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83o\0\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83o\0\0\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83o\0\0\0\1\0")
         # Erlang use 'a' tag for small integers
-        self.assertEqual((0, ""), decode("\x83o\0\0\0\0\0"))
-        self.assertEqual((0, "tail"), decode("\x83o\0\0\0\0\0tail"))
-        self.assertEqual((6618611909121, ""),
-            decode("\x83o\0\0\0\6\0\1\2\3\4\5\6"))
-        self.assertEqual((-6618611909121, ""),
-            decode("\x83o\0\0\0\6\1\1\2\3\4\5\6"))
-        self.assertEqual((6618611909121, "tail"),
-            decode("\x83o\0\0\0\6\0\1\2\3\4\5\6tail"))
+        self.assertEqual((0, b""), decode(b"\x83o\0\0\0\0\0"))
+        self.assertEqual((0, b"tail"), decode(b"\x83o\0\0\0\0\0tail"))
+        self.assertEqual((6618611909121, b""),
+            decode(b"\x83o\0\0\0\6\0\1\2\3\4\5\6"))
+        self.assertEqual((-6618611909121, b""),
+            decode(b"\x83o\0\0\0\6\1\1\2\3\4\5\6"))
+        self.assertEqual((6618611909121, b"tail"),
+            decode(b"\x83o\0\0\0\6\0\1\2\3\4\5\6tail"))
 
     def test_decode_compressed_term(self):
-        self.assertRaises(IncompleteData, decode, "\x83P")
-        self.assertRaises(IncompleteData, decode, "\x83P\0")
-        self.assertRaises(IncompleteData, decode, "\x83P\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83P\0\0\0")
-        self.assertRaises(IncompleteData, decode, "\x83P\0\0\0\0")
-        self.assertRaises(ValueError, decode, "\x83P\0\0\0\x16"
-            "\x78\xda\xcb\x66\x10\x49\xc1\2\0\x5d\x60\x08\x50")
-        self.assertEqual(([100] * 20, ""), decode("\x83P\0\0\0\x17"
-            "\x78\xda\xcb\x66\x10\x49\xc1\2\0\x5d\x60\x08\x50"))
-        self.assertEqual(([100] * 20, "tail"), decode("\x83P\0\0\0\x17"
-            "\x78\xda\xcb\x66\x10\x49\xc1\2\0\x5d\x60\x08\x50tail"))
+        self.assertRaises(IncompleteData, decode, b"\x83P")
+        self.assertRaises(IncompleteData, decode, b"\x83P\0")
+        self.assertRaises(IncompleteData, decode, b"\x83P\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83P\0\0\0")
+        self.assertRaises(IncompleteData, decode, b"\x83P\0\0\0\0")
+        self.assertRaises(ValueError, decode, b"\x83P\0\0\0\x16"
+            b"\x78\xda\xcb\x66\x10\x49\xc1\2\0\x5d\x60\x08\x50")
+        self.assertEqual(([100] * 20, b""), decode(b"\x83P\0\0\0\x17"
+            b"\x78\xda\xcb\x66\x10\x49\xc1\2\0\x5d\x60\x08\x50"))
+        self.assertEqual(([100] * 20, b"tail"), decode(b"\x83P\0\0\0\x17"
+            b"\x78\xda\xcb\x66\x10\x49\xc1\2\0\x5d\x60\x08\x50tail"))
 
 class EncodeTestCase(unittest.TestCase):
 
     def test_encode_tuple(self):
-        self.assertEqual("\x83h\0", encode(()))
-        self.assertEqual("\x83h\2h\0h\0", encode(((), ())))
-        self.assertEqual("\x83h\xff" + "h\0" * 255, encode(tuple([()] * 255)))
-        self.assertEqual("\x83i\0\0\1\0" + "h\0" * 256,
+        self.assertEqual(b"\x83h\0", encode(()))
+        self.assertEqual(b"\x83h\2h\0h\0", encode(((), ())))
+        self.assertEqual(b"\x83h\xff" + b"h\0" * 255, encode(tuple([()] * 255)))
+        self.assertEqual(b"\x83i\0\0\1\0" + b"h\0" * 256,
             encode(tuple([()] * 256)))
 
     def test_encode_empty_list(self):
-        self.assertEqual("\x83j", encode([]))
+        self.assertEqual(b"\x83j", encode([]))
 
     def test_encode_string_list(self):
-        self.assertEqual("\x83k\0\1\0", encode([0]))
-        r = range(0, 256)
-        self.assertEqual("\x83k\1\0" + "".join(map(chr, r)), encode(r))
+        self.assertEqual(b"\x83k\0\1\0", encode([0]))
+        r = list(range(0, 256))
+        self.assertEqual(b"\x83k\1\0" + bytes(r), encode(r))
 
     def test_encode_list(self):
-        self.assertEqual("\x83l\0\0\0\1jj", encode([[]]))
-        self.assertEqual("\x83l\0\0\0\5jjjjjj", encode([[], [], [], [], []]))
+        self.assertEqual(b"\x83l\0\0\0\1jj", encode([[]]))
+        self.assertEqual(b"\x83l\0\0\0\5jjjjjj", encode([[], [], [], [], []]))
 
     def test_encode_improper_list(self):
-        self.assertEqual("\x83l\0\0\0\1h\0h\0", encode(ImproperList([()], ())))
-        self.assertEqual("\x83l\0\0\0\1a\0a\1", encode(ImproperList([0], 1)))
+        self.assertEqual(b"\x83l\0\0\0\1h\0h\0", encode(ImproperList([()], ())))
+        self.assertEqual(b"\x83l\0\0\0\1a\0a\1", encode(ImproperList([0], 1)))
 
     def test_encode_unicode(self):
-        self.assertEqual("\x83j", encode(u""))
-        self.assertEqual("\x83j", encode(String(u"")))
-        self.assertEqual("\x83k\0\4test", encode(u"test"))
-        self.assertEqual("\x83k\0\2\0\xff", encode(u"\0\xff"))
-        self.assertEqual("\x83l\0\0\0\1b\0\0\1\0j", encode(u"\u0100"))
-        self.assertEqual("\x83l\0\0\0\4b\0\0\4Bb\0\0\x045b\0\0\4Ab\0\0\4Bj",
-            encode(u"\u0442\u0435\u0441\u0442"))
-        self.assertEqual("\x83l\0\1\0\0" + "aX" * 65536 + "j",
-            encode(u"X" * 65536))
-        self.assertEqual("\x83l\0\1\0\0" + "b\0\0\4\x10" * 65536 + "j",
-            encode(u"\u0410" * 65536))
+        self.assertEqual(b"\x83j", encode(""))
+        self.assertEqual(b"\x83j", encode(String("")))
+        self.assertEqual(b"\x83k\0\4test", encode("test"))
+        self.assertEqual(b"\x83k\0\2\0\xff", encode("\0\xff"))
+        self.assertEqual(b"\x83l\0\0\0\1b\0\0\1\0j", encode("\u0100"))
+        self.assertEqual(b"\x83l\0\0\0\4b\0\0\4Bb\0\0\x045b\0\0\4Ab\0\0\4Bj",
+            encode("\u0442\u0435\u0441\u0442"))
+        self.assertEqual(b"\x83l\0\1\0\0" + b"aX" * 65536 + b"j",
+            encode("X" * 65536))
+        self.assertEqual(b"\x83l\0\1\0\0" + b"b\0\0\4\x10" * 65536 + b"j",
+            encode("\u0410" * 65536))
 
     def test_encode_atom(self):
-        self.assertEqual("\x83d\0\0", encode(Atom("")))
-        self.assertEqual("\x83d\0\4test", encode(Atom("test")))
+        self.assertEqual(b"\x83d\0\0", encode(Atom(b"")))
+        self.assertEqual(b"\x83d\0\4test", encode(Atom(b"test")))
 
     def test_encode_string(self):
-        self.assertEqual("\x83m\0\0\0\0", encode(""))
-        self.assertEqual("\x83m\0\0\0\4test", encode("test"))
+        self.assertEqual(b"\x83m\0\0\0\0", encode(b""))
+        self.assertEqual(b"\x83m\0\0\0\4test", encode(b"test"))
 
     def test_encode_boolean(self):
-        self.assertEqual("\x83d\0\4true", encode(True))
-        self.assertEqual("\x83d\0\5false", encode(False))
+        self.assertEqual(b"\x83d\0\4true", encode(True))
+        self.assertEqual(b"\x83d\0\5false", encode(False))
 
     def test_encode_none(self):
-        self.assertEqual("\x83d\0\11undefined", encode(None))
+        self.assertEqual(b"\x83d\0\11undefined", encode(None))
 
     def test_encode_short_integer(self):
-        self.assertEqual("\x83a\0", encode(0))
-        self.assertEqual("\x83a\xff", encode(255))
+        self.assertEqual(b"\x83a\0", encode(0))
+        self.assertEqual(b"\x83a\xff", encode(255))
 
     def test_encode_integer(self):
-        self.assertEqual("\x83b\xff\xff\xff\xff", encode(-1))
-        self.assertEqual("\x83b\x80\0\0\0", encode(-2147483648))
-        self.assertEqual("\x83b\0\0\1\0", encode(256))
-        self.assertEqual("\x83b\x7f\xff\xff\xff", encode(2147483647))
+        self.assertEqual(b"\x83b\xff\xff\xff\xff", encode(-1))
+        self.assertEqual(b"\x83b\x80\0\0\0", encode(-2147483648))
+        self.assertEqual(b"\x83b\0\0\1\0", encode(256))
+        self.assertEqual(b"\x83b\x7f\xff\xff\xff", encode(2147483647))
 
     def test_encode_long_integer(self):
-        self.assertEqual("\x83n\4\0\0\0\0\x80", encode(2147483648))
-        self.assertEqual("\x83n\4\1\1\0\0\x80", encode(-2147483649))
-        self.assertEqual("\x83o\0\0\1\0\0" + "\0" * 255 + "\1",
+        self.assertEqual(b"\x83n\4\0\0\0\0\x80", encode(2147483648))
+        self.assertEqual(b"\x83n\4\1\1\0\0\x80", encode(-2147483649))
+        self.assertEqual(b"\x83o\0\0\1\0\0" + b"\0" * 255 + b"\1",
             encode(2 ** 2040))
-        self.assertEqual("\x83o\0\0\1\0\1" + "\0" * 255 + "\1",
+        self.assertEqual(b"\x83o\0\0\1\0\1" + b"\0" * 255 + b"\1",
             encode(-2 ** 2040))
 
     def test_encode_float(self):
-        self.assertEqual("\x83F\0\0\0\0\0\0\0\0", encode(0.0))
-        self.assertEqual("\x83F?\xe0\0\0\0\0\0\0", encode(0.5))
-        self.assertEqual("\x83F\xbf\xe0\0\0\0\0\0\0", encode(-0.5))
-        self.assertEqual("\x83F@\t!\xfbM\x12\xd8J", encode(3.1415926))
-        self.assertEqual("\x83F\xc0\t!\xfbM\x12\xd8J", encode(-3.1415926))
+        self.assertEqual(b"\x83F\0\0\0\0\0\0\0\0", encode(0.0))
+        self.assertEqual(b"\x83F?\xe0\0\0\0\0\0\0", encode(0.5))
+        self.assertEqual(b"\x83F\xbf\xe0\0\0\0\0\0\0", encode(-0.5))
+        self.assertEqual(b"\x83F@\t!\xfbM\x12\xd8J", encode(3.1415926))
+        self.assertEqual(b"\x83F\xc0\t!\xfbM\x12\xd8J", encode(-3.1415926))
 
     def test_encode_opaque_object(self):
-        self.assertEqual("\x83h\3d\0\x0f$erlport.opaqued\0\10language"
-            "m\0\0\0\4data", encode(OpaqueObject("data", Atom("language"))))
-        self.assertEqual("\x83data",
-            encode(OpaqueObject("data", Atom("erlang"))))
+        self.assertEqual(b"\x83h\3d\0\x0f$erlport.opaqued\0\10language"
+            b"m\0\0\0\4data", encode(OpaqueObject(b"data", Atom(b"language"))))
+        self.assertEqual(b"\x83data",
+            encode(OpaqueObject(b"data", Atom(b"erlang"))))
 
     def test_encode_python_opaque_object(self):
-        self.assertEqual("\x83h\x03d\x00\x0f$erlport.opaqued\x00\x06python"
-            "m\x00\x00\x00\x06\x80\x02}q\x01.", encode(dict()))
-        self.assertRaises(ValueError, encode, compile("0", "<string>", "eval"))
+        self.assertEqual(b"\x83h\x03d\x00\x0f$erlport.opaqued\x00\x06python"
+            b"m\x00\x00\x00\x06\x80\x02}q\x00.", encode(dict()))
+        self.assertRaises(ValueError, encode,
+            compile(b"0", b"<string>", "eval"))
 
     def test_encode_compressed_term(self):
-        self.assertEqual("\x83l\x00\x00\x00\x05jjjjjj", encode([[]] * 5, True))
-        self.assertEqual("\x83P\x00\x00\x00\x15"
-            "x\x9c\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
+        self.assertEqual(b"\x83l\x00\x00\x00\x05jjjjjj", encode([[]] * 5, True))
+        self.assertEqual(b"\x83P\x00\x00\x00\x15"
+            b"x\x9c\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
             encode([[]] * 15, True))
-        self.assertEqual("\x83P\x00\x00\x00\x15"
-            "x\x9c\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
+        self.assertEqual(b"\x83P\x00\x00\x00\x15"
+            b"x\x9c\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
             encode([[]] * 15, 6))
-        self.assertEqual("\x83P\x00\x00\x00\x15"
-            "x\xda\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
+        self.assertEqual(b"\x83P\x00\x00\x00\x15"
+            b"x\xda\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
             encode([[]] * 15, 9))
-        self.assertEqual("\x83l\0\0\0\x0f" + "j" * 15 + "j",
+        self.assertEqual(b"\x83l\0\0\0\x0f" + b"j" * 15 + b"j",
             encode([[]] * 15, 0))
-        self.assertEqual("\x83P\x00\x00\x00\x15"
-            "x\x01\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
+        self.assertEqual(b"\x83P\x00\x00\x00\x15"
+            b"x\x01\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
             encode([[]] * 15, 1))
 
 def get_suite():

@@ -54,15 +54,15 @@ class PortTestCase(unittest.TestCase):
 
     def test_default_port_read(self):
         client = TestPortClient()
-        self.assertEqual(12, client.write("\0\0\0\10\x83d\0\4test"))
+        self.assertEqual(12, client.write(b"\0\0\0\10\x83d\0\4test"))
         atom = client.port.read()
-        self.assert_(isinstance(atom, Atom))
-        self.assertEqual(Atom("test"), atom)
+        self.assertTrue(isinstance(atom, Atom))
+        self.assertEqual(Atom(b"test"), atom)
 
     def test_default_port_write(self):
         client = TestPortClient()
-        self.assertEqual(12, client.port.write(Atom("test")))
-        self.assertEqual("\0\0\0\10\x83d\0\4test", client.read())
+        self.assertEqual(12, client.port.write(Atom(b"test")))
+        self.assertEqual(b"\0\0\0\10\x83d\0\4test", client.read())
 
     def test_invalid_packet_value(self):
         self.assertRaises(ValueError, Port, packet=0)
@@ -89,83 +89,83 @@ class PortTestCase(unittest.TestCase):
     def test_port_close(self):
         client = TestPortClient()
         client.port.close()
-        self.assertRaises(OSError, client.write, "data")
-        self.assertEqual("", client.read())
+        self.assertRaises(OSError, client.write, b"data")
+        self.assertEqual(b"", client.read())
 
     def test_closed_port(self):
         client = TestPortClient()
         client.close()
         self.assertRaises(EOFError, client.port.read)
-        self.assertRaises(EOFError, client.port.write, "data")
+        self.assertRaises(EOFError, client.port.write, b"data")
 
     def test_read_multiple_terms(self):
         client = TestPortClient()
-        atom_data = "\0\0\0\10\x83d\0\4test"
+        atom_data = b"\0\0\0\10\x83d\0\4test"
         self.assertEqual(24, client.write(atom_data + atom_data))
         atom = client.port.read()
-        self.assert_(isinstance(atom, Atom))
-        self.assertEqual(Atom("test"), atom)
+        self.assertTrue(isinstance(atom, Atom))
+        self.assertEqual(Atom(b"test"), atom)
         atom = client.port.read()
-        self.assert_(isinstance(atom, Atom))
-        self.assertEqual(Atom("test"), atom)
+        self.assertTrue(isinstance(atom, Atom))
+        self.assertEqual(Atom(b"test"), atom)
 
     def test_small_buffer_read(self):
         client = TestPortClient(buffer_size=1)
-        self.assertEqual(12, client.write("\0\0\0\10\x83d\0\4test"))
+        self.assertEqual(12, client.write(b"\0\0\0\10\x83d\0\4test"))
         atom = client.port.read()
-        self.assert_(isinstance(atom, Atom))
-        self.assertEqual(Atom("test"), atom)
+        self.assertTrue(isinstance(atom, Atom))
+        self.assertEqual(Atom(b"test"), atom)
 
     def test_invalid_buffer_size(self):
         self.assertRaises(ValueError, Port, buffer_size=0)
 
     def test_packet4_port_read(self):
         client = TestPortClient(packet=4)
-        self.assertEqual(12, client.write("\0\0\0\10\x83d\0\4test"))
+        self.assertEqual(12, client.write(b"\0\0\0\10\x83d\0\4test"))
         atom = client.port.read()
-        self.assert_(isinstance(atom, Atom))
-        self.assertEqual(Atom("test"), atom)
+        self.assertTrue(isinstance(atom, Atom))
+        self.assertEqual(Atom(b"test"), atom)
 
     def test_packet4_port_write(self):
         client = TestPortClient(packet=4)
-        self.assertEqual(12, client.port.write(Atom("test")))
-        self.assertEqual("\0\0\0\10\x83d\0\4test", client.read())
+        self.assertEqual(12, client.port.write(Atom(b"test")))
+        self.assertEqual(b"\0\0\0\10\x83d\0\4test", client.read())
 
     def test_packet2_port_read(self):
         client = TestPortClient(packet=2)
-        self.assertEqual(10, client.write("\0\10\x83d\0\4test"))
+        self.assertEqual(10, client.write(b"\0\10\x83d\0\4test"))
         atom = client.port.read()
-        self.assert_(isinstance(atom, Atom))
-        self.assertEqual(Atom("test"), atom)
+        self.assertTrue(isinstance(atom, Atom))
+        self.assertEqual(Atom(b"test"), atom)
 
     def test_packet2_port_write(self):
         client = TestPortClient(packet=2)
-        self.assertEqual(10, client.port.write(Atom("test")))
-        self.assertEqual("\0\10\x83d\0\4test", client.read())
+        self.assertEqual(10, client.port.write(Atom(b"test")))
+        self.assertEqual(b"\0\10\x83d\0\4test", client.read())
 
     def test_packet1_port_read(self):
         client = TestPortClient(packet=1)
-        self.assertEqual(9, client.write("\10\x83d\0\4test"))
+        self.assertEqual(9, client.write(b"\10\x83d\0\4test"))
         atom = client.port.read()
-        self.assert_(isinstance(atom, Atom))
-        self.assertEqual(Atom("test"), atom)
+        self.assertTrue(isinstance(atom, Atom))
+        self.assertEqual(Atom(b"test"), atom)
 
     def test_packet1_port_write(self):
         client = TestPortClient(packet=1)
-        self.assertEqual(9, client.port.write(Atom("test")))
-        self.assertEqual("\10\x83d\0\4test", client.read())
+        self.assertEqual(9, client.port.write(Atom(b"test")))
+        self.assertEqual(b"\10\x83d\0\4test", client.read())
 
     def test_compressed_port_read(self):
         client = TestPortClient(packet=1, compressed=True)
-        self.assertEqual(26, client.write("\x19\x83P\0\0\0\x1a\x78\x9c\xcb\x61"
-            "\x60\x60\x60\xcd\x66\x60\xd4\x43\xc7\x59\0\x30\x48\3\xde"))
+        self.assertEqual(26, client.write(b"\x19\x83P\0\0\0\x1a\x78\x9c\xcb\x61"
+            b"\x60\x60\x60\xcd\x66\x60\xd4\x43\xc7\x59\0\x30\x48\3\xde"))
         self.assertEqual([[46], [46], [46], [46], [46]], client.port.read())
 
     def test_compressed_port_write(self):
         client = TestPortClient(packet=1, compressed=True)
         self.assertEqual(26, client.port.write([[46], [46], [46], [46], [46]]))
-        self.assertEqual("\x19\x83P\0\0\0\x1a\x78\x9c\xcb\x61"
-            "\x60\x60\x60\xcd\x66\x60\xd4\x43\xc7\x59\0\x30\x48\3\xde",
+        self.assertEqual(b"\x19\x83P\0\0\0\x1a\x78\x9c\xcb\x61"
+            b"\x60\x60\x60\xcd\x66\x60\xd4\x43\xc7\x59\0\x30\x48\3\xde",
             client.read())
 
     def test_slow_write(self):
@@ -173,7 +173,7 @@ class PortTestCase(unittest.TestCase):
         os.write = lambda d, data: 1
         try:
             port = Port(packet=1)
-            self.assertEqual(9, port.write(Atom("test")))
+            self.assertEqual(9, port.write(Atom(b"test")))
         finally:
             os.write = write
 
@@ -182,7 +182,7 @@ class PortTestCase(unittest.TestCase):
         os.write = lambda d, data: 0
         try:
             port = Port()
-            self.assertRaises(EOFError, port.write, "test")
+            self.assertRaises(EOFError, port.write, b"test")
         finally:
             os.write = write
 
@@ -193,7 +193,7 @@ class PortTestCase(unittest.TestCase):
         os.write = test_write
         try:
             port = Port()
-            self.assertRaises(OSError, port.write, "test")
+            self.assertRaises(OSError, port.write, b"test")
         finally:
             os.write = write
 

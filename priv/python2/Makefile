@@ -29,7 +29,7 @@ test: cleanup-test
 	python -c 'from erlport.tests import main; main()'
 
 test-verbose: cleanup-test
-	python -m erlport.tests.__init__ -v
+	python -c 'from erlport.tests import main; main()' -v
 
 cleanup-test:
 	#

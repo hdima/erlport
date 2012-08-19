@@ -41,9 +41,9 @@ class Port(object):
     """Erlang port."""
 
     _formats = {
-        1: Struct("B"),
-        2: Struct(">H"),
-        4: Struct(">I"),
+        1: Struct(b"B"),
+        2: Struct(b">H"),
+        4: Struct(b">I"),
         }
 
     def __init__(self, packet=4, use_stdio=True, compressed=False,
@@ -63,7 +63,7 @@ class Port(object):
         else:
             self.in_d, self.out_d = 3, 4
 
-        self.buffer = ""
+        self.buffer = b""
         if buffer_size < 1:
             raise ValueError("invalid buffer size value: %s" % (buffer_size,))
         self.buffer_size = buffer_size
@@ -77,7 +77,7 @@ class Port(object):
     def _read_data(self):
         try:
             buf = os.read(self.in_d, self.buffer_size)
-        except OSError, why:
+        except OSError as why:
             if why.errno == errno.EPIPE:
                 raise EOFError()
             raise
@@ -110,7 +110,7 @@ class Port(object):
             while data:
                 try:
                     n = os.write(self.out_d, data)
-                except OSError, why:
+                except OSError as why:
                     if why.errno == errno.EPIPE:
                         raise EOFError()
                     raise

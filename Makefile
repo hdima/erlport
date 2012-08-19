@@ -54,17 +54,27 @@ $(TESTDIR):
 $(TESTDIR)/erlport.app:
 	cp -l ebin/erlport.app $(TESTDIR)
 
-test: python2-test $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
+test: python-test $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
 	./runtest
 
-test-verbose: python2-test-verbose $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
+test-verbose: python-test-verbose $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
 	./runtest verbose
+
+python-test: python2-test python3-test
+
+python-test-verbose: python2-test-verbose python3-test-verbose
 
 python2-test:
 	cd priv/python2; make test
 
 python2-test-verbose:
 	cd priv/python2; make test-verbose
+
+python3-test:
+	cd priv/python3; make test
+
+python3-test-verbose:
+	cd priv/python3; make test-verbose
 
 check: $(TESTDIR) $(TESTBEAMS)
 	dialyzer $(TESTDIR) | fgrep -v -f dialyzer.ignore
@@ -82,4 +92,5 @@ clean:
 
 
 .PHONY: compile test test-verbose check doc clean python2-test
-.PHONY: python2-test-verbose create-ignore-file
+.PHONY: python2-test-verbose create-ignore-file python3-test
+.PHONY: python3-test-verbose python-test python-test-verbose

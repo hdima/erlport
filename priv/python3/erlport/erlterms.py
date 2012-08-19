@@ -36,7 +36,7 @@ __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 from struct import Struct
 from array import array
 from zlib import decompressobj, compress
-from cPickle import loads, dumps
+from pickle import loads, dumps
 
 
 # It seems protocol version 2 supported by all Python versions from 2.5 to 3.2
@@ -46,7 +46,7 @@ class IncompleteData(ValueError):
     """Need more data."""
 
 
-class Atom(str):
+class Atom(bytes):
     """Erlang atom."""
 
     __slots__ = ()
@@ -54,8 +54,8 @@ class Atom(str):
     def __new__(cls, s):
         if isinstance(s, Atom):
             return s
-        elif not isinstance(s, str):
-            raise TypeError("str object expected")
+        elif not isinstance(s, bytes):
+            raise TypeError("bytes object expected")
         elif len(s) > 255:
             raise ValueError("invalid atom length")
         return super(Atom, cls).__new__(cls, s)
@@ -64,7 +64,7 @@ class Atom(str):
         return "Atom(%s)" % super(Atom, self).__repr__()
 
 
-class String(unicode):
+class String(str):
     """Erlang list/string wrapper."""
 
     __slots__ = ()
@@ -74,9 +74,9 @@ class String(unicode):
             return s
         elif isinstance(s, list):
             # Will raise TypeError if can't be converted
-            s = u"".join(map(unichr, s))
-        elif not isinstance(s, unicode):
-            raise TypeError("list or unicode object expected")
+            s = "".join(map(chr, s))
+        elif not isinstance(s, str):
+            raise TypeError("list or str object expected")
         return super(String, cls).__new__(cls, s)
 
     def __repr__(self):
@@ -108,24 +108,24 @@ class OpaqueObject(object):
 
     __slots__ = "data", "language"
 
-    marker = Atom("$erlport.opaque")
+    marker = Atom(b"$erlport.opaque")
 
     def __init__(self, data, language):
-        if not isinstance(data, str):
-            raise TypeError("data must be instance of str")
+        if not isinstance(data, bytes):
+            raise TypeError("data must be instance of bytes")
         if not isinstance(language, Atom):
             raise TypeError("language must be instance of Atom")
         self.data = data
         self.language = language
 
     def decode(cls, data, language):
-        if language == "python":
+        if language == b"python":
             return loads(data)
         return cls(data, language)
     decode = classmethod(decode)
 
     def encode(self):
-        if self.language == "erlang":
+        if self.language == b"erlang":
             return self.data
         return encode_term((self.marker, self.language, self.data))
 
@@ -137,23 +137,23 @@ class OpaqueObject(object):
         return "OpaqueObject(%r, %r)" % (self.data, self.language)
 
 
-_python = Atom("python")
+_python = Atom(b"python")
 
-_int4_unpack = Struct(">I").unpack
-_int2_unpack = Struct(">H").unpack
-_signed_int4_unpack = Struct(">i").unpack
-_float_unpack = Struct(">d").unpack
-_double_bytes_unpack = Struct("BB").unpack
-_int4_byte_unpack = Struct(">IB").unpack
+_int4_unpack = Struct(b">I").unpack
+_int2_unpack = Struct(b">H").unpack
+_signed_int4_unpack = Struct(b">i").unpack
+_float_unpack = Struct(b">d").unpack
+_double_bytes_unpack = Struct(b"BB").unpack
+_int4_byte_unpack = Struct(b">IB").unpack
 
 
 def decode(string):
     """Decode Erlang external term."""
     if not string:
         raise IncompleteData("incomplete data: %r" % string)
-    if string[0] != '\x83':
+    if string[0] != 131:
         raise ValueError("unknown protocol version: %r" % string[0])
-    if string[1:2] == 'P':
+    if string[1:2] == b'P':
         # compressed term
         if len(string) < 6:
             raise IncompleteData("incomplete data: %r" % string)
@@ -181,7 +181,7 @@ def decode_term(string,
     if not string:
         raise IncompleteData("incomplete data: %r" % string)
     tag = string[0]
-    if tag == "d":
+    if tag == 100:
         # ATOM_EXT
         ln = len(string)
         if ln < 3:
@@ -190,17 +190,17 @@ def decode_term(string,
         if ln < length:
             raise IncompleteData("incomplete data: %r" % string)
         name = string[3:length]
-        if name == "true":
+        if name == b"true":
             return True, string[length:]
-        elif name == "false":
+        elif name == b"false":
             return False, string[length:]
-        elif name == "undefined":
+        elif name == b"undefined":
             return None, string[length:]
         return Atom(name), string[length:]
-    elif tag == "j":
+    elif tag == 106:
         # NIL_EXT
         return [], string[1:]
-    elif tag == "k":
+    elif tag == 107:
         # STRING_EXT
         ln = len(string)
         if ln < 3:
@@ -209,12 +209,12 @@ def decode_term(string,
         if ln < length:
             raise IncompleteData("incomplete data: %r" % string)
         return array("B", string[3:length]).tolist(), string[length:]
-    elif tag in "lhi":
+    elif tag in b"lhi":
         # LIST_EXT, SMALL_TUPLE_EXT, LARGE_TUPLE_EXT
-        if tag == "h":
+        if tag == 104:
             if len(string) < 2:
                 raise IncompleteData("incomplete data: %r" % string)
-            length = ord(string[1])
+            length = string[1]
             tail = string[2:]
         else:
             if len(string) < 5:
@@ -228,28 +228,28 @@ def decode_term(string,
             term, tail = _decode_term(tail)
             append(term)
             length -= 1
-        if tag == "l":
+        if tag == 108:
             if not tail:
                 raise IncompleteData("incomplete data: %r" % string)
-            if tail[0] != "j":
+            if tail[0] != 106:
                 improper_tail, tail = _decode_term(tail)
                 return ImproperList(lst, improper_tail), tail
             return lst, tail[1:]
         if len(lst) == 3 and lst[0] == opaque:
             return decode_opaque(lst[2], lst[1]), tail
         return tuple(lst), tail
-    elif tag == "a":
+    elif tag == 97:
         # SMALL_INTEGER_EXT
         if len(string) < 2:
             raise IncompleteData("incomplete data: %r" % string)
-        return ord(string[1]), string[2:]
-    elif tag == "b":
+        return string[1], string[2:]
+    elif tag == 98:
         # INTEGER_EXT
         if len(string) < 5:
             raise IncompleteData("incomplete data: %r" % string)
         i, = signed_int4_unpack(string[1:5])
         return i, string[5:]
-    elif tag == "m":
+    elif tag == 109:
         # BINARY_EXT
         ln = len(string)
         if ln < 5:
@@ -258,15 +258,15 @@ def decode_term(string,
         if ln < length:
             raise IncompleteData("incomplete data: %r" % string)
         return string[5:length], string[length:]
-    elif tag == "F":
+    elif tag == 70:
         # NEW_FLOAT_EXT
         if len(string) < 9:
             raise IncompleteData("incomplete data: %r" % string)
         f, = float_unpack(string[1:9])
         return f, string[9:]
-    elif tag in "no":
+    elif tag in b"no":
         # SMALL_BIG_EXT, LARGE_BIG_EXT
-        if tag == "n":
+        if tag == 110:
             if len(string) < 3:
                 raise IncompleteData("incomplete data: %r" % string)
             length, sign = double_bytes_unpack(string[1:3])
@@ -288,13 +288,13 @@ def decode_term(string,
 
     raise ValueError("unsupported data: %r" % (string,))
 
-_int4_pack = Struct(">I").pack
-_char_int4_pack = Struct(">cI").pack
-_char_int2_pack = Struct(">cH").pack
-_char_signed_int4_pack = Struct(">ci").pack
-_char_float_pack = Struct(">cd").pack
-_char_2bytes_pack = Struct("cBB").pack
-_char_int4_byte_pack = Struct(">cIB").pack
+_int4_pack = Struct(b">I").pack
+_char_int4_pack = Struct(b">cI").pack
+_char_int2_pack = Struct(b">cH").pack
+_char_signed_int4_pack = Struct(b">ci").pack
+_char_float_pack = Struct(b">cd").pack
+_char_2bytes_pack = Struct(b"cBB").pack
+_char_int4_byte_pack = Struct(b">cIB").pack
 
 def encode(term, compressed=False):
     """Encode Erlang external term."""
@@ -308,15 +308,15 @@ def encode(term, compressed=False):
         ln = len(encoded_term)
         if len(zlib_term) + 5 <= ln:
             # Compressed term should be smaller
-            return '\x83P' + _int4_pack(ln) + zlib_term
-    return "\x83" + encoded_term
+            return b"\x83P" + _int4_pack(ln) + zlib_term
+    return b"\x83" + encoded_term
 
 
 def encode_term(term,
         # Hack to turn globals into locals
         tuple=tuple, len=len, isinstance=isinstance, list=list, int=int,
-        long=long, array=array, unicode=unicode, Atom=Atom, str=str, map=map,
-        float=float, ord=ord, dict=dict, True=True, False=False, dumps=dumps,
+        array=array, str=str, Atom=Atom, bytes=bytes, map=map, float=float,
+        dict=dict, true=True, false=False, dumps=dumps,
         PICKLE_PROTOCOL=PICKLE_PROTOCOL, ValueError=ValueError,
         OpaqueObject=OpaqueObject, OverflowError=OverflowError,
         char_int4_pack=_char_int4_pack, char_int2_pack=_char_int2_pack,
@@ -326,58 +326,56 @@ def encode_term(term,
     if isinstance(term, tuple):
         arity = len(term)
         if arity <= 255:
-            header = "h%c" % arity
+            header = b"h" + bytes([arity])
         elif arity <= 4294967295:
-            header = char_int4_pack('i', arity)
+            header = char_int4_pack(b'i', arity)
         else:
             raise ValueError("invalid tuple arity")
-        return header + "".join(map(encode_term, term))
+        return header + b"".join(map(encode_term, term))
     # Must be before list
     elif isinstance(term, ImproperList):
         length = len(term)
         if length > 4294967295:
             raise ValueError("invalid improper list length")
-        header = char_int4_pack('l', length)
-        return header + "".join(map(encode_term, term)) + encode_term(term.tail)
+        header = char_int4_pack(b"l", length)
+        return (header + b"".join(map(encode_term, term))
+            + encode_term(term.tail))
     elif isinstance(term, list):
         length = len(term)
         if not term:
-            return "j"
+            return b"j"
         elif length <= 65535:
             try:
-                # array coersion will allow floats as a deprecated feature
-                for t in term:
-                    if not isinstance(t, (int, long)):
-                        raise TypeError
-                bytes = array('B', term).tostring()
+                bytes = array("B", term).tobytes()
             except (TypeError, OverflowError):
                 pass
             else:
                 if len(bytes) == length:
-                    return char_int2_pack('k', length) + bytes
+                    return char_int2_pack(b'k', length) + bytes
         elif length > 4294967295:
             raise ValueError("invalid list length")
-        return (char_int4_pack('l', length)
-            + "".join(map(encode_term, term)) + "j")
-    elif isinstance(term, unicode):
-        return encode_term(map(ord, term))
-    elif isinstance(term, Atom):
-        return char_int2_pack('d', len(term)) + term
+        return (char_int4_pack(b'l', length)
+            + b"".join(map(encode_term, term)) + b"j")
     elif isinstance(term, str):
+        # TODO: It seems we can optimize this code
+        return encode_term(list(map(ord, term)))
+    elif isinstance(term, Atom):
+        return char_int2_pack(b"d", len(term)) + term
+    elif isinstance(term, bytes):
         length = len(term)
         if length > 4294967295:
             raise ValueError("invalid binary length")
-        return char_int4_pack('m', length) + term
+        return char_int4_pack(b"m", length) + term
     # Must be before int type
-    elif term is True:
-        return "d\0\4true"
-    elif term is False:
-        return "d\0\5false"
-    elif isinstance(term, (int, long)):
+    elif term is true:
+        return b"d\0\4true"
+    elif term is false:
+        return b"d\0\5false"
+    elif isinstance(term, int):
         if 0 <= term <= 255:
-            return 'a%c' % term
+            return b"a" + bytes([term])
         elif -2147483648 <= term <= 2147483647:
-            return char_signed_int4_pack('b', term)
+            return char_signed_int4_pack(b'b', term)
 
         if term >= 0:
             sign = 0
@@ -385,7 +383,7 @@ def encode_term(term,
             sign = 1
             term = -term
 
-        bytes = array('B')
+        bytes = array("B")
         append = bytes.append
         while term:
             append(term & 0xff)
@@ -393,14 +391,14 @@ def encode_term(term,
 
         length = len(bytes)
         if length <= 255:
-            return char_2bytes_pack('n', length, sign) + bytes.tostring()
+            return char_2bytes_pack(b"n", length, sign) + bytes.tobytes()
         elif length <= 4294967295:
-            return char_int4_byte_pack('o', length, sign) + bytes.tostring()
+            return char_int4_byte_pack(b"o", length, sign) + bytes.tobytes()
         raise ValueError("invalid integer value")
     elif isinstance(term, float):
-        return char_float_pack('F', term)
+        return char_float_pack(b"F", term)
     elif term is None:
-        return "d\0\11undefined"
+        return b"d\0\11undefined"
     elif isinstance(term, OpaqueObject):
         return term.encode()
 
