@@ -25,18 +25,18 @@
 %%% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %%% POSSIBILITY OF SUCH DAMAGE.
 
--module(erlport_options_tests).
+-module(python_options_tests).
 
 -include_lib("eunit/include/eunit.hrl").
--include("erlport.hrl").
+-include("python.hrl").
 
 
 parse_test_() ->
     fun () ->
-        {ok, #options{python=Python, use_stdio=use_stdio, call_timeout=10000,
-            packet=4, python_path=PythonPath, start_timeout=10000,
-            compressed=0, env=Env, port_options=PortOptions}}
-            = erlport_options:parse([]),
+        {ok, #python_options{python=Python, use_stdio=use_stdio,
+            call_timeout=10000, packet=4, python_path=PythonPath,
+            start_timeout=10000, compressed=0, env=Env,
+            port_options=PortOptions}} = python_options:parse([]),
         ?assertEqual(match, re:run(Python, "/python$", [{capture, none}])),
         ?assertEqual(match, re:run(PythonPath, "/priv/python$",
             [{capture, none}])),
@@ -46,72 +46,72 @@ parse_test_() ->
     end.
 
 use_stdio_option_test_() -> [
-    ?_assertMatch({ok, #options{use_stdio=use_stdio}},
-        erlport_options:parse([])),
-    ?_assertMatch({ok, #options{use_stdio=nouse_stdio}},
-        erlport_options:parse([nouse_stdio]))
+    ?_assertMatch({ok, #python_options{use_stdio=use_stdio}},
+        python_options:parse([])),
+    ?_assertMatch({ok, #python_options{use_stdio=nouse_stdio}},
+        python_options:parse([nouse_stdio]))
     ].
 
 compressed_option_test_() -> [
-    ?_assertMatch({ok, #options{compressed=0}},
-        erlport_options:parse([])),
-    ?_assertMatch({ok, #options{compressed=9}},
-        erlport_options:parse([{compressed, 9}])),
+    ?_assertMatch({ok, #python_options{compressed=0}},
+        python_options:parse([])),
+    ?_assertMatch({ok, #python_options{compressed=9}},
+        python_options:parse([{compressed, 9}])),
     ?_assertMatch({error, {invalid_option, {compressed, invalid}}},
-        erlport_options:parse([{compressed, invalid}]))
+        python_options:parse([{compressed, invalid}]))
     ].
 
 packet_option_test_() -> [
-    ?_assertMatch({ok, #options{packet=4}}, erlport_options:parse([])),
-    ?_assertMatch({ok, #options{packet=4}},
-        erlport_options:parse([{packet, 4}])),
-    ?_assertMatch({ok, #options{packet=1}},
-        erlport_options:parse([{packet, 1}])),
-    ?_assertMatch({ok, #options{packet=2}},
-        erlport_options:parse([{packet, 2}])),
+    ?_assertMatch({ok, #python_options{packet=4}}, python_options:parse([])),
+    ?_assertMatch({ok, #python_options{packet=4}},
+        python_options:parse([{packet, 4}])),
+    ?_assertMatch({ok, #python_options{packet=1}},
+        python_options:parse([{packet, 1}])),
+    ?_assertMatch({ok, #python_options{packet=2}},
+        python_options:parse([{packet, 2}])),
     ?_assertEqual({error, {invalid_option, {packet, 3}}},
-        erlport_options:parse([{packet, 3}]))
+        python_options:parse([{packet, 3}]))
     ].
 
 start_timeout_test_() -> [
-    ?_assertMatch({ok, #options{start_timeout=10000}},
-        erlport_options:parse([])),
-    ?_assertMatch({ok, #options{start_timeout=5000}},
-        erlport_options:parse([{start_timeout, 5000}])),
-    ?_assertMatch({ok, #options{start_timeout=infinity}},
-        erlport_options:parse([{start_timeout, infinity}])),
+    ?_assertMatch({ok, #python_options{start_timeout=10000}},
+        python_options:parse([])),
+    ?_assertMatch({ok, #python_options{start_timeout=5000}},
+        python_options:parse([{start_timeout, 5000}])),
+    ?_assertMatch({ok, #python_options{start_timeout=infinity}},
+        python_options:parse([{start_timeout, infinity}])),
     ?_assertEqual({error, {invalid_option, {start_timeout, 0}}},
-        erlport_options:parse([{start_timeout, 0}])),
+        python_options:parse([{start_timeout, 0}])),
     ?_assertEqual({error, {invalid_option, {start_timeout, invalid}}},
-        erlport_options:parse([{start_timeout, invalid}]))
+        python_options:parse([{start_timeout, invalid}]))
     ].
 
 call_timeout_test_() -> [
-    ?_assertMatch({ok, #options{call_timeout=10000}},
-        erlport_options:parse([])),
-    ?_assertMatch({ok, #options{call_timeout=5000}},
-        erlport_options:parse([{call_timeout, 5000}])),
-    ?_assertMatch({ok, #options{call_timeout=infinity}},
-        erlport_options:parse([{call_timeout, infinity}])),
+    ?_assertMatch({ok, #python_options{call_timeout=10000}},
+        python_options:parse([])),
+    ?_assertMatch({ok, #python_options{call_timeout=5000}},
+        python_options:parse([{call_timeout, 5000}])),
+    ?_assertMatch({ok, #python_options{call_timeout=infinity}},
+        python_options:parse([{call_timeout, infinity}])),
     ?_assertEqual({error, {invalid_option, {call_timeout, 0}}},
-        erlport_options:parse([{call_timeout, 0}])),
+        python_options:parse([{call_timeout, 0}])),
     ?_assertEqual({error, {invalid_option, {call_timeout, invalid}}},
-        erlport_options:parse([{call_timeout, invalid}]))
+        python_options:parse([{call_timeout, invalid}]))
     ].
 
 env_option_test_() -> [
-    ?_assertMatch({ok, #options{env=[{"PYTHONPATH", PythonPath}],
-        python_path=PythonPath}}, erlport_options:parse([])),
-    ?_assertMatch({ok, #options{env=[{"PYTHONPATH", PythonPath},
+    ?_assertMatch({ok, #python_options{env=[{"PYTHONPATH", PythonPath}],
+        python_path=PythonPath}}, python_options:parse([])),
+    ?_assertMatch({ok, #python_options{env=[{"PYTHONPATH", PythonPath},
         {"test", "true"}], python_path=PythonPath}},
-        erlport_options:parse([{env, [{"test", "true"}]}])),
+        python_options:parse([{env, [{"test", "true"}]}])),
     ?_assertEqual({error, {invalid_option,
         {env, [{"test", "true"}, {test, "true"}, {"test", true}, invalid]},
             [{test, "true"}, {"test", true}, invalid]}},
-        erlport_options:parse([{env, [{"test", "true"}, {test, "true"},
+        python_options:parse([{env, [{"test", "true"}, {test, "true"},
             {"test", true}, invalid]}])),
     ?_assertEqual({error, {invalid_option, {env, invalid_env}, not_list}},
-        erlport_options:parse([{env, invalid_env}]))
+        python_options:parse([{env, invalid_env}]))
     ].
 
 python_option_test_() -> {setup,
@@ -130,26 +130,35 @@ python_option_test_() -> {setup,
     end,
     fun ({_, GoodName, BadName, UnknownName}) -> [
         fun () ->
-            {ok, #options{python=Python}} = erlport_options:parse([]),
+            {ok, #python_options{python=Python}} = python_options:parse([]),
             ?assertEqual(match, re:run(Python, "/python$", [{capture, none}]))
         end,
-        ?_assertMatch({ok, #options{python=GoodName}},
-            erlport_options:parse([{python, GoodName}])),
+        ?_assertMatch({ok, #python_options{python=GoodName}},
+            python_options:parse([{python, GoodName}])),
         fun () ->
             CommandWithOption = GoodName ++ " -S",
-            ?assertMatch({ok, #options{python=CommandWithOption}},
-                erlport_options:parse([{python, CommandWithOption}]))
+            ?assertMatch({ok, #python_options{python=CommandWithOption}},
+                python_options:parse([{python, CommandWithOption}]))
         end,
         ?_assertEqual({error, {invalid_option, {python, BadName}, not_found}},
-            erlport_options:parse([{python, BadName}])),
+            python_options:parse([{python, BadName}])),
         ?_assertEqual({error, {invalid_option, {python, UnknownName},
                 not_found}},
-            erlport_options:parse([{python, UnknownName}])),
+            python_options:parse([{python, UnknownName}])),
         ?_assertEqual({error, {invalid_option,
                {python, "erlport_tests_unknown_name"}, not_found}},
-            erlport_options:parse([{python, "erlport_tests_unknown_name"}])),
+            python_options:parse([{python, "erlport_tests_unknown_name"}])),
         ?_assertEqual({error, {invalid_option, {python, not_string}}},
-            erlport_options:parse([{python, not_string}]))
+            python_options:parse([{python, not_string}])),
+        fun () ->
+            Path = os:getenv("PATH"),
+            true = os:putenv("PATH", ""),
+            try ?assertEqual({error, python_not_found},
+                    python_options:parse([]))
+            after
+                true = os:putenv("PATH", Path)
+            end
+        end
     ] end}.
 
 cd_option_test_() -> {setup,
@@ -159,19 +168,19 @@ cd_option_test_() -> {setup,
     fun erlport_test_utils:remove_object/1,
     fun (TmpDir) -> [
         fun () ->
-            {ok, #options{cd=undefined, port_options=PortOptions, env=Env}}
-                = erlport_options:parse([]),
+            {ok, #python_options{cd=undefined, port_options=PortOptions,
+                env=Env}} = python_options:parse([]),
             ?assertEqual([{env, Env}, {packet, 4}, binary, hide, exit_status],
                 PortOptions)
         end,
         fun () ->
-            {ok, #options{cd=TmpDir, port_options=PortOptions, env=Env}}
-                = erlport_options:parse([{cd, TmpDir}]),
+            {ok, #python_options{cd=TmpDir, port_options=PortOptions, env=Env}}
+                = python_options:parse([{cd, TmpDir}]),
             ?assertEqual([{env, Env}, {packet, 4}, {cd, TmpDir},
                 binary, hide, exit_status], PortOptions)
         end,
         ?_assertEqual({error, {invalid_option, {cd, "invalid_directory"}}},
-            erlport_options:parse([{cd, "invalid_directory"}]))
+            python_options:parse([{cd, "invalid_directory"}]))
     ] end}.
 
 python_path_option_test_() -> {setup,
@@ -189,41 +198,41 @@ python_path_option_test_() -> {setup,
     end,
     fun ({_, TestPath1, TestPath2, UnknownPath}) -> [
         fun () ->
-            {ok, #options{python_path=PythonPath,
+            {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
-                port_options=[{env, Env} | _]}} = erlport_options:parse([]),
+                port_options=[{env, Env} | _]}} = python_options:parse([]),
             ?assertEqual(match, re:run(PythonPath, "/priv/python$",
                 [{capture, none}]))
         end,
         fun () ->
-            {ok, #options{python_path=PythonPath,
+            {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
-                port_options=[{env, Env} | _]}} = erlport_options:parse(
+                port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, [TestPath1]}]),
             ?assertEqual(match, re:run(PythonPath,
                 "/priv/python:" ++ TestPath1 ++ "$", [{capture, none}]))
         end,
         fun () ->
-            {ok, #options{python_path=PythonPath,
+            {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
-                port_options=[{env, Env} | _]}} = erlport_options:parse(
+                port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, TestPath1}]),
             ?assertEqual(match, re:run(PythonPath,
                 "/priv/python:" ++ TestPath1 ++ "$", [{capture, none}]))
         end,
         fun () ->
-            {ok, #options{python_path=PythonPath,
+            {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
-                port_options=[{env, Env} | _]}} = erlport_options:parse(
+                port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, TestPath1 ++ ":" ++ TestPath2}]),
             ?assertEqual(match, re:run(PythonPath,
                 "/priv/python:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$",
                 [{capture, none}]))
         end,
         fun () ->
-            {ok, #options{python_path=PythonPath,
+            {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
-                port_options=[{env, Env} | _]}} = erlport_options:parse(
+                port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, [TestPath1]},
                     {env, [{"PYTHONPATH", TestPath2}]}]),
             ?assertEqual(match, re:run(PythonPath,
@@ -231,9 +240,9 @@ python_path_option_test_() -> {setup,
                 [{capture, none}]))
         end,
         fun () ->
-            {ok, #options{python_path=PythonPath,
+            {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
-                port_options=[{env, Env} | _]}} = erlport_options:parse(
+                port_options=[{env, Env} | _]}} = python_options:parse(
                     [{env, [{"PYTHONPATH", TestPath1},
                     {"PYTHONPATH", TestPath2}]}]),
             ?assertEqual(match, re:run(PythonPath,
@@ -241,9 +250,9 @@ python_path_option_test_() -> {setup,
                 [{capture, none}]))
         end,
         fun () ->
-            {ok, #options{python_path=PythonPath,
+            {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
-                port_options=[{env, Env} | _]}} = erlport_options:parse(
+                port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, [TestPath1, TestPath2, ""]},
                     {env, [{"PYTHONPATH", TestPath2 ++ ":" ++ TestPath1}]}]),
             ?assertEqual(match, re:run(PythonPath,
@@ -251,21 +260,30 @@ python_path_option_test_() -> {setup,
                 [{capture, none}]))
         end,
         ?_assertEqual({error, {not_dir, UnknownPath}},
-            erlport_options:parse([{python_path, [TestPath1, UnknownPath]}])),
+            python_options:parse([{python_path, [TestPath1, UnknownPath]}])),
         ?_assertEqual({error, {invalid_option, {python_path, invalid_path},
                 not_list}},
-            erlport_options:parse([{python_path, invalid_path}])),
+            python_options:parse([{python_path, invalid_path}])),
         ?_assertEqual({error, {invalid_option, {python_path, ""},
                 invalid_path}},
-            erlport_options:parse([{python_path, ""}])),
+            python_options:parse([{python_path, ""}])),
         ?_assertEqual({error, {invalid_option, {python_path,
                 [TestPath1, invalid]}, [invalid]}},
-            erlport_options:parse([{python_path, [TestPath1, invalid]}])),
+            python_options:parse([{python_path, [TestPath1, invalid]}])),
         ?_assertEqual({error, {invalid_option, {python_path,
                 [$a, $b, invalid]}, [invalid]}},
-            erlport_options:parse([{python_path, [$a, $b, invalid]}]))
+            python_options:parse([{python_path, [$a, $b, invalid]}])),
+        fun () ->
+            Dir = code:lib_dir(erlport),
+            true = code:del_path(erlport),
+            try ?assertEqual({error, {not_found, "erlport/priv"}},
+                    python_options:parse([]))
+            after
+                true = code:add_patha(Dir)
+            end
+        end
     ] end}.
 
 unknown_option_test_() ->
     ?_assertEqual({error, {unknown_option, unknown}},
-        erlport_options:parse([unknown])).
+        python_options:parse([unknown])).

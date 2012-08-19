@@ -45,127 +45,77 @@
     | {compressed, 0..9}
     | {cd, Path :: string()}
     | {packet, 1 | 2 | 4}
-    | {python, Python :: string()}
-    | {python_path, Path :: string() | [Path :: string()]}
     | {start_timeout, pos_integer() | infinity}
     | {call_timeout, pos_integer() | infinity}
     | {env, [{Name :: string(), Value :: string() | false}]}.
--type options() :: [option()].
+-type option_name() :: use_stdio
+    | cd
+    | compressed
+    | packet
+    | env
+    | start_timeout
+    | call_timeout.
 
--export_type([option/0, options/0]).
-
--include("erlport.hrl").
+-export_type([option/0]).
 
 
 %%
-%% @doc Parse ErlPort options
+%% @doc Parse generic ErlPort option
 %%
 
--spec parse(Options::options()) ->
-    {ok, #options{}} | {error, Reason::term()}.
+-spec parse(Option::option()) ->
+    {ok, option_name(), Value::term()} | {error, Reason::term()}.
 
-parse(Options) ->
-    parse(Options, #options{}).
-
-parse([nouse_stdio=UseStdio | Tail],
-        Options=#options{port_options=PortOptions}) ->
-    parse(Tail, Options#options{use_stdio=UseStdio,
-        port_options=[UseStdio | PortOptions]});
-parse([{compressed, Level}=Value | Tail], Options) ->
+parse(nouse_stdio=UseStdio) ->
+    {ok, use_stdio, UseStdio};
+parse({compressed, Level}=Value) ->
     if
         is_integer(Level) andalso Level >= 0 andalso Level =< 9 ->
-            parse(Tail, Options#options{compressed=Level});
+            {ok, compressed, Level};
         true ->
             {error, {invalid_option, Value}}
     end;
-parse([{packet, Packet}=Value | Tail], Options) ->
+parse({packet, Packet}=Value) ->
     case lists:member(Packet, [1, 2, 4]) of
         true ->
-            parse(Tail, Options#options{packet=Packet});
+            {ok, packet, Packet};
         false ->
             {error, {invalid_option, Value}}
     end;
-parse([{cd, Path}=Value | Tail], Options=#options{port_options=PortOptions}) ->
+parse({cd, Path}=Value) ->
     case filelib:is_dir(Path) of
         true ->
-            parse(Tail, Options#options{cd=Path,
-                port_options=[{cd, Path} | PortOptions]});
+            {ok, cd, Path};
         false ->
             {error, {invalid_option, Value}}
     end;
-parse([{python, Python} | Tail], Options) ->
-    % Will be checked later
-    parse(Tail, Options#options{python=Python});
-parse([{env, Env}=Value | Tail], Options) ->
+parse({env, Env}=Value) ->
     case filter_invalid_env(Env) of
         [] ->
-            parse(Tail, Options#options{env=Env});
+            {ok, env, Env};
         Invalid ->
             {error, {invalid_option, Value, Invalid}}
     end;
-parse([{python_path, PythonPath}=Value | Tail], Options) ->
-    case filter_invalid_paths(PythonPath) of
-        {ok, Path} ->
-            % Paths will be checked later
-            parse(Tail, Options#options{python_path=Path});
-        {error, Invalid} ->
-            {error, {invalid_option, Value, Invalid}}
-    end;
-parse([{start_timeout, Timeout}=Value | Tail], Options) ->
+parse({start_timeout, Timeout}=Value) ->
     case timeout(Timeout) of
         {ok, T} ->
-            parse(Tail, Options#options{start_timeout=T});
+            {ok, start_timeout, T};
         error ->
             {error, {invalid_option, Value}}
     end;
-parse([{call_timeout, Timeout}=Value | Tail], Options) ->
+parse({call_timeout, Timeout}=Value) ->
     case timeout(Timeout) of
         {ok, T} ->
-            parse(Tail, Options#options{call_timeout=T});
+            {ok, call_timeout, T};
         error ->
             {error, {invalid_option, Value}}
     end;
-parse([UnknownOption | _Tail], _Options) ->
-    {error, {unknown_option, UnknownOption}};
-parse([], Options=#options{env=Env0, python_path=PythonPath0, python=Python,
-        port_options=PortOptions, packet=Packet}) ->
-    case get_python(Python) of
-        {ok, PythonFilename} ->
-            case update_python_path(Env0, PythonPath0) of
-                {ok, PythonPath, Env} ->
-                    {ok, Options#options{env=Env, python_path=PythonPath,
-                        python=PythonFilename,
-                        port_options=[{env, Env}, {packet, Packet}
-                            | PortOptions]}};
-                {error, _}=Error ->
-                    Error
-            end;
-        {error, _}=Error ->
-            Error
-    end.
+parse(UnknownOption) ->
+    {error, {unknown_option, UnknownOption}}.
 
 %%%
 %%% Utility functions
 %%%
-
-filter_invalid_paths(Paths=[List | _]) when is_list(List) ->
-    case lists:filter(fun (L) -> not is_list(L) end, Paths) of
-        [] ->
-            {ok, Paths};
-        Invalid ->
-            {error, Invalid}
-    end;
-filter_invalid_paths(Path=[Integer | _]) when is_integer(Integer) ->
-    case lists:filter(fun (I) -> not is_integer(I) end, Path) of
-        "" ->
-            {ok, string:tokens(Path, ":")};
-        Invalid ->
-            {error, Invalid}
-    end;
-filter_invalid_paths(List) when is_list(List) ->
-    {error, invalid_path};
-filter_invalid_paths(_Paths) ->
-    {error, not_list}.
 
 filter_invalid_env(Env) when is_list(Env) ->
     lists:filter(fun
@@ -177,76 +127,9 @@ filter_invalid_env(Env) when is_list(Env) ->
 filter_invalid_env(_Env) ->
     not_list.
 
-update_python_path(Env0, PythonPath0) ->
-    case code:priv_dir(erlport) of
-        {error, bad_name} ->
-            {error, {not_found, "erlport/priv"}};
-        PrivDir ->
-            ErlPortPath = filename:join(PrivDir, "python"),
-            {PathFromEnv, Env2} = extract_python_path(Env0, "", []),
-            case join_python_path([[ErlPortPath], PythonPath0,
-                    string:tokens(PathFromEnv, ":")]) of
-                {ok, PythonPath} ->
-                    Env3 = [{"PYTHONPATH", PythonPath} | Env2],
-                    {ok, PythonPath, Env3};
-                {error, _}=Error ->
-                    Error
-            end
-    end.
-
-join_python_path(Parts=[_|_]) ->
-    remove_duplicate_path(lists:append(Parts), [], sets:new()).
-
-remove_duplicate_path([P | Tail], Paths, Seen) ->
-    case P of
-        "" ->
-            remove_duplicate_path(Tail, Paths, Seen);
-        P ->
-            case filelib:is_dir(P) of
-                true ->
-                    AP = filename:absname(P),
-                    case sets:is_element(AP, Seen) of
-                        false ->
-                            Seen2 = sets:add_element(AP, Seen),
-                            remove_duplicate_path(Tail, [AP | Paths], Seen2);
-                        true ->
-                            remove_duplicate_path(Tail, Paths, Seen)
-                    end;
-                false ->
-                    {error, {not_dir, P}}
-            end
-    end;
-remove_duplicate_path([], Paths, _Seen) ->
-    {ok, string:join(lists:reverse(Paths), ":")}.
-
-get_python(Python=[_|_]) ->
-    {PythonCommand, Options} = lists:splitwith(fun (C) ->
-        C =/= $ 
-        end, Python),
-    case os:find_executable(PythonCommand) of
-        false ->
-            case Python of
-                ?DEFAULT_PYTHON ->
-                    {error, python_not_found};
-                _ ->
-                    {error, {invalid_option, {python, Python}, not_found}}
-            end;
-        Filename ->
-            {ok, filename:absname(Filename) ++ Options}
-    end;
-get_python(Python) ->
-    {error, {invalid_option, {python, Python}}}.
-
 timeout(Timeout) when is_integer(Timeout) andalso Timeout > 0 ->
     {ok, Timeout};
 timeout(Timeout=infinity) ->
     {ok, Timeout};
 timeout(_) ->
     error.
-
-extract_python_path([{"PYTHONPATH", P} | Tail], Path, Env) ->
-    extract_python_path(Tail, [P, ":" | Path], Env);
-extract_python_path([Item | Tail], Path, Env) ->
-    extract_python_path(Tail, Path, [Item | Env]);
-extract_python_path([], Path, Env) ->
-    {lists:append(lists:reverse(Path)), lists:reverse(Env)}.

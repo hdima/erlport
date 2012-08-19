@@ -25,5 +25,23 @@
 %%% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %%% POSSIBILITY OF SUCH DAMAGE.
 
--define(DEFAULT_START_TIMEOUT, 10000).
--define(DEFAULT_CALL_TIMEOUT, 10000).
+-include("erlport.hrl").
+
+-define(DEFAULT_PYTHON, "python").
+
+-record(python_options, {
+    python = ?DEFAULT_PYTHON :: string(),
+    cd :: Path :: string(),
+    use_stdio = use_stdio :: use_stdio | nouse_stdio,
+    compressed = 0 :: 0..9,
+    packet = 4 :: 1 | 2 | 4,
+    env = [] :: [{EnvName :: string(), EnvValue :: string()}],
+    python_path = [] :: [Path :: string()],
+    port_options = [binary, hide, exit_status]
+        :: [Option :: atom() | {Name :: atom(), Value :: term()}],
+    start_timeout = ?DEFAULT_START_TIMEOUT :: pos_integer() | infinity,
+    call_timeout = ?DEFAULT_CALL_TIMEOUT :: pos_integer() | infinity
+    }).
+
+-define(PYTHON_FIELDS, (lists:zip(record_info(fields, python_options),
+    lists:seq(2, record_info(size, python_options))))).

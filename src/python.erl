@@ -78,7 +78,7 @@
 
 -opaque instance() :: #python{}.
 
--include("erlport.hrl").
+-include("python.hrl").
 
 -define(is_allowed_term(T), (is_atom(T) orelse is_number(T)
     orelse is_binary(T))).
@@ -97,7 +97,7 @@ start() ->
 %% @doc Start Python instance
 %%
 
--spec start(Options::erlport_options:options()) ->
+-spec start(Options::python_options:options()) ->
     {ok, instance()} | {error, Reason::term()}.
 
 start(Options) ->
@@ -117,7 +117,7 @@ start_link() ->
 %% @doc Start linked Python instance
 %%
 
--spec start_link(Options::erlport_options:options()) ->
+-spec start_link(Options::python_options:options()) ->
     {ok, instance()} | {error, Reason::term()}.
 
 start_link(Options) ->
@@ -208,7 +208,7 @@ switch(#python{pid=Pid}, Module, Function, Args, Options) when is_atom(Module),
 %% @doc Process initialization callback
 %% @hidden
 %%
-init(#options{python=Python,use_stdio=UseStdio, packet=Packet,
+init(#python_options{python=Python,use_stdio=UseStdio, packet=Packet,
         compressed=Compressed, port_options=PortOptions,
         call_timeout=Timeout}) ->
     Path = lists:concat([Python,
@@ -543,8 +543,8 @@ queue_foreach(Fun, Queue) ->
     end.
 
 start(Function, OptionsList) when is_list(OptionsList) ->
-    case erlport_options:parse(OptionsList) of
-        {ok, Options=#options{start_timeout=Timeout}} ->
+    case python_options:parse(OptionsList) of
+        {ok, Options=#python_options{start_timeout=Timeout}} ->
             case gen_fsm:Function(?MODULE, Options, [{timeout, Timeout}]) of
                 {ok, Pid} ->
                     {ok, #python{pid=Pid}};

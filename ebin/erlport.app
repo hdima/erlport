@@ -26,7 +26,7 @@
 % POSSIBILITY OF SUCH DAMAGE.
 
 {application, erlport, [
-    {modules, [python, erlport_options]},
+    {modules, [python, erlport_options, python_options]},
     {description, "Erlang port protocol"},
     {vsn, "1.0"},
     {applications, [kernel, stdlib]}
