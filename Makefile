@@ -67,7 +67,12 @@ python-test-verbose:
 	cd priv/python; make test-verbose
 
 check: $(TESTDIR) $(TESTBEAMS)
-	dialyzer $(TESTDIR) | fgrep -v -f ./dialyzer.ignore
+	dialyzer $(TESTDIR) | fgrep -v -f dialyzer.ignore
+
+create-ignore-file:
+	rm -f dialyzer.ignore
+	touch dialyzer.ignore
+	make check > dialyzer.ignore
 
 doc:
 	$(ERL) -eval 'edoc:application(erlport)' -s init stop
@@ -77,4 +82,4 @@ clean:
 
 
 .PHONY: compile test test-verbose check doc clean python-test
-.PHONY: python-test-verbose
+.PHONY: python-test-verbose create-ignore-file

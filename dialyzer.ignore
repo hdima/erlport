@@ -12,19 +12,19 @@ python_options_tests.erl:108: The created fun has no local return
 python_options_tests.erl:113: The created fun has no local return
 python_options_tests.erl:113: The created fun has no local return
 python_options_tests.erl:114: The call python_options:parse([{'env','invalid_env'},...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
-python_options_tests.erl:153: The created fun has no local return
-python_options_tests.erl:153: The created fun has no local return
-python_options_tests.erl:154: The call python_options:parse([{'python','not_string'},...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
-python_options_tests.erl:270: The created fun has no local return
-python_options_tests.erl:270: The created fun has no local return
-python_options_tests.erl:272: The call python_options:parse([{'python_path','invalid_path'},...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
-python_options_tests.erl:276: The created fun has no local return
-python_options_tests.erl:276: The created fun has no local return
-python_options_tests.erl:279: The created fun has no local return
-python_options_tests.erl:279: The created fun has no local return
-python_options_tests.erl:294: The created fun has no local return
-python_options_tests.erl:294: The created fun has no local return
-python_options_tests.erl:295: The call python_options:parse(['unknown',...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
+python_options_tests.erl:155: The created fun has no local return
+python_options_tests.erl:155: The created fun has no local return
+python_options_tests.erl:156: The call python_options:parse([{'python','not_string'},...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
+python_options_tests.erl:274: The created fun has no local return
+python_options_tests.erl:274: The created fun has no local return
+python_options_tests.erl:276: The call python_options:parse([{'python_path','invalid_path'},...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
+python_options_tests.erl:280: The created fun has no local return
+python_options_tests.erl:280: The created fun has no local return
+python_options_tests.erl:283: The created fun has no local return
+python_options_tests.erl:283: The created fun has no local return
+python_options_tests.erl:298: The created fun has no local return
+python_options_tests.erl:298: The created fun has no local return
+python_options_tests.erl:299: The call python_options:parse(['unknown',...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
 python_tests.erl:175: Cons will produce an improper list since its 2nd argument is 1
 python_tests.erl:176: Cons will produce an improper list since its 2nd argument is nonempty_improper_list(2 | 3,4)
 python_tests.erl:177: Cons will produce an improper list since its 2nd argument is 'tail'

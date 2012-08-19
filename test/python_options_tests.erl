@@ -122,15 +122,17 @@ python_option_test_() -> {setup,
         UnknownName = filename:join(TmpDir, "unknown"),
         GoodPython = create_mock_python(TmpDir, "python", "2.5.0"),
         UnsupportedPython = create_mock_python(TmpDir, "unsupported", "2.4.6"),
+        UnsupportedPython2 = create_mock_python(TmpDir, "unsupported2",
+            "4.0.0"),
         InvalidPython = create_mock_python(TmpDir, "invalid", "INVALID"),
         {TmpDir, GoodPython, BadName, UnknownName, UnsupportedPython,
-            InvalidPython}
+            UnsupportedPython2, InvalidPython}
     end,
-    fun ({TmpDir, _, _, _, _, _}) ->
-        ok = erlport_test_utils:remove_object(TmpDir)
+    fun (Info) ->
+        ok = erlport_test_utils:remove_object(element(1, Info)) % TmpDir
     end,
     fun ({_, GoodPython, BadName, UnknownName, UnsupportedPython,
-            InvalidPython}) -> [
+            UnsupportedPython2, InvalidPython}) -> [
         fun () ->
             {ok, #python_options{python=Python}} = python_options:parse([]),
             ?assertEqual(match, re:run(Python, "/python$", [{capture, none}]))
@@ -163,6 +165,8 @@ python_option_test_() -> {setup,
         end,
         ?_assertEqual({error, {unsupported_python_version, "Python 2.4.6\n"}},
             python_options:parse([{python, UnsupportedPython}])),
+        ?_assertEqual({error, {unsupported_python_version, "Python 4.0.0\n"}},
+            python_options:parse([{python, UnsupportedPython2}])),
         ?_assertEqual({error, {invalid_python, InvalidPython}},
             python_options:parse([{python, InvalidPython}]))
     ] end}.
