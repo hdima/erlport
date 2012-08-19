@@ -15,16 +15,16 @@ python_options_tests.erl:114: The call python_options:parse([{'env','invalid_env
 python_options_tests.erl:151: The created fun has no local return
 python_options_tests.erl:151: The created fun has no local return
 python_options_tests.erl:152: The call python_options:parse([{'python','not_string'},...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
-python_options_tests.erl:255: The created fun has no local return
-python_options_tests.erl:255: The created fun has no local return
-python_options_tests.erl:257: The call python_options:parse([{'python_path','invalid_path'},...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
-python_options_tests.erl:261: The created fun has no local return
-python_options_tests.erl:261: The created fun has no local return
 python_options_tests.erl:264: The created fun has no local return
 python_options_tests.erl:264: The created fun has no local return
+python_options_tests.erl:266: The call python_options:parse([{'python_path','invalid_path'},...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
 python_options_tests.erl:270: The created fun has no local return
 python_options_tests.erl:270: The created fun has no local return
-python_options_tests.erl:271: The call python_options:parse(['unknown',...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
+python_options_tests.erl:273: The created fun has no local return
+python_options_tests.erl:273: The created fun has no local return
+python_options_tests.erl:288: The created fun has no local return
+python_options_tests.erl:288: The created fun has no local return
+python_options_tests.erl:289: The call python_options:parse(['unknown',...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
 python_tests.erl:175: Cons will produce an improper list since its 2nd argument is 1
 python_tests.erl:176: Cons will produce an improper list since its 2nd argument is nonempty_improper_list(2 | 3,4)
 python_tests.erl:177: Cons will produce an improper list since its 2nd argument is 'tail'
