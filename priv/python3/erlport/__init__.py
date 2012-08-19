@@ -25,61 +25,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-RELDIR = ebin
-TESTDIR = .eunit
+"""Erlang port protocol."""
 
-SOURCES = $(wildcard src/*.erl)
-BEAMS = $(patsubst src/%.erl,$(RELDIR)/%.beam,$(SOURCES))
-TESTSOURCES = $(wildcard test/*.erl)
-TESTBEAMS = $(patsubst src/%.erl,$(TESTDIR)/%.beam,$(SOURCES)) \
-    $(patsubst test/%.erl,$(TESTDIR)/%.beam,$(TESTSOURCES))
-ERLC = erlc -Wall +warnings_as_errors -I include
-ERL = erl -noinput -pa ../erlport
- 
- 
-compile: $(BEAMS)
- 
-$(RELDIR)/%.beam: src/%.erl
-	$(ERLC) -o $(RELDIR) $<
- 
-$(TESTDIR)/%.beam: test/%.erl
-	$(ERLC) +debug_info -o $(TESTDIR) $<
- 
-$(TESTDIR)/%.beam: src/%.erl
-	$(ERLC) +debug_info -o $(TESTDIR) $<
+__author__ = "Dmitry Vasiliev <dima@hlabs.org>"
+__version__ = "1.0"
 
-$(TESTDIR):
-	mkdir $@
-
-$(TESTDIR)/erlport.app:
-	cp -l ebin/erlport.app $(TESTDIR)
-
-test: python2-test $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
-	./runtest
-
-test-verbose: python2-test-verbose $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
-	./runtest verbose
-
-python2-test:
-	cd priv/python2; make test
-
-python2-test-verbose:
-	cd priv/python2; make test-verbose
-
-check: $(TESTDIR) $(TESTBEAMS)
-	dialyzer $(TESTDIR) | fgrep -v -f dialyzer.ignore
-
-create-ignore-file:
-	rm -f dialyzer.ignore
-	touch dialyzer.ignore
-	make check > dialyzer.ignore
-
-doc:
-	$(ERL) -eval 'edoc:application(erlport)' -s init stop
-
-clean:
-	rm -rf $(RELDIR)/*.beam $(TESTDIR)
-
-
-.PHONY: compile test test-verbose check doc clean python2-test
-.PHONY: python2-test-verbose create-ignore-file
+from erlport.erlterms import Atom, String, ImproperList
+from erlport.erlang import Erlang

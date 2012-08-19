@@ -82,8 +82,8 @@ parse([], Options=#python_options{env=Env0, python_path=PythonPath0,
         python=Python, port_options=PortOptions, packet=Packet}) ->
     PortOptions1 = update_port_options(PortOptions, Options),
     case get_python(Python) of
-        {ok, PythonFilename} ->
-            case update_python_path(Env0, PythonPath0) of
+        {ok, PythonFilename, MajVersion} ->
+            case update_python_path(Env0, PythonPath0, MajVersion) of
                 {ok, PythonPath, Env} ->
                     {ok, Options#python_options{env=Env,
                         python_path=PythonPath, python=PythonFilename,
@@ -125,12 +125,13 @@ filter_invalid_paths(List) when is_list(List) ->
 filter_invalid_paths(_Paths) ->
     {error, not_list}.
 
-update_python_path(Env0, PythonPath0) ->
+update_python_path(Env0, PythonPath0, MajVersion) ->
     case code:priv_dir(erlport) of
         {error, bad_name} ->
             {error, {not_found, "erlport/priv"}};
         PrivDir ->
-            ErlPortPath = filename:join(PrivDir, "python"),
+            PythonDir = lists:concat([python, MajVersion]),
+            ErlPortPath = filename:join(PrivDir, PythonDir),
             {PathFromEnv, Env2} = extract_python_path(Env0, "", []),
             case join_python_path([[ErlPortPath], PythonPath0,
                     string:tokens(PathFromEnv, ":")]) of
@@ -182,8 +183,8 @@ get_python(Python=[_|_]) ->
         Filename ->
             Fullname = filename:absname(Filename),
             case check_python_version(Fullname) of
-                {ok, _Version} ->
-                    {ok, Fullname ++ Options};
+                {ok, {MajVersion, _, _}} ->
+                    {ok, Fullname ++ Options, MajVersion};
                 {error, _}=Error ->
                     Error
             end
