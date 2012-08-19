@@ -94,7 +94,7 @@ class MessageHandler(object):
             pass
 
     def loop(self, read, write, call):
-        switch_ack = Atom("s")
+        switch_ack = Atom(b"s")
         while True:
             message = read()
             try:
@@ -102,9 +102,9 @@ class MessageHandler(object):
             except ValueError:
                 raise InvalidMessage(message)
 
-            if mtype == "C":
+            if mtype == b"C":
                 write(call(module, function, args))
-            elif mtype == "S":
+            elif mtype == b"S":
                 write(switch_ack)
                 self.client = True
                 write(call(module, function, args))
@@ -125,8 +125,9 @@ class MessageHandler(object):
 
         self._call_lock_acquire()
         try:
-            self.port.write((Atom('C'), module, function,
-                map(self.encoder, args)))
+            self.port.write((Atom(b"C"), module, function,
+                # TODO: Optimize list(map())
+                list(map(self.encoder, args))))
             response = self.port.read()
         finally:
             self._call_lock_release()
@@ -135,8 +136,8 @@ class MessageHandler(object):
         except ValueError:
             raise InvalidMessage(response)
 
-        if mtype != "r":
-            if mtype == "e":
+        if mtype != b"r":
+            if mtype == b"e":
                 # TODO: Raise error based on error value
                 raise Exception("error")
             raise UnknownMessage(response)
@@ -144,20 +145,21 @@ class MessageHandler(object):
 
     def call_with_error_handler(self, module, function, args):
         try:
-            objects = function.split(".")
-            f = sys.modules.get(module)
+            mod = module.decode()
+            objects = function.decode().split(".")
+            f = sys.modules.get(mod)
             if not f:
-                f = __import__(module, {}, {}, [objects[0]])
+                f = __import__(mod, {}, {}, [objects[0]])
             for o in objects:
                 f = getattr(f, o)
-            result = Atom("r"), self.encoder(f(*map(self.decoder, args)))
+            result = Atom(b"r"), self.encoder(f(*map(self.decoder, args)))
         except:
             # TODO: Update exception format
             t, val, tb = exc_info()
-            exc = Atom("%s.%s" % (t.__module__, t.__name__))
+            exc = Atom(bytes("%s.%s" % (t.__module__, t.__name__), "utf-8"))
             exc_tb = extract_tb(tb)
             exc_tb.reverse()
-            result = Atom("e"), (exc, unicode(val), exc_tb)
+            result = Atom(b"e"), (exc, str(val), exc_tb)
         return result
 
 class Function(object):
@@ -173,7 +175,8 @@ class Module(object):
     __slots__ = ()
 
     def __new__(cls, name):
-        cls.__getattribute__ = lambda s, fname: Function(Atom(fname), name)
+        cls.__getattribute__ = lambda s, fname: Function(
+            Atom(fname.encode()), name)
         return super(Module, cls).__new__(cls)
 
 class Erlang(object):
@@ -181,7 +184,7 @@ class Erlang(object):
     __slots__ = ()
 
     def __getattribute__(self, module):
-        return Module(Atom(module))
+        return Module(Atom(module.encode()))
 
 Erlang = Erlang()
 

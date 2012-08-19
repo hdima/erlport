@@ -1,3 +1,5 @@
+- Define python:format_status/2 to eliminate errors with big binary messages?
+
 - Add publish/subscribe mode with direct messaging support?
 
 - Add 'threaded' mode for switch and run switch call in threads in Python. What

@@ -45,19 +45,23 @@ setup() ->
     {ok, P} = python:start_link([{cd, "test/python"}]),
     P.
 
+setup3() ->
+    {ok, P} = python:start_link([{cd, "test/python"}, {python, "python3"}]),
+    P.
+
 cleanup(P) ->
     ok = python:stop(P).
 
-call_test_() -> {setup,
-    fun setup/0,
+call_test_() -> [{setup,
+    Setup,
     fun cleanup/1,
     fun (P) ->
         ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
-    end}.
+    end} || Setup <- [fun setup/0, fun setup3/0]].
 
-compressed_test_() -> {setup,
+compressed_test_() -> [{setup,
     fun () ->
-        {ok, P} = python:start_link([{compressed, 9}]),
+        {ok, P} = python:start_link([{compressed, 9}, {python, Python}]),
         P
     end,
     fun cleanup/1,
@@ -68,21 +72,21 @@ compressed_test_() -> {setup,
             ?assertEqual(<<S1/binary, S2/binary>>,
                 python:call(P, operator, add, [S1, S2]))
         end
-    end}.
+    end} || Python <- ["python", "python3"]].
 
-call_pipeline_test_() -> {setup,
-    fun setup/0,
+call_pipeline_test_() -> [{setup,
+    Setup,
     fun cleanup/1,
     fun (P) ->
         {inparallel, [
             ?_assertEqual(N + 1, python:call(P, operator, add, [N , 1]))
             || N <- lists:seq(1, 50)]}
-    end}.
+    end} || Setup <- [fun setup/0, fun setup3/0]].
 
-switch_test_() -> {setup,
+switch_test_() -> [{setup,
     fun () ->
         setup_event_logger(),
-        setup()
+        Setup()
     end,
     fun (P) ->
         cleanup(P),
@@ -110,10 +114,10 @@ switch_test_() -> {setup,
                 {test_callback, 3, 4}
                 ], get_events())
         end
-    ] end}.
+    ] end} || Setup <- [fun setup/0, fun setup3/0]].
 
-integer_type_test_() -> {setup,
-    fun setup/0,
+integer_type_test_() -> [{setup,
+    Setup,
     fun cleanup/1,
     fun (P) -> [
         ?_assertIdentity(P, 0),
@@ -121,20 +125,20 @@ integer_type_test_() -> {setup,
         ?_assertIdentity(P, -1),
         ?_assertIdentity(P, 100000),
         ?_assertIdentity(P, -100000)
-    ] end}.
+    ] end} || Setup <- [fun setup/0, fun setup3/0]].
 
-big_integer_type_test_() -> {setup,
-    fun setup/0,
+big_integer_type_test_() -> [{setup,
+    Setup,
     fun cleanup/1,
     fun (P) -> [
         ?_assertIdentity(P, 1000000000000),
         ?_assertIdentity(P, -1000000000000),
         ?_assertIdentity(P, 2 bsl 2040),
         ?_assertIdentity(P, -2 bsl 2040)
-    ] end}.
+    ] end} || Setup <- [fun setup/0, fun setup3/0]].
 
-float_type_test_() -> {setup,
-    fun setup/0,
+float_type_test_() -> [{setup,
+    Setup,
     fun cleanup/1,
     fun (P) -> [
         ?_assertIdentity(P, 0.0),
@@ -142,10 +146,10 @@ float_type_test_() -> {setup,
         ?_assertIdentity(P, -0.5),
         ?_assertIdentity(P, 3.1415926),
         ?_assertIdentity(P, -3.1415926)
-    ] end}.
+    ] end} || Setup <- [fun setup/0, fun setup3/0]].
 
-atom_type_test_() -> {setup,
-    fun setup/0,
+atom_type_test_() -> [{setup,
+    Setup,
     fun cleanup/1,
     fun (P) -> [
         ?_assertIdentity(P, ''),
@@ -154,10 +158,10 @@ atom_type_test_() -> {setup,
         ?_assertIdentity(P, true),
         ?_assertIdentity(P, false),
         ?_assertIdentity(P, undefined)
-    ] end}.
+    ] end} || Setup <- [fun setup/0, fun setup3/0]].
 
-list_type_test_() -> {setup,
-    fun setup/0,
+list_type_test_() -> [{setup,
+    Setup,
     fun cleanup/1,
     fun (P) -> [
         ?_assertIdentity(P, []),
@@ -166,19 +170,19 @@ list_type_test_() -> {setup,
         ?_assertIdentity(P, [[]]),
         ?_assertIdentity(P, [[], [], []]),
         ?_assertIdentity(P, lists:seq(1, 10000))
-    ] end}.
+    ] end} || Setup <- [fun setup/0, fun setup3/0]].
 
-improper_list_type_test_() -> {setup,
-    fun setup/0,
+improper_list_type_test_() -> [{setup,
+    Setup,
     fun cleanup/1,
     fun (P) -> [
         ?_assertIdentity(P, [0 | 1]),
         ?_assertIdentity(P, [1, 2, 3 | 4]),
         ?_assertIdentity(P, [head | tail])
-    ] end}.
+    ] end} || Setup <- [fun setup/0, fun setup3/0]].
 
-tuple_type_test_() -> {setup,
-    fun setup/0,
+tuple_type_test_() -> [{setup,
+    Setup,
     fun cleanup/1,
     fun (P) -> [
         ?_assertIdentity(P, {}),
@@ -187,19 +191,19 @@ tuple_type_test_() -> {setup,
         ?_assertIdentity(P, {{}}),
         ?_assertIdentity(P, {{}, {}}),
         ?_assertIdentity(P, list_to_tuple(lists:seq(1, 10000)))
-    ] end}.
+    ] end} || Setup <- [fun setup/0, fun setup3/0]].
 
-binary_type_test_() -> {setup,
-    fun setup/0,
+binary_type_test_() -> [{setup,
+    Setup,
     fun cleanup/1,
     fun (P) -> [
         ?_assertIdentity(P, <<>>),
         ?_assertIdentity(P, <<"test">>),
         ?_assertIdentity(P, <<0, 1, 2, 3, 4, 5>>)
-    ] end}.
+    ] end} || Setup <- [fun setup/0, fun setup3/0]].
 
-opaque_type_test_() -> {setup,
-    fun setup/0,
+opaque_type_test_() -> [{setup,
+    Setup,
     fun cleanup/1,
     fun (P) -> [
         ?_assertIdentity(P, self()),
@@ -208,7 +212,7 @@ opaque_type_test_() -> {setup,
         fun () -> R = make_ref(), ?assertIdentity(P, R) end,
         ?_assertIdentity(P, fun erlang:is_atom/1),
         fun () -> F = fun () -> true end, ?assertIdentity(P, F) end
-    ] end}.
+    ] end} || Setup <- [fun setup/0, fun setup3/0]].
 
 log_event(Event) ->
     true = ets:insert(events, {events, Event}).
