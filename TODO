@@ -17,10 +17,6 @@
 
 - Check exports in erlport/__init__.py
 
-- Check Python version by calling python -V
-
-- Maybe return expected type in case of option error?
-
 - Comments for modules
 
 - How to handle Python <-> Python exceptions? We can pass it inside some error
