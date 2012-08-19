@@ -180,7 +180,13 @@ get_python(Python=[_|_]) ->
                     {error, {invalid_option, {python, Python}, not_found}}
             end;
         Filename ->
-            {ok, filename:absname(Filename) ++ Options}
+            Fullname = filename:absname(Filename),
+            case check_python_version(Fullname) of
+                {ok, _Version} ->
+                    {ok, Fullname ++ Options};
+                {error, _}=Error ->
+                    Error
+            end
     end;
 get_python(Python) ->
     {error, {invalid_option, {python, Python}}}.
@@ -205,4 +211,20 @@ update_port_options(PortOptions, #python_options{cd=Path,
             [UseStdio | PortOptions1];
         _ ->
             PortOptions1
+    end.
+
+check_python_version(Python) ->
+    Out = os:cmd(Python ++ " -V"),
+    case re:run(Out, "^Python ([0-9]+)\.([0-9]+)\.([0-9]+)$",
+            [{capture, all_but_first, list}]) of
+        {match, StrVersion} ->
+            Version = [list_to_integer(N) || N <- StrVersion],
+            if
+                Version >= [2, 5, 0] ->
+                    {ok, Version};
+                true ->
+                    {error, {unsupported_python_version, Out}}
+            end;
+        nomatch ->
+            {error, {invalid_python, Python}}
     end.

@@ -120,23 +120,25 @@ python_option_test_() -> {setup,
         BadName = filename:join(TmpDir, "not_executable"),
         ok = file:write_file(BadName, <<>>, [raw]),
         UnknownName = filename:join(TmpDir, "unknown"),
-        GoodName = filename:join(TmpDir, "python"),
-        ok = file:write_file(GoodName, <<>>, [raw]),
-        ok = file:change_mode(GoodName, 8#00755),
-        {TmpDir, GoodName, BadName, UnknownName}
+        GoodPython = create_mock_python(TmpDir, "python", "2.5.0"),
+        UnsupportedPython = create_mock_python(TmpDir, "unsupported", "2.4.6"),
+        InvalidPython = create_mock_python(TmpDir, "invalid", "INVALID"),
+        {TmpDir, GoodPython, BadName, UnknownName, UnsupportedPython,
+            InvalidPython}
     end,
-    fun ({TmpDir, _, _, _}) ->
+    fun ({TmpDir, _, _, _, _, _}) ->
         ok = erlport_test_utils:remove_object(TmpDir)
     end,
-    fun ({_, GoodName, BadName, UnknownName}) -> [
+    fun ({_, GoodPython, BadName, UnknownName, UnsupportedPython,
+            InvalidPython}) -> [
         fun () ->
             {ok, #python_options{python=Python}} = python_options:parse([]),
             ?assertEqual(match, re:run(Python, "/python$", [{capture, none}]))
         end,
-        ?_assertMatch({ok, #python_options{python=GoodName}},
-            python_options:parse([{python, GoodName}])),
+        ?_assertMatch({ok, #python_options{python=GoodPython}},
+            python_options:parse([{python, GoodPython}])),
         fun () ->
-            CommandWithOption = GoodName ++ " -S",
+            CommandWithOption = GoodPython ++ " -S",
             ?assertMatch({ok, #python_options{python=CommandWithOption}},
                 python_options:parse([{python, CommandWithOption}]))
         end,
@@ -158,7 +160,11 @@ python_option_test_() -> {setup,
             after
                 true = os:putenv("PATH", Path)
             end
-        end
+        end,
+        ?_assertEqual({error, {unsupported_python_version, "Python 2.4.6\n"}},
+            python_options:parse([{python, UnsupportedPython}])),
+        ?_assertEqual({error, {invalid_python, InvalidPython}},
+            python_options:parse([{python, InvalidPython}]))
     ] end}.
 
 cd_option_test_() -> {setup,
@@ -287,3 +293,11 @@ python_path_option_test_() -> {setup,
 unknown_option_test_() ->
     ?_assertEqual({error, {unknown_option, unknown}},
         python_options:parse([unknown])).
+
+create_mock_python(Dir, Name, Version) ->
+    Path = filename:join(Dir, Name),
+    ok = file:write_file(Path,
+        <<"#! /bin/sh\necho 'Python ",
+        (list_to_binary(Version))/binary, "'\n">>, [raw]),
+    ok = file:change_mode(Path, 8#00755),
+    Path.
