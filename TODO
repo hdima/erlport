@@ -1,3 +1,5 @@
+- Extract generic tests and erlport functions to generic modules
+
 - Check imports in Python 3 version
 
 - Add also 'use_stdio' option
