@@ -133,6 +133,9 @@ class OpaqueObject(object):
         return (type(self) == type(other) and self.language == other.language
             and self.data == other.data)
 
+    def __hash__(self):
+        return hash((self.language, self.data))
+
     def __repr__(self):
         return "OpaqueObject(%r, %r)" % (self.data, self.language)
 

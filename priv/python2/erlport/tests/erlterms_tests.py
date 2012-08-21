@@ -105,6 +105,15 @@ class OpaqueObjectTestCase(unittest.TestCase):
         obj = OpaqueObject("data", Atom("erlang"))
         self.assertEqual("data", obj.encode())
 
+    def test_hash(self):
+        obj = OpaqueObject("data", Atom("language"))
+        obj2 = OpaqueObject("data", Atom("language"))
+        self.assertEqual(hash(obj), hash(obj2))
+        obj3 = OpaqueObject("data", Atom("language2"))
+        self.assertNotEqual(hash(obj), hash(obj3))
+        obj4 = OpaqueObject("more data", Atom("language"))
+        self.assertNotEqual(hash(obj), hash(obj4))
+
 class DecodeTestCase(unittest.TestCase):
 
     def test_decode(self):
