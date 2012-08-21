@@ -1,3 +1,5 @@
+- Log some errors, for example if switch failed in async mode and just continue
+
 - After some number of subscribers we can create publishing workers (with
   (un)subscribe/publish functions) which can publish messages in parallel.
 
