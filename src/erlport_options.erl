@@ -42,6 +42,7 @@
 
 
 -type option() :: nouse_stdio
+    | use_stdio
     | {compressed, 0..9}
     | {cd, Path :: string()}
     | {packet, 1 | 2 | 4}
@@ -66,6 +67,8 @@
 -spec parse(Option::option()) ->
     {ok, option_name(), Value::term()} | {error, Reason::term()}.
 
+parse(use_stdio=UseStdio) ->
+    {ok, use_stdio, UseStdio};
 parse(nouse_stdio=UseStdio) ->
     {ok, use_stdio, UseStdio};
 parse({compressed, Level}=Value) ->

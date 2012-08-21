@@ -9,8 +9,6 @@
 
 - Check imports in Python 3 version
 
-- Add also 'use_stdio' option
-
 - Return error for 'nouse_stdio' option on Windows? It seems this option
   unsupported or have no effect on Windows?
 

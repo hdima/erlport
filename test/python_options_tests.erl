@@ -49,7 +49,9 @@ use_stdio_option_test_() -> [
     ?_assertMatch({ok, #python_options{use_stdio=use_stdio}},
         python_options:parse([])),
     ?_assertMatch({ok, #python_options{use_stdio=nouse_stdio}},
-        python_options:parse([nouse_stdio]))
+        python_options:parse([nouse_stdio])),
+    ?_assertMatch({ok, #python_options{use_stdio=use_stdio}},
+        python_options:parse([use_stdio]))
     ].
 
 compressed_option_test_() -> [
