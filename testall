@@ -14,8 +14,25 @@ PYTHON=" \
     $SANDBOX/Python-2.7.3 \
     "
 
+PYTHON3=" \
+    $SANDBOX/Python-3.0.1 \
+    $SANDBOX/Python-3.1.5 \
+    $SANDBOX/Python-3.2.3 \
+    "
+
 for erlang in $ERLANG; do
     for python in $PYTHON; do
+        echo
+        echo "****************************************************************"
+        echo
+        echo "Test $erlang and $python"
+        echo
+        echo "****************************************************************"
+        echo
+        make clean || exit
+        PATH="$erlang:$python:$PATH" make test || exit
+    done
+    for python in $PYTHON3; do
         echo
         echo "****************************************************************"
         echo
