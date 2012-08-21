@@ -1,3 +1,8 @@
+- After some number of subscribers we can create publishing workers (with
+  (un)subscribe/publish functions) which can publish messages in parallel.
+
+- Should we add ID to published messages?
+
 - Extract generic tests and erlport functions to generic modules
 
 - Check imports in Python 3 version
@@ -9,7 +14,8 @@
 
 - Define python:format_status/2 to eliminate errors with big binary messages?
 
-- Add publish/subscribe mode with direct messaging support?
+- Add publish/subscribe mode with direct messaging support? Pids, funs, MFAs
+  can be subscribed in Erlang and callable objects in Python.
 
 - Add 'threaded' mode for switch and run switch call in threads in Python. What
   is the use case for this mode? Threads:
