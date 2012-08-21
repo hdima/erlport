@@ -48,6 +48,8 @@ class Port(object):
 
     def __init__(self, packet=4, use_stdio=True, compressed=False,
             descriptors=None, buffer_size=65536):
+        if buffer_size < 1:
+            raise ValueError("invalid buffer size value: %s" % (buffer_size,))
         struct = self._formats.get(packet)
         if struct is None:
             raise ValueError("invalid packet size value: %s" % (packet,))
@@ -64,8 +66,6 @@ class Port(object):
             self.in_d, self.out_d = 3, 4
 
         self.buffer = b""
-        if buffer_size < 1:
-            raise ValueError("invalid buffer size value: %s" % (buffer_size,))
         self.buffer_size = buffer_size
         read_lock = Lock()
         self._read_lock_acquire = read_lock.acquire
@@ -87,15 +87,16 @@ class Port(object):
 
     def read(self):
         """Read incoming message."""
+        packet = self.packet
         self._read_lock_acquire()
         try:
-            while len(self.buffer) < self.packet:
-                self.buffer += self._read_data()
-            length, = self._unpack(self.buffer[:self.packet])
-            self.buffer = self.buffer[self.packet:]
-            while len(self.buffer) < length:
-                self.buffer += self._read_data()
-            term, self.buffer = decode(self.buffer)
+            buffer = self.buffer
+            while len(buffer) < packet:
+                buffer += self._read_data()
+            length = self._unpack(buffer[:packet])[0] + packet
+            while len(buffer) < length:
+                buffer += self._read_data()
+            term, self.buffer = decode(buffer[packet:])
         finally:
             self._read_lock_release()
         return term

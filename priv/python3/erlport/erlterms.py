@@ -118,11 +118,11 @@ class OpaqueObject(object):
         self.data = data
         self.language = language
 
+    @classmethod
     def decode(cls, data, language):
         if language == b"python":
             return loads(data)
         return cls(data, language)
-    decode = classmethod(decode)
 
     def encode(self):
         if self.language == b"erlang":
@@ -211,7 +211,7 @@ def decode_term(string,
         length = int2_unpack(string[1:3])[0] + 3
         if ln < length:
             raise IncompleteData("incomplete data: %r" % string)
-        return array("B", string[3:length]).tolist(), string[length:]
+        return list(string[3:length]), string[length:]
     elif tag in b"lhi":
         # LIST_EXT, SMALL_TUPLE_EXT, LARGE_TUPLE_EXT
         if tag == 104:
@@ -283,7 +283,7 @@ def decode_term(string,
             raise IncompleteData("incomplete data: %r" % string)
         n = 0
         if length:
-            for i in array("B", tail[length-1::-1]):
+            for i in reversed(tail[:length]):
                 n = (n << 8) | i
             if sign:
                 n = -n
@@ -329,7 +329,7 @@ def encode_term(term,
     if isinstance(term, tuple):
         arity = len(term)
         if arity <= 255:
-            header = b"h" + bytes([arity])
+            header = b"h" + bytes((arity,))
         elif arity <= 4294967295:
             header = char_int4_pack(b'i', arity)
         else:
@@ -349,18 +349,16 @@ def encode_term(term,
             return b"j"
         elif length <= 65535:
             try:
-                bytes = array("B", term).tobytes()
-            except (TypeError, OverflowError):
+                b = bytes(term)
+            except (ValueError, TypeError):
                 pass
             else:
-                if len(bytes) == length:
-                    return char_int2_pack(b'k', length) + bytes
+                return char_int2_pack(b'k', length) + b
         elif length > 4294967295:
             raise ValueError("invalid list length")
         return (char_int4_pack(b'l', length)
             + b"".join(map(encode_term, term)) + b"j")
     elif isinstance(term, str):
-        # TODO: It seems we can optimize this code
         return encode_term(list(map(ord, term)))
     elif isinstance(term, Atom):
         return char_int2_pack(b"d", len(term)) + term
@@ -376,7 +374,7 @@ def encode_term(term,
         return b"d\0\5false"
     elif isinstance(term, int):
         if 0 <= term <= 255:
-            return b"a" + bytes([term])
+            return b"a" + bytes((term,))
         elif -2147483648 <= term <= 2147483647:
             return char_signed_int4_pack(b'b', term)
 
@@ -386,17 +384,17 @@ def encode_term(term,
             sign = 1
             term = -term
 
-        bytes = array("B")
-        append = bytes.append
+        b = bytearray()
+        append = b.append
         while term:
             append(term & 0xff)
             term >>= 8
 
-        length = len(bytes)
+        length = len(b)
         if length <= 255:
-            return char_2bytes_pack(b"n", length, sign) + bytes.tobytes()
+            return char_2bytes_pack(b"n", length, sign) + b
         elif length <= 4294967295:
-            return char_int4_byte_pack(b"o", length, sign) + bytes.tobytes()
+            return char_int4_byte_pack(b"o", length, sign) + b
         raise ValueError("invalid integer value")
     elif isinstance(term, float):
         return char_float_pack(b"F", term)

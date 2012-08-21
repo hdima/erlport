@@ -118,11 +118,11 @@ class OpaqueObject(object):
         self.data = data
         self.language = language
 
+    @classmethod
     def decode(cls, data, language):
         if language == "python":
             return loads(data)
         return cls(data, language)
-    decode = classmethod(decode)
 
     def encode(self):
         if self.language == "erlang":
@@ -317,10 +317,10 @@ def encode(term, compressed=False):
 
 def encode_term(term,
         # Hack to turn globals into locals
-        tuple=tuple, len=len, isinstance=isinstance, list=list, int=int,
-        long=long, array=array, unicode=unicode, Atom=Atom, str=str, map=map,
-        float=float, ord=ord, dict=dict, True=True, False=False, dumps=dumps,
-        PICKLE_PROTOCOL=PICKLE_PROTOCOL, ValueError=ValueError,
+        tuple=tuple, len=len, isinstance=isinstance, list=list,
+        int_long=(int, long), array=array, unicode=unicode, Atom=Atom, str=str,
+        map=map, float=float, ord=ord, dict=dict, True=True, False=False,
+        dumps=dumps, PICKLE_PROTOCOL=PICKLE_PROTOCOL, ValueError=ValueError,
         OpaqueObject=OpaqueObject, OverflowError=OverflowError,
         char_int4_pack=_char_int4_pack, char_int2_pack=_char_int2_pack,
         char_signed_int4_pack=_char_signed_int4_pack,
@@ -348,16 +348,16 @@ def encode_term(term,
             return "j"
         elif length <= 65535:
             try:
-                # array coersion will allow floats as a deprecated feature
+                # Array coersion will allow floats as a deprecated feature in
+                # Python 2.6 and previous versions
                 for t in term:
-                    if not isinstance(t, (int, long)):
+                    if not isinstance(t, int_long):
                         raise TypeError
-                bytes = array('B', term).tostring()
+                b = array('B', term).tostring()
             except (TypeError, OverflowError):
                 pass
             else:
-                if len(bytes) == length:
-                    return char_int2_pack('k', length) + bytes
+                return char_int2_pack('k', length) + b
         elif length > 4294967295:
             raise ValueError("invalid list length")
         return (char_int4_pack('l', length)
@@ -376,7 +376,7 @@ def encode_term(term,
         return "d\0\4true"
     elif term is False:
         return "d\0\5false"
-    elif isinstance(term, (int, long)):
+    elif isinstance(term, int_long):
         if 0 <= term <= 255:
             return 'a%c' % term
         elif -2147483648 <= term <= 2147483647:
