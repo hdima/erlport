@@ -83,6 +83,26 @@ call_pipeline_test_() -> [{setup,
             || N <- lists:seq(1, 50)]}
     end} || Setup <- [fun setup/0, fun setup3/0]].
 
+queue_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (P) ->
+        {inparallel, [
+            ?_assertEqual(262144, python:call(P, '__builtin__', len,
+                [<<0:262144/unit:8>>]))
+            || _ <- lists:seq(1, 50)]}
+    end}.
+
+queue3_test_() -> {setup,
+    fun setup3/0,
+    fun cleanup/1,
+    fun (P) ->
+        {inparallel, [
+            ?_assertEqual(262144, python:call(P, builtins, len,
+                [<<0:262144/unit:8>>]))
+            || _ <- lists:seq(1, 50)]}
+    end}.
+
 switch_test_() -> [{setup,
     fun () ->
         setup_event_logger(),
