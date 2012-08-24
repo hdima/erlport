@@ -23,8 +23,6 @@
 
 - Extract generic tests and erlport functions to generic modules
 
-- Check imports in Python 3 version
-
 - Return error for 'nouse_stdio' option on Windows? It seems this option
   unsupported or have no effect on Windows?
 
@@ -57,7 +55,7 @@
   with pluggable encoder/decoder. We can add 'reach' encoder/decoder plugin
   functions
 
-- Python 3, other languages? Ruby? What about different Ruby versions?
+- Other languages? Ruby? What about different Ruby versions?
 
 - Add worker_pool module with pluggable workers selection policies
 
