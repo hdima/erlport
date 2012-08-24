@@ -19,15 +19,19 @@
   continue. If port was closed and we have an error to report we can try to
   report it with logging module
 
-- Should we add ID to published messages?
-
 - Extract generic tests and erlport functions to generic modules
 
 - Return error for 'nouse_stdio' option on Windows? It seems this option
   unsupported or have no effect on Windows?
 
 - Add publish/subscribe mode with direct messaging support? Pids, funs, MFAs
-  can be subscribed in Erlang and callable objects in Python.
+  can be subscribed in Erlang and callable objects in Python:
+
+  subscribe(Topic (atom() or any type?), pid() | function() | {M, F, A})
+  unsubscribe(Topic, Subscriber)
+  publish(Topic | Subscriber, Message) (or send?)
+
+  Should we add ID to published messages?
 
 - Add 'threaded' mode for switch and run switch call in threads in Python. What
   is the use case for this mode? Threads:
