@@ -239,7 +239,7 @@ client({call, Module, Function, Args, Options}, From, State=#state{
     Timeout = proplists:get_value(timeout, Options, DefaultTimeout),
     case erlport_options:timeout(Timeout) of
         {ok, Timeout} ->
-            Data = encode({'C', Module, Function, Args}, Compressed),
+            Data = encode({'C', Module, Function, map(Args)}, Compressed),
             send_request(call, From, Data, client, State, Timeout);
         error ->
             Error = {error, {invalid_option, {timeout, Timeout}}},
@@ -252,7 +252,7 @@ client({switch, Module, Function, Args, Options}, From, State=#state{
     Timeout = proplists:get_value(timeout, Options, DefaultTimeout),
     case erlport_options:timeout(Timeout) of
         {ok, Timeout} ->
-            Data = encode({'S', Module, Function, Args}, Compressed),
+            Data = encode({'S', Module, Function, map(Args)}, Compressed),
             case proplists:get_value(block, Options, false) of
                 false ->
                     send_request(switch, From, Data, server, State, Timeout);
@@ -373,11 +373,11 @@ handle_info({'EXIT', Pid, Result}, StateName=server, State=#state{port=Port,
     stop_timer(Timer),
     R = case Result of
         {ok, Response} ->
-            {'r', Response};
+            {'r', prepare_term(Response)};
         {error, Response} ->
-            {'e', Response};
+            {'e', prepare_term(Response)};
         Response ->
-            {'e', {error, Response, []}}
+            {'e', {error, prepare_term(Response), []}}
     end,
     case send_data(Port, encode(R, Compressed)) of
         ok ->
@@ -419,7 +419,7 @@ code_change(_OldVsn, StateName, State, _Extra) ->
     {ok, StateName, State}.
 
 %%%
-%%% Auxiliary functions
+%%% Internal functions
 %%%
 
 send_data(Port, Data) ->
@@ -510,8 +510,7 @@ send_from_queue({Info, Data}, Queue, StateName, State=#state{port=Port,
     end.
 
 encode(Term, Compressed) ->
-    term_to_binary(prepare_term(Term), [{minor_version, 1},
-        {compressed, Compressed}]).
+    term_to_binary(Term, [{minor_version, 1}, {compressed, Compressed}]).
 
 prepare_term(Term) ->
     if
