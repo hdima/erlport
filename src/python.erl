@@ -238,7 +238,7 @@ client({call, Module, Function, Args, Options}, From, State=#state{
         {ok, Timeout} ->
             Data = erlport_utils:encode_term({'C', Module, Function,
                 erlport_utils:prepare_list(Args)}, Compressed),
-            send_request(call, From, Data, client, State, Timeout);
+            try_send_request(call, From, Data, client, State, Timeout);
         error ->
             Error = {error, {invalid_option, {timeout, Timeout}}},
             {reply, Error, client, State}
@@ -254,9 +254,10 @@ client({switch, Module, Function, Args, Options}, From, State=#state{
                 erlport_utils:prepare_list(Args)}, Compressed),
             case proplists:get_value(block, Options, false) of
                 false ->
-                    send_request(switch, From, Data, server, State, Timeout);
+                    try_send_request(switch, From, Data, server, State,
+                        Timeout);
                 _ ->
-                    send_request(switch_wait, From, Data, server, State,
+                    try_send_request(switch_wait, From, Data, server, State,
                         Timeout)
             end;
         error ->
@@ -421,7 +422,7 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %%% Internal functions
 %%%
 
-send_request(Type, From, Data, StateName, State=#state{port=Port,
+try_send_request(Type, From, Data, StateName, State=#state{port=Port,
         queue=Queue, sent=Sent}, Timeout) ->
     Info = {Type, From, erlport_utils:start_timer(Timeout)},
     case queue:is_empty(Sent) of
