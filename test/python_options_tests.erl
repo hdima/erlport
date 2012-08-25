@@ -34,7 +34,7 @@
 parse_test_() ->
     fun () ->
         {ok, #python_options{python=Python, use_stdio=use_stdio,
-            call_timeout=10000, packet=4, python_path=PythonPath,
+            call_timeout=infinity, packet=4, python_path=PythonPath,
             start_timeout=10000, compressed=0, env=Env,
             port_options=PortOptions}} = python_options:parse([]),
         ?assertEqual(match, re:run(Python, "/python$", [{capture, none}])),
@@ -89,7 +89,7 @@ start_timeout_test_() -> [
     ].
 
 call_timeout_test_() -> [
-    ?_assertMatch({ok, #python_options{call_timeout=10000}},
+    ?_assertMatch({ok, #python_options{call_timeout=infinity}},
         python_options:parse([])),
     ?_assertMatch({ok, #python_options{call_timeout=5000}},
         python_options:parse([{call_timeout, 5000}])),

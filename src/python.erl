@@ -80,9 +80,6 @@
 
 -include("python.hrl").
 
--define(is_allowed_term(T), (is_atom(T) orelse is_number(T)
-    orelse is_binary(T))).
-
 %%
 %% @equiv start([])
 %%
@@ -239,7 +236,8 @@ client({call, Module, Function, Args, Options}, From, State=#state{
     Timeout = proplists:get_value(timeout, Options, DefaultTimeout),
     case erlport_options:timeout(Timeout) of
         {ok, Timeout} ->
-            Data = encode({'C', Module, Function, map(Args)}, Compressed),
+            Data = erlport_utils:encode_term({'C', Module, Function,
+                erlport_utils:prepare_list(Args)}, Compressed),
             send_request(call, From, Data, client, State, Timeout);
         error ->
             Error = {error, {invalid_option, {timeout, Timeout}}},
@@ -252,7 +250,8 @@ client({switch, Module, Function, Args, Options}, From, State=#state{
     Timeout = proplists:get_value(timeout, Options, DefaultTimeout),
     case erlport_options:timeout(Timeout) of
         {ok, Timeout} ->
-            Data = encode({'S', Module, Function, map(Args)}, Compressed),
+            Data = erlport_utils:encode_term({'S', Module, Function,
+                erlport_utils:prepare_list(Args)}, Compressed),
             case proplists:get_value(block, Options, false) of
                 false ->
                     send_request(switch, From, Data, server, State, Timeout);
@@ -328,16 +327,16 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
                             {error, {Class, Reason, erlang:get_stacktrace()}}
                     end)
                 end),
-            Info = {Pid, start_timer(Timeout)},
+            Info = {Pid, erlport_utils:start_timer(Timeout)},
             {next_state, StateName, State#state{call=Info}};
         's' ->
             case queue:out(Sent) of
                 {{value, {switch, From, Timer}}, Sent2} ->
-                    stop_timer(Timer),
+                    erlport_utils:stop_timer(Timer),
                     gen_fsm:reply(From, ok),
                     {next_state, StateName, State#state{sent=Sent2}};
                 {{value, {switch_wait, _From, Timer}}, _Sent2} ->
-                    stop_timer(Timer),
+                    erlport_utils:stop_timer(Timer),
                     {next_state, StateName, State};
                 {empty, Sent} ->
                     {stop, orphan_response, State};
@@ -370,16 +369,16 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
     end;
 handle_info({'EXIT', Pid, Result}, StateName=server, State=#state{port=Port,
 	call={Pid, Timer}, compressed=Compressed}) ->
-    stop_timer(Timer),
+    erlport_utils:stop_timer(Timer),
     R = case Result of
         {ok, Response} ->
-            {'r', prepare_term(Response)};
+            {'r', erlport_utils:prepare_term(Response)};
         {error, Response} ->
-            {'e', prepare_term(Response)};
+            {'e', erlport_utils:prepare_term(Response)};
         Response ->
-            {'e', {error, prepare_term(Response), []}}
+            {'e', {error, erlport_utils:prepare_term(Response), []}}
     end,
-    case send_data(Port, encode(R, Compressed)) of
+    case erlport_utils:send_data(Port, erlport_utils:encode_term(R, Compressed)) of
         ok ->
             {next_state, StateName, State#state{call=undefined}};
         error ->
@@ -422,34 +421,14 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %%% Internal functions
 %%%
 
-send_data(Port, Data) ->
-    try port_command(Port, Data) of
-        true ->
-            ok
-    catch
-        error:badarg ->
-            error
-    end.
-
-try_to_send_data(Port, Data) ->
-    try erlang:port_command(Port, Data, [nosuspend]) of
-        true ->
-            ok;
-        false ->
-            wait
-    catch
-        error:badarg ->
-            error
-    end.
-
 send_request(Type, From, Data, StateName, State=#state{port=Port,
         queue=Queue, sent=Sent}, Timeout) ->
-    Info = {Type, From, start_timer(Timeout)},
+    Info = {Type, From, erlport_utils:start_timer(Timeout)},
     case queue:is_empty(Sent) of
         true ->
             send_request(Info, Data, Queue, StateName, State);
         false ->
-            case try_to_send_data(Port, Data) of
+            case erlport_utils:try_send_data(Port, Data) of
                 ok ->
                     Sent2 = queue:in(Info, Sent),
                     {next_state, StateName, State#state{sent=Sent2}};
@@ -463,7 +442,7 @@ send_request(Type, From, Data, StateName, State=#state{port=Port,
 
 send_request(Info, Data, Queue, StateName, State=#state{port=Port,
         sent=Sent}) ->
-    case send_data(Port, Data) of
+    case erlport_utils:send_data(Port, Data) of
         ok ->
             Sent2 = queue:in(Info, Sent),
             {next_state, StateName, State#state{sent=Sent2, queue=Queue}};
@@ -474,7 +453,7 @@ send_request(Info, Data, Queue, StateName, State=#state{port=Port,
 handle_response(ExpectedType, Response, State=#state{sent=Sent}, StateName) ->
     case queue:out(Sent) of
         {{value, {ExpectedType, From, Timer}}, Sent2} ->
-            stop_timer(Timer),
+            erlport_utils:stop_timer(Timer),
             gen_fsm:reply(From, Response),
             process_queue(StateName, State#state{sent=Sent2});
         {empty, Sent} ->
@@ -497,7 +476,7 @@ send_from_queue({Info, Data}, Queue, StateName, State=#state{port=Port,
         true ->
             send_request(Info, Data, Queue, StateName, State);
         false ->
-            case try_to_send_data(Port, Data) of
+            case erlport_utils:try_send_data(Port, Data) of
                 ok ->
                     Sent2 = queue:in(Info, Sent),
                     {next_state, StateName, State#state{sent=Sent2,
@@ -508,29 +487,6 @@ send_from_queue({Info, Data}, Queue, StateName, State=#state{port=Port,
                     {stop, port_closed, State}
             end
     end.
-
-encode(Term, Compressed) ->
-    term_to_binary(Term, [{minor_version, 1}, {compressed, Compressed}]).
-
-prepare_term(Term) ->
-    if
-        ?is_allowed_term(Term) ->
-            Term;
-        is_list(Term) ->
-            map(Term);
-        is_tuple(Term) ->
-            list_to_tuple(map(tuple_to_list(Term)));
-        true ->
-            <<131, Data/binary>> = term_to_binary(Term, [{minor_version, 1}]),
-            {'$erlport.opaque', erlang, Data}
-    end.
-
-map([Item | Tail]) ->
-    [prepare_term(Item) | map(Tail)];
-map([]) ->
-    [];
-map(ImproperTail) ->
-    prepare_term(ImproperTail).
 
 queue_foreach(Fun, Queue) ->
     case queue:out(Queue) of
@@ -553,13 +509,3 @@ start(Function, OptionsList) when is_list(OptionsList) ->
         Error={error, _} ->
             Error
     end.
-
-start_timer(infinity) ->
-    undefined;
-start_timer(Timeout) ->
-    gen_fsm:send_event_after(Timeout, timeout).
-
-stop_timer(undefined) ->
-    ok;
-stop_timer(Timer) ->
-    gen_fsm:cancel_timer(Timer).

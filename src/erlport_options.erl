@@ -57,8 +57,9 @@
     | env
     | start_timeout
     | call_timeout.
+-type call_timeout() :: infinity | pos_integer().
 
--export_type([option/0]).
+-export_type([option/0, call_timeout/0]).
 
 
 %%
