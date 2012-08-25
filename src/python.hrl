@@ -25,6 +25,9 @@
 %%% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %%% POSSIBILITY OF SUCH DAMAGE.
 
+-ifndef(PYTHON_HRL).
+-define(PYTHON_HRL, true).
+
 -include("erlport.hrl").
 
 -define(DEFAULT_PYTHON, "python").
@@ -45,3 +48,5 @@
 
 -define(PYTHON_FIELDS, (lists:zip(record_info(fields, python_options),
     lists:seq(2, record_info(size, python_options))))).
+
+-endif. % PYTHON_HRL

@@ -28,9 +28,10 @@
 {application, erlport, [
     {modules, [
         python,
+        python_options,
+        erlport,
         erlport_utils,
-        erlport_options,
-        python_options
+        erlport_options
         ]},
     {description, "Erlang port protocol"},
     {vsn, "1.0"},

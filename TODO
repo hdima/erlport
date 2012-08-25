@@ -17,7 +17,7 @@
   continue. If port was closed and we have an error to report we can try to
   report it with logging module
 
-- Extract generic tests and erlport functions to generic modules
+- Refactor tests
 
 - Return error for 'nouse_stdio' option on Windows? It seems this option
   unsupported or have no effect on Windows?

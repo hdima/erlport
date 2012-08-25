@@ -25,6 +25,9 @@
 %%% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %%% POSSIBILITY OF SUCH DAMAGE.
 
+-ifndef(ERLPORT_HRL).
+-define(ERLPORT_HRL, true).
+
 -define(DEFAULT_START_TIMEOUT, 10000).
 -define(DEFAULT_CALL_TIMEOUT, infinity).
 
@@ -37,3 +40,5 @@
     sent = queue:new() :: queue(),
     call :: {Pid::pid(), Timer::reference()}
     }).
+
+-endif. % ERLPORT_HRL
