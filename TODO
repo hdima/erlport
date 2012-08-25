@@ -11,8 +11,6 @@
 - Add options to erlang.call: [{pid, Pid (special working process)}, {timeout,
   Timeout}]
 
-- Set timeouts to 'infinity' by default
-
 - Fix testall
 
 - Log some errors (for example if switch failed in async mode) and just

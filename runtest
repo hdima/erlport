@@ -22,7 +22,7 @@ start_cover() ->
     cover_compile_directory("test").
 
 cover_compile_directory(Dir) ->
-    Result = cover:compile_directory(Dir, [{i, "include"}]),
+    Result = cover:compile_directory(Dir, [{i, "include"}, {i, "src"}]),
     lists:foreach(fun
         ({ok, _}) ->
             ok;

@@ -33,7 +33,7 @@ BEAMS = $(patsubst src/%.erl,$(RELDIR)/%.beam,$(SOURCES))
 TESTSOURCES = $(wildcard test/*.erl)
 TESTBEAMS = $(patsubst src/%.erl,$(TESTDIR)/%.beam,$(SOURCES)) \
     $(patsubst test/%.erl,$(TESTDIR)/%.beam,$(TESTSOURCES))
-ERLC = erlc -Wall +warnings_as_errors -I include
+ERLC = erlc -Wall +warnings_as_errors -I include -I src
 ERL = erl -noinput -pa ../erlport
  
  
