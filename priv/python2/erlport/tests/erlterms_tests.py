@@ -133,8 +133,11 @@ class DecodeTestCase(unittest.TestCase):
 
     def test_decode_predefined_atoms(self):
         self.assertEqual((True, ""), decode("\x83d\0\4true"))
+        self.assertEqual((True, "tail"), decode("\x83d\0\4truetail"))
         self.assertEqual((False, ""), decode("\x83d\0\5false"))
+        self.assertEqual((False, "tail"), decode("\x83d\0\5falsetail"))
         self.assertEqual((None, ""), decode("\x83d\0\11undefined"))
+        self.assertEqual((None, "tail"), decode("\x83d\0\11undefinedtail"))
 
     def test_decode_empty_list(self):
         self.assertEqual(([], ""), decode("\x83j"))

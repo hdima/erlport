@@ -54,11 +54,14 @@ $(TESTDIR):
 $(TESTDIR)/erlport.app:
 	cp -l ebin/erlport.app $(TESTDIR)
 
-test: python-test $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
+test: python-test ruby-test $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
 	./runtest
 
 test-verbose: python-test-verbose $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
 	./runtest verbose
+
+ruby-test:
+	cd priv/ruby; make test
 
 python-test: python2-test python3-test
 
