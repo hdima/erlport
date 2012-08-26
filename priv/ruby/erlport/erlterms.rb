@@ -35,6 +35,12 @@
 class ValueError < Exception
 end
 
+class IncompleteData < Exception
+    def initialize string
+        super "incomplete data: '#{string}'"
+    end
+end
+
 class Atom < String
     def initialize data
         raise ValueError, "invalid atom length" if data.length > 255
@@ -45,11 +51,48 @@ end
 class Tuple < Array
 end
 
+# TODO: Add some method to String to convert from arrays?
+
+class ImproperList < Array
+    attr_accessor :tail
+
+    def initialize array, tail
+        raise ValueError, "empty list not allowed" if array.empty?
+        raise TypeError, "non list object expected for tail" \
+            if tail.is_a? Array
+        @tail = tail
+        super array
+    end
+end
+
 module ErlTerm
-    class IncompleteData < Exception
-        def initialize string
-            super "incomplete data: '#{string}'"
+    class OpaqueObject
+        attr_accessor :data
+        attr_accessor :language
+
+        MARKER = Atom.new("$erlport.opaque")
+
+        def initialize data, language
+            raise TypeError, "data must be instance of String" \
+                if not data.is_a? String
+            raise TypeError, "language must be instance of Atom" \
+                if not language.is_a? Atom
+            @data = data
+            @language = language
         end
+
+        def self.decode data, language
+            return Marshal.load(data) if language == "ruby"
+            return OpaqueObject.new data, language
+        end
+
+        def encode
+            return @data if @language == "erlang"
+            return encode_term(Tuple.new([MARKER, @language, @data]))
+        end
+
+        # TODO: Add 'hash' and 'eq' methods
+        # TODO: Tests for OpaqueObject
     end
 
     module_function
@@ -111,11 +154,14 @@ module ErlTerm
                 end
                 if tag == 108
                     raise IncompleteData, string if tail == ""
-                    # TODO: Improper lists
-                    raise ValueError, "improper list" if tail[0] != 106
+                    if tail[0] != 106
+                        improper_tail, tail = decode_term(tail)
+                        return ImproperList.new(lst, improper_tail), tail
+                    end
                     return lst, tail[1..-1]
                 end
-                # TODO: Opaque objects
+                return [OpaqueObject.decode(lst[2], lst[1]), tail] \
+                    if lst.length == 3 and lst[0] == OpaqueObject::MARKER
                 return Tuple.new(lst), tail
             when 97
                 # SMALL_INTEGER_EXT
@@ -124,7 +170,40 @@ module ErlTerm
             when 98
                 # INTEGER_EXT
                 raise IncompleteData, string if string.length < 5
-                return string[1,4].unpack("N")[0], string[5..-1]
+                int = string[1,4].unpack("N")[0]
+                int -= 0x100000000 if int > 0x7fffffff
+                return int, string[5..-1]
+            when 109
+                # BINARY_EXT
+                ln = string.length
+                raise IncompleteData, string if ln < 5
+                length = string[1,4].unpack("N")[0] + 5
+                raise IncompleteData, string if ln < length
+                return string[5...length], string[length..-1]
+            when 70
+                # NEW_FLOAT_EXT
+                raise IncompleteData, string if string.length < 9
+                return string[1,8].unpack("G")[0], string[9..-1]
+            when 110, 111
+                # SMALL_BIG_EXT, LARGE_BIG_EXT
+                if tag == 110
+                    raise IncompleteData, string if string.length < 3
+                    length, sign = string[1,2].unpack("CC")
+                    tail = string[3..-1]
+                else
+                    raise IncompleteData, string if string.length < 6
+                    length, sign = string[1,5].unpack("NC")
+                    tail = string[6..-1]
+                end
+                raise IncompleteData, string if tail.length < length
+                n = 0
+                if length > 0
+                    for i in tail[0,length].unpack("C*").reverse!
+                        n = (n << 8) | i
+                    end
+                    n = -n if sign != 0
+                end
+                return n, tail[length..-1]
         end
 
         raise ValueError, "unsupported data: '%s'" % string

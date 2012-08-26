@@ -31,7 +31,42 @@ require 'erlport/erlterms'
 include ErlTerm
 
 
-class DecodeTest < Test::Unit::TestCase
+class AtomTestCase < Test::Unit::TestCase
+    def test_atom
+        atom = Atom.new("test")
+        assert_equal Atom, atom.class
+        assert_equal "test", atom
+        assert_equal "X" * 255, Atom.new("X" * 255)
+    end
+
+    def test_invalid_atom
+        assert_raise(ValueError){Atom.new("X" * 256)}
+    end
+end
+
+class TupleTestCase < Test::Unit::TestCase
+    def test_tuple
+        tuple = Tuple.new([1, 2, 3])
+        assert_equal Tuple, tuple.class
+        assert_equal [1, 2, 3], tuple
+    end
+end
+
+class ImproperListTestCase < Test::Unit::TestCase
+    def test_improper_list
+        improper = ImproperList.new [1, 2, 3], "tail"
+        assert_equal ImproperList, improper.class
+        assert_equal [1, 2, 3], improper
+        assert_equal "tail", improper.tail
+    end
+
+    def test_improper_list_errors
+        assert_raise(TypeError){ImproperList.new([1, 2, 3], ["invalid"])}
+        assert_raise(ValueError){ImproperList.new([], "tail")}
+    end
+end
+
+class DecodeTestCase < Test::Unit::TestCase
     def test_decode
         assert_raise(IncompleteData){decode("")}
         assert_raise(ValueError){decode("\0")}
@@ -89,6 +124,22 @@ class DecodeTest < Test::Unit::TestCase
         assert_equal [[[], []], "tail"], decode("\x83l\0\0\0\2jjjtail")
     end
 
+    def test_decode_improper_list
+        assert_raise(IncompleteData){decode("\x83l\0\0\0\0k")}
+        improper, tail = decode("\x83l\0\0\0\1jd\0\4tail")
+        assert_equal ImproperList, improper.class
+        assert_equal [[]], improper
+        assert_equal Atom, improper.tail.class
+        assert_equal Atom.new("tail"), improper.tail
+        assert_equal "", tail
+        improper, tail = decode("\x83l\0\0\0\1jd\0\4tailtail")
+        assert_equal ImproperList, improper.class
+        assert_equal [[]], improper
+        assert_equal Atom, improper.tail.class
+        assert_equal Atom.new("tail"), improper.tail
+        assert_equal "tail", tail
+    end
+
     def test_decode_small_tuple
         assert_raise(IncompleteData){decode("\x83h")}
         assert_raise(IncompleteData){decode("\x83h\1")}
@@ -97,5 +148,127 @@ class DecodeTest < Test::Unit::TestCase
         assert_equal [Tuple.new([]), "tail"], decode("\x83h\0tail")
         assert_equal [Tuple.new([[], []]), ""], decode("\x83h\2jj")
         assert_equal [Tuple.new([[], []]), "tail"], decode("\x83h\2jjtail")
+    end
+
+    def test_decode_large_tuple
+        assert_raise(IncompleteData){decode("\x83i")}
+        assert_raise(IncompleteData){decode("\x83i\0")}
+        assert_raise(IncompleteData){decode("\x83i\0\0")}
+        assert_raise(IncompleteData){decode("\x83i\0\0\0")}
+        assert_raise(IncompleteData){decode("\x83i\0\0\0\1")}
+        # Erlang use 'h' tag for small tuples
+        assert_equal [[], ""], decode("\x83i\0\0\0\0")
+        assert_equal [[], "tail"], decode("\x83i\0\0\0\0tail")
+        assert_equal [[[], []], ""], decode("\x83i\0\0\0\2jj")
+        assert_equal [[[], []], "tail"], decode("\x83i\0\0\0\2jjtail")
+    end
+
+    def test_decode_opaque_object
+        opaque, tail = decode("\x83h\3d\0\x0f$erlport.opaqued\0\10language" \
+            "m\0\0\0\4data")
+        assert_equal OpaqueObject, opaque.class
+        assert_equal "data", opaque.data
+        assert_equal "language", opaque.language
+        assert_equal "", tail
+        opaque, tail = decode("\x83h\3d\0\x0f$erlport.opaqued\0\10language" \
+            "m\0\0\0\4datatail")
+        assert_equal OpaqueObject, opaque.class
+        assert_equal "data", opaque.data
+        assert_equal "language", opaque.language
+        assert_equal "tail", tail
+    end
+
+    def test_decode_ruby_opaque_object
+        opaque, tail = decode("\x83h\3d\0\x0f$erlport.opaqued\0\4ruby" \
+            "m\0\0\0\10\4\b\"\ttest")
+        assert_equal String, opaque.class
+        assert_equal "test", opaque
+        assert_equal "", tail
+        opaque, tail = decode("\x83h\3d\0\x0f$erlport.opaqued\0\4ruby" \
+            "m\0\0\0\10\4\b\"\ttesttail")
+        assert_equal String, opaque.class
+        assert_equal "test", opaque
+        assert_equal "tail", tail
+    end
+
+    def test_decode_small_integer
+        assert_raise(IncompleteData){decode("\x83a")}
+        assert_equal [0, ""], decode("\x83a\0")
+        assert_equal [0, "tail"], decode("\x83a\0tail")
+        assert_equal [255, ""], decode("\x83a\xff")
+        assert_equal [255, "tail"], decode("\x83a\xfftail")
+    end
+
+    def test_decode_integer
+        assert_raise(IncompleteData){decode("\x83b")}
+        assert_raise(IncompleteData){decode("\x83b\0")}
+        assert_raise(IncompleteData){decode("\x83b\0\0")}
+        assert_raise(IncompleteData){decode("\x83b\0\0\0")}
+        # Erlang use 'a' tag for small integers
+        assert_equal [0, ""], decode("\x83b\0\0\0\0")
+        assert_equal [0, "tail"], decode("\x83b\0\0\0\0tail")
+        assert_equal [2147483647, ""], decode("\x83b\x7f\xff\xff\xff")
+        assert_equal [2147483647, "tail"], decode("\x83b\x7f\xff\xff\xfftail")
+        assert_equal [-2147483648, ""], decode("\x83b\x80\0\0\0")
+        assert_equal [-2147483648, "tail"], decode("\x83b\x80\0\0\0tail")
+        assert_equal [-1, ""], decode("\x83b\xff\xff\xff\xff")
+        assert_equal [-1, "tail"], decode("\x83b\xff\xff\xff\xfftail")
+    end
+
+    def test_decode_binary
+        assert_raise(IncompleteData){decode("\x83m")}
+        assert_raise(IncompleteData){decode("\x83m\0")}
+        assert_raise(IncompleteData){decode("\x83m\0\0")}
+        assert_raise(IncompleteData){decode("\x83m\0\0\0")}
+        assert_raise(IncompleteData){decode("\x83m\0\0\0\1")}
+        assert_equal ["", ""], decode("\x83m\0\0\0\0")
+        assert_equal ["", "tail"], decode("\x83m\0\0\0\0tail")
+        assert_equal ["data", ""], decode("\x83m\0\0\0\4data")
+        assert_equal ["data", "tail"], decode("\x83m\0\0\0\4datatail")
+    end
+
+    def test_decode_float
+        assert_raise(IncompleteData){decode("\x83F")}
+        assert_raise(IncompleteData){decode("\x83F\0")}
+        assert_raise(IncompleteData){decode("\x83F\0\0")}
+        assert_raise(IncompleteData){decode("\x83F\0\0\0")}
+        assert_raise(IncompleteData){decode("\x83F\0\0\0\0")}
+        assert_raise(IncompleteData){decode("\x83F\0\0\0\0\0")}
+        assert_raise(IncompleteData){decode("\x83F\0\0\0\0\0\0")}
+        assert_raise(IncompleteData){decode("\x83F\0\0\0\0\0\0\0")}
+        assert_equal [0.0, ""], decode("\x83F\0\0\0\0\0\0\0\0")
+        assert_equal [0.0, "tail"], decode("\x83F\0\0\0\0\0\0\0\0tail")
+        assert_equal [1.5, ""], decode("\x83F?\xf8\0\0\0\0\0\0")
+        assert_equal [1.5, "tail"], decode("\x83F?\xf8\0\0\0\0\0\0tail")
+    end
+
+    def test_decode_small_big_integer
+        assert_raise(IncompleteData){decode("\x83n")}
+        assert_raise(IncompleteData){decode("\x83n\0")}
+        assert_raise(IncompleteData){decode("\x83n\1\0")}
+        # Erlang use 'a' tag for small integers
+        assert_equal [0, ""], decode("\x83n\0\0")
+        assert_equal [0, "tail"], decode("\x83n\0\0tail")
+        assert_equal [6618611909121, ""], decode("\x83n\6\0\1\2\3\4\5\6")
+        assert_equal [-6618611909121, ""], decode("\x83n\6\1\1\2\3\4\5\6")
+        assert_equal [6618611909121, "tail"],
+            decode("\x83n\6\0\1\2\3\4\5\6tail")
+    end
+
+    def test_decode_big_integer
+        assert_raise(IncompleteData){decode("\x83o")}
+        assert_raise(IncompleteData){decode("\x83o\0")}
+        assert_raise(IncompleteData){decode("\x83o\0\0")}
+        assert_raise(IncompleteData){decode("\x83o\0\0\0")}
+        assert_raise(IncompleteData){decode("\x83o\0\0\0\0")}
+        assert_raise(IncompleteData){decode("\x83o\0\0\0\1\0")}
+        # Erlang use 'a' tag for small integers
+        assert_equal [0, ""], decode("\x83o\0\0\0\0\0")
+        assert_equal [0, "tail"], decode("\x83o\0\0\0\0\0tail")
+        assert_equal [6618611909121, ""], decode("\x83o\0\0\0\6\0\1\2\3\4\5\6")
+        assert_equal [-6618611909121, ""],
+            decode("\x83o\0\0\0\6\1\1\2\3\4\5\6")
+        assert_equal [6618611909121, "tail"],
+            decode("\x83o\0\0\0\6\0\1\2\3\4\5\6tail")
     end
 end
