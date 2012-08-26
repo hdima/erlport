@@ -28,111 +28,74 @@
 require 'test/unit'
 require 'erlport/erlterms'
 
+include ErlTerm
+
 
 class DecodeTest < Test::Unit::TestCase
     def test_decode
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("")
-        end
-        assert_raise ValueError do
-            ErlTerm.decode("\0")
-        end
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("\x83")
-        end
-        assert_raise ValueError do
-            ErlTerm.decode("\x83z")
-        end
+        assert_raise(IncompleteData){decode("")}
+        assert_raise(ValueError){decode("\0")}
+        assert_raise(IncompleteData){decode("\x83")}
+        assert_raise(ValueError){decode("\x83z")}
     end
 
     def test_decode_atom
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("\x83d")
-        end
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("\x83d\0")
-        end
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("\x83d\0\1")
-        end
-        atom, _ = ErlTerm.decode("\x83d\0\0")
-        assert_equal Atom, atom.class
-        assert_equal [Atom.new(""), ""], ErlTerm.decode("\x83d\0\0")
-        assert_equal [Atom.new(""), "tail"], ErlTerm.decode("\x83d\0\0tail")
-        assert_equal [Atom.new("test"), ""], ErlTerm.decode("\x83d\0\4test")
-        assert_equal [Atom.new("test"), "tail"],
-            ErlTerm.decode("\x83d\0\4testtail")
+        assert_raise(IncompleteData){decode("\x83d")}
+        assert_raise(IncompleteData){decode("\x83d\0")}
+        assert_raise(IncompleteData){decode("\x83d\0\1")}
+        assert_equal Atom, decode("\x83d\0\0")[0].class
+        assert_equal [Atom.new(""), ""], decode("\x83d\0\0")
+        assert_equal [Atom.new(""), "tail"], decode("\x83d\0\0tail")
+        assert_equal [Atom.new("test"), ""], decode("\x83d\0\4test")
+        assert_equal [Atom.new("test"), "tail"], decode("\x83d\0\4testtail")
     end
 
     def test_decode_predefined_atoms
-        assert_equal [true, ""], ErlTerm.decode("\x83d\0\4true")
-        assert_equal [true, "tail"], ErlTerm.decode("\x83d\0\4truetail")
-        assert_equal [false, ""], ErlTerm.decode("\x83d\0\5false")
-        assert_equal [false, "tail"], ErlTerm.decode("\x83d\0\5falsetail")
-        assert_equal [nil, ""], ErlTerm.decode("\x83d\0\11undefined")
-        assert_equal [nil, "tail"], ErlTerm.decode("\x83d\0\11undefinedtail")
+        assert_equal [true, ""], decode("\x83d\0\4true")
+        assert_equal [true, "tail"], decode("\x83d\0\4truetail")
+        assert_equal [false, ""], decode("\x83d\0\5false")
+        assert_equal [false, "tail"], decode("\x83d\0\5falsetail")
+        assert_equal [nil, ""], decode("\x83d\0\11undefined")
+        assert_equal [nil, "tail"], decode("\x83d\0\11undefinedtail")
     end
 
     def test_decode_empty_list
-        assert_equal [[], ""], ErlTerm.decode("\x83j")
-        assert_equal [[], "tail"], ErlTerm.decode("\x83jtail")
+        assert_equal [[], ""], decode("\x83j")
+        assert_equal [[], "tail"], decode("\x83jtail")
     end
 
     def test_decode_string_list
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("\x83k")
-        end
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("\x83k\0")
-        end
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("\x83k\0\1")
-        end
+        assert_raise(IncompleteData){decode("\x83k")}
+        assert_raise(IncompleteData){decode("\x83k\0")}
+        assert_raise(IncompleteData){decode("\x83k\0\1")}
         # Erlang use 'j' tag for empty lists
-        assert_equal [[], ""], ErlTerm.decode("\x83k\0\0")
-        assert_equal [[], "tail"], ErlTerm.decode("\x83k\0\0tail")
-        assert_equal [[116, 101, 115, 116], ""],
-            ErlTerm.decode("\x83k\0\4test")
+        assert_equal [[], ""], decode("\x83k\0\0")
+        assert_equal [[], "tail"], decode("\x83k\0\0tail")
+        assert_equal [[116, 101, 115, 116], ""], decode("\x83k\0\4test")
         assert_equal [[116, 101, 115, 116], "tail"],
-            ErlTerm.decode("\x83k\0\4testtail")
+            decode("\x83k\0\4testtail")
     end
 
     def test_decode_list
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("\x83l")
-        end
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("\x83l\0")
-        end
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("\x83l\0\0")
-        end
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("\x83l\0\0\0")
-        end
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("\x83l\0\0\0\0")
-        end
+        assert_raise(IncompleteData){decode("\x83l")}
+        assert_raise(IncompleteData){decode("\x83l\0")}
+        assert_raise(IncompleteData){decode("\x83l\0\0")}
+        assert_raise(IncompleteData){decode("\x83l\0\0\0")}
+        assert_raise(IncompleteData){decode("\x83l\0\0\0\0")}
         # Erlang use 'j' tag for empty lists
-        assert_equal [[], ""], ErlTerm.decode("\x83l\0\0\0\0j")
-        assert_equal [[], "tail"], ErlTerm.decode("\x83l\0\0\0\0jtail")
-        assert_equal [[[], []], ""], ErlTerm.decode("\x83l\0\0\0\2jjj")
-        assert_equal [[[], []], "tail"], ErlTerm.decode("\x83l\0\0\0\2jjjtail")
+        assert_equal [[], ""], decode("\x83l\0\0\0\0j")
+        assert_equal [[], "tail"], decode("\x83l\0\0\0\0jtail")
+        assert_equal [[[], []], ""], decode("\x83l\0\0\0\2jjj")
+        assert_equal [[[], []], "tail"], decode("\x83l\0\0\0\2jjjtail")
     end
 
     def test_decode_small_tuple
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("\x83h")
-        end
-        assert_raise ErlTerm::IncompleteData do
-            ErlTerm.decode("\x83h\1")
-        end
-        tuple, _ = ErlTerm.decode("\x83h\0")
-        assert_equal Tuple, tuple.class
-        assert_equal [Tuple.new([]), ""], ErlTerm.decode("\x83h\0")
-        assert_equal [Tuple.new([]), "tail"], ErlTerm.decode("\x83h\0tail")
-        assert_equal [Tuple.new([[], []]), ""], ErlTerm.decode("\x83h\2jj")
-        assert_equal [Tuple.new([[], []]), "tail"],
-            ErlTerm.decode("\x83h\2jjtail")
+        assert_raise(IncompleteData){decode("\x83h")}
+        assert_raise(IncompleteData){decode("\x83h\1")}
+        assert_equal Tuple, decode("\x83h\0")[0].class
+        assert_equal [Tuple.new([]), ""], decode("\x83h\0")
+        assert_equal [Tuple.new([]), "tail"], decode("\x83h\0tail")
+        assert_equal [Tuple.new([[], []]), ""], decode("\x83h\2jj")
+        assert_equal [Tuple.new([[], []]), "tail"], decode("\x83h\2jjtail")
     end
 end

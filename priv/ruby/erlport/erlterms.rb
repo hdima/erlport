@@ -35,13 +35,10 @@
 class ValueError < Exception
 end
 
-# FIXME: Should it be inherited from String?
-# TODO: Need some methods for hash and string conversion?
 class Atom < String
     def initialize data
         raise ValueError, "invalid atom length" if data.length > 255
-        # FIXME: Is it right method?
-        self.replace data
+        super data
     end
 end
 
@@ -50,31 +47,33 @@ end
 
 module ErlTerm
     class IncompleteData < Exception
+        def initialize string
+            super "incomplete data: '#{string}'"
+        end
     end
 
     module_function
     def decode string
-        raise IncompleteData, "incomplete data: '%s'" % string if string == ""
+        raise IncompleteData, string if string == ""
         raise ValueError, "unknown protocol version: %s" % string[0] \
             if string[0] != 131
         # TODO: Compressed terms
-        return decode_term string[1..-1]
+        decode_term string[1..-1]
     end
 
     private
+
     module_function
     def decode_term string
-        raise IncompleteData, "incomplete data: '%s'" % string if string == ""
+        raise IncompleteData, string if string == ""
         tag = string[0]
         case tag
             when 100
                 # ATOM_EXT
                 ln = string.length
-                raise IncompleteData, "incomplete data: '%s'" % string \
-                    if ln < 3
+                raise IncompleteData, string if ln < 3
                 length = string[1,2].unpack("n")[0] + 3
-                raise IncompleteData, "incomplete data: '%s'" % string \
-                    if ln < length
+                raise IncompleteData, string if ln < length
                 name = string[3...length]
                 if name == "true":
                     return true, string[length..-1]
@@ -90,21 +89,17 @@ module ErlTerm
             when 107
                 # STRING_EXT
                 ln = string.length
-                raise IncompleteData, "incomplete data: '%s'" % string \
-                    if ln < 3
+                raise IncompleteData, string if ln < 3
                 length = string[1,2].unpack("n")[0] + 3
-                raise IncompleteData, "incomplete data: '%s'" % string \
-                    if ln < length
+                raise IncompleteData, string if ln < length
                 return string[3...length].unpack("C*"), string[length..-1]
             when 108, 104, 105
                 if tag == 104
-                    raise IncompleteData, "incomplete data: '%s'" % string \
-                        if string.length < 2
+                    raise IncompleteData, string if string.length < 2
                     length = string[1]
                     tail = string[2..-1]
                 else
-                    raise IncompleteData, "incomplete data: '%s'" % string \
-                        if string.length < 5
+                    raise IncompleteData, string if string.length < 5
                     length = string[1,4].unpack("N")[0]
                     tail = string[5..-1]
                 end
@@ -115,8 +110,7 @@ module ErlTerm
                     length -= 1
                 end
                 if tag == 108
-                    raise IncompleteData, "incomplete data: '%s'" % string \
-                        if tail == ""
+                    raise IncompleteData, string if tail == ""
                     # TODO: Improper lists
                     raise ValueError, "improper list" if tail[0] != 106
                     return lst, tail[1..-1]
@@ -125,13 +119,11 @@ module ErlTerm
                 return Tuple.new(lst), tail
             when 97
                 # SMALL_INTEGER_EXT
-                raise IncompleteData, "incomplete data: '%s'" % string \
-                    if string.length < 2
+                raise IncompleteData, string if string.length < 2
                 return string[1], string[2..-1]
             when 98
                 # INTEGER_EXT
-                raise IncompleteData, "incomplete data: '%s'" % string \
-                    if string.length < 5
+                raise IncompleteData, string if string.length < 5
                 return string[1,4].unpack("N")[0], string[5..-1]
         end
 
