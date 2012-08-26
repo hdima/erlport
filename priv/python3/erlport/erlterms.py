@@ -45,6 +45,10 @@ PICKLE_PROTOCOL = 2
 class IncompleteData(ValueError):
     """Need more data."""
 
+    def __init__(self, data):
+        self.data = data
+        super(IncompleteData, self).__init__("incomplete data: %r" % (data,))
+
 
 class Atom(bytes):
     """Erlang atom."""
@@ -153,13 +157,13 @@ _int4_byte_unpack = Struct(b">IB").unpack
 def decode(string):
     """Decode Erlang external term."""
     if not string:
-        raise IncompleteData("incomplete data: %r" % string)
+        raise IncompleteData(string)
     if string[0] != 131:
         raise ValueError("unknown protocol version: %r" % string[0])
     if string[1:2] == b'P':
         # compressed term
         if len(string) < 6:
-            raise IncompleteData("incomplete data: %r" % string)
+            raise IncompleteData(string)
         d = decompressobj()
         term_string = d.decompress(string[6:]) + d.flush()
         uncompressed_size, = _int4_unpack(string[2:6])
@@ -182,16 +186,16 @@ def decode_term(string,
         int4_byte_unpack=_int4_byte_unpack, Atom=Atom,
         opaque=OpaqueObject.marker, decode_opaque=OpaqueObject.decode):
     if not string:
-        raise IncompleteData("incomplete data: %r" % string)
+        raise IncompleteData(string)
     tag = string[0]
     if tag == 100:
         # ATOM_EXT
         ln = len(string)
         if ln < 3:
-            raise IncompleteData("incomplete data: %r" % string)
+            raise IncompleteData(string)
         length = int2_unpack(string[1:3])[0] + 3
         if ln < length:
-            raise IncompleteData("incomplete data: %r" % string)
+            raise IncompleteData(string)
         name = string[3:length]
         if name == b"true":
             return True, string[length:]
@@ -207,21 +211,21 @@ def decode_term(string,
         # STRING_EXT
         ln = len(string)
         if ln < 3:
-            raise IncompleteData("incomplete data: %r" % string)
+            raise IncompleteData(string)
         length = int2_unpack(string[1:3])[0] + 3
         if ln < length:
-            raise IncompleteData("incomplete data: %r" % string)
+            raise IncompleteData(string)
         return list(string[3:length]), string[length:]
     elif tag in b"lhi":
         # LIST_EXT, SMALL_TUPLE_EXT, LARGE_TUPLE_EXT
         if tag == 104:
             if len(string) < 2:
-                raise IncompleteData("incomplete data: %r" % string)
+                raise IncompleteData(string)
             length = string[1]
             tail = string[2:]
         else:
             if len(string) < 5:
-                raise IncompleteData("incomplete data: %r" % string)
+                raise IncompleteData(string)
             length, = int4_unpack(string[1:5])
             tail = string[5:]
         lst = []
@@ -233,7 +237,7 @@ def decode_term(string,
             length -= 1
         if tag == 108:
             if not tail:
-                raise IncompleteData("incomplete data: %r" % string)
+                raise IncompleteData(string)
             if tail[0] != 106:
                 improper_tail, tail = _decode_term(tail)
                 return ImproperList(lst, improper_tail), tail
@@ -244,43 +248,43 @@ def decode_term(string,
     elif tag == 97:
         # SMALL_INTEGER_EXT
         if len(string) < 2:
-            raise IncompleteData("incomplete data: %r" % string)
+            raise IncompleteData(string)
         return string[1], string[2:]
     elif tag == 98:
         # INTEGER_EXT
         if len(string) < 5:
-            raise IncompleteData("incomplete data: %r" % string)
+            raise IncompleteData(string)
         i, = signed_int4_unpack(string[1:5])
         return i, string[5:]
     elif tag == 109:
         # BINARY_EXT
         ln = len(string)
         if ln < 5:
-            raise IncompleteData("incomplete data: %r" % string)
+            raise IncompleteData(string)
         length = int4_unpack(string[1:5])[0] + 5
         if ln < length:
-            raise IncompleteData("incomplete data: %r" % string)
+            raise IncompleteData(string)
         return string[5:length], string[length:]
     elif tag == 70:
         # NEW_FLOAT_EXT
         if len(string) < 9:
-            raise IncompleteData("incomplete data: %r" % string)
+            raise IncompleteData(string)
         f, = float_unpack(string[1:9])
         return f, string[9:]
     elif tag in b"no":
         # SMALL_BIG_EXT, LARGE_BIG_EXT
         if tag == 110:
             if len(string) < 3:
-                raise IncompleteData("incomplete data: %r" % string)
+                raise IncompleteData(string)
             length, sign = double_bytes_unpack(string[1:3])
             tail = string[3:]
         else:
             if len(string) < 6:
-                raise IncompleteData("incomplete data: %r" % string)
+                raise IncompleteData(string)
             length, sign = int4_byte_unpack(string[1:6])
             tail = string[6:]
         if len(tail) < length:
-            raise IncompleteData("incomplete data: %r" % string)
+            raise IncompleteData(string)
         n = 0
         if length:
             for i in reversed(tail[:length]):
