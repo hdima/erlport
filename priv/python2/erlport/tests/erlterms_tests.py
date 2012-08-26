@@ -43,6 +43,8 @@ class AtomTestCase(unittest.TestCase):
         self.assertEqual("Atom('test')", repr(atom))
         self.assertTrue(atom is Atom(atom))
         self.assertEqual("X" * 255, Atom("X" * 255))
+
+    def test_invalid_atom(self):
         self.assertRaises(ValueError, Atom, "X" * 256)
         self.assertRaises(TypeError, Atom, [1, 2])
 
@@ -66,6 +68,8 @@ class ImproperListTestCase(unittest.TestCase):
         self.assertEqual([1, 2, 3], improper)
         self.assertEqual("tail", improper.tail)
         self.assertEqual("ImproperList([1, 2, 3], 'tail')", repr(improper))
+
+    def test_improper_lsit_errors(self):
         self.assertRaises(TypeError, ImproperList, "invalid", "tail")
         self.assertRaises(TypeError, ImproperList, [1, 2, 3], ["invalid"])
         self.assertRaises(ValueError, ImproperList, [], "tail")

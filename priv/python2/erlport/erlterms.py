@@ -106,6 +106,8 @@ class ImproperList(list):
         return "ImproperList(%s, %r)" % (
             super(ImproperList, self).__repr__(), self.tail)
 
+    # TODO: Add __hash__ and __eq__ methods
+
 
 class OpaqueObject(object):
     """Opaque object data."""
