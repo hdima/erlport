@@ -1,3 +1,5 @@
+- Erlport datatypes should be a superset of JSON EEP types
+
 - Add __hash__ and __eq__ methods to some erlterms.(py|rb) classes
 
 - Allow calls in selected processes in Erlang. For example we can add
@@ -33,6 +35,8 @@
 
   Should we add ID to published messages?
 
+  Should we add independed event hubs or it can be added later?
+
 - Add 'threaded' mode for switch and run switch call in threads in Python. What
   is the use case for this mode? Threads:
 
@@ -54,10 +58,6 @@
   but store some known structures as values
 
 - Check default port options on Windows
-
-- Maybe force strings with {string, String} and {struct, Dict}? It can be done
-  with pluggable encoder/decoder. We can add 'reach' encoder/decoder plugin
-  functions
 
 - Other languages? Ruby? What about different Ruby versions?
 
