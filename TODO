@@ -1,6 +1,4 @@
-- Erlport datatypes should be a superset of JSON EEP types
-
-- Add __hash__ and __eq__ methods to some erlterms.(py|rb) classes
+- Add __hash__ and __eq__ methods to some erlterms.rb classes
 
 - Allow calls in selected processes in Erlang. For example we can add
   erlang.create_call_processes(n=1) -> [pid()] function and select it like

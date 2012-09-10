@@ -65,11 +65,17 @@ class ImproperListTestCase(unittest.TestCase):
     def test_improper_list(self):
         improper = ImproperList([1, 2, 3], b"tail")
         self.assertEqual(ImproperList, type(improper))
-        self.assertEqual([1, 2, 3], improper)
+        self.assertEqual([1, 2, 3], list(improper))
         self.assertEqual(b"tail", improper.tail)
         self.assertEqual("ImproperList([1, 2, 3], b'tail')", repr(improper))
 
-    def test_improper_list_errors(self):
+    def test_comparison(self):
+        improper = ImproperList([1, 2, 3], b"tail")
+        self.assertEqual(improper, ImproperList([1, 2, 3], b"tail"))
+        self.assertNotEqual(improper, ImproperList([1, 2, 3], b"tail2"))
+        self.assertNotEqual(improper, ImproperList([1, 2], b"tail"))
+
+    def test_errors(self):
         self.assertRaises(TypeError, ImproperList, "invalid", b"tail")
         self.assertRaises(TypeError, ImproperList, [1, 2, 3], ["invalid"])
         self.assertRaises(ValueError, ImproperList, [], b"tail")
@@ -88,8 +94,9 @@ class OpaqueObjectTestCase(unittest.TestCase):
     def test_comparison(self):
         obj = OpaqueObject(b"data", Atom(b"language"))
         self.assertEqual(obj, obj)
-        self.assertEqual(OpaqueObject(b"data", Atom(b"language")), obj)
-        self.assertNotEqual(OpaqueObject(b"data", Atom(b"language2")), obj)
+        self.assertEqual(obj, OpaqueObject(b"data", Atom(b"language")))
+        self.assertNotEqual(obj, OpaqueObject(b"data", Atom(b"language2")))
+        self.assertNotEqual(obj, OpaqueObject(b"data2", Atom(b"language")))
 
     def test_decode(self):
         obj = OpaqueObject.decode(b"data", Atom(b"language"))
@@ -109,7 +116,7 @@ class OpaqueObjectTestCase(unittest.TestCase):
         obj = OpaqueObject(b"data", Atom(b"erlang"))
         self.assertEqual(b"data", obj.encode())
 
-    def test_hash(self):
+    def test_hashing(self):
         obj = OpaqueObject(b"data", Atom(b"language"))
         obj2 = OpaqueObject(b"data", Atom(b"language"))
         self.assertEqual(hash(obj), hash(obj2))
@@ -174,12 +181,12 @@ class DecodeTestCase(unittest.TestCase):
         self.assertRaises(IncompleteData, decode, b"\x83l\0\0\0\0k")
         improper, tail = decode(b"\x83l\0\0\0\1jd\0\4tail")
         self.assertEqual(ImproperList, type(improper))
-        self.assertEqual([[]], improper)
+        self.assertEqual([[]], list(improper))
         self.assertEqual(Atom(b"tail"), improper.tail)
         self.assertEqual(b"", tail)
         improper, tail = decode(b"\x83l\0\0\0\1jd\0\4tailtail")
         self.assertEqual(ImproperList, type(improper))
-        self.assertEqual([[]], improper)
+        self.assertEqual([[]], list(improper))
         self.assertEqual(Atom(b"tail"), improper.tail)
         self.assertEqual(b"tail", tail)
 

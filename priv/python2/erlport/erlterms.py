@@ -106,7 +106,12 @@ class ImproperList(list):
         return "ImproperList(%s, %r)" % (
             super(ImproperList, self).__repr__(), self.tail)
 
-    # TODO: Add __hash__ and __eq__ methods
+    def __eq__(self, other):
+        return (type(self) == type(other) and list(self) == list(other)
+            and self.tail == other.tail)
+
+    def __ne__(self, other):
+        return not self == other
 
 
 class OpaqueObject(object):
@@ -138,6 +143,9 @@ class OpaqueObject(object):
     def __eq__(self, other):
         return (type(self) == type(other) and self.language == other.language
             and self.data == other.data)
+
+    def __ne__(self, other):
+        return not self == other
 
     def __hash__(self):
         return hash((self.language, self.data))
