@@ -63,6 +63,23 @@ class ImproperList < Array
         @tail = tail
         super array
     end
+
+    # TODO: Tests to eq methods
+
+    def == other
+        self.class == other.class and self.to_a == other.to_a \
+            and self.tail == other.tail
+    end
+
+    def === other
+        self == other
+    end
+
+    def eql? other
+        self == other
+    end
+
+    # TODO: Hash methods
 end
 
 module ErlTerm
