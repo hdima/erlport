@@ -148,7 +148,7 @@ class OpaqueObject(object):
         return not self == other
 
     def __hash__(self):
-        return hash((self.language, self.data))
+        return hash((self.__class__, self.language, self.data))
 
     def __repr__(self):
         return "OpaqueObject(%r, %r)" % (self.data, self.language)
