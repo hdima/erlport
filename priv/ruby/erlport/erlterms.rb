@@ -32,57 +32,60 @@
 #    http://www.erlang.org/doc/apps/erts/erl_ext_dist.html
 #
 
-class ValueError < Exception
-end
-
-class IncompleteData < Exception
-    def initialize string
-        super "incomplete data: '#{string}'"
-    end
-end
-
-class Atom < String
-    def initialize data
-        raise ValueError, "invalid atom length" if data.length > 255
-        super data
-    end
-end
-
-class Tuple < Array
-end
-
 # TODO: Add some method to String to convert from arrays?
 
-class ImproperList < Array
-    attr_accessor :tail
-
-    def initialize array, tail
-        raise ValueError, "empty list not allowed" if array.empty?
-        raise TypeError, "non list object expected for tail" \
-            if tail.is_a? Array
-        @tail = tail
-        super array
-    end
-
-    # TODO: Tests to eq methods
-
-    def == other
-        self.class == other.class and self.to_a == other.to_a \
-            and self.tail == other.tail
-    end
-
-    def === other
-        self == other
-    end
-
-    def eql? other
-        self == other
-    end
-
-    # TODO: Hash methods
-end
-
 module ErlTerm
+    class ValueError < Exception
+        def initialize string
+            super "value error: '#{string}'"
+        end
+    end
+
+    class IncompleteData < Exception
+        def initialize string
+            super "incomplete data: '#{string}'"
+        end
+    end
+
+    class Atom < String
+        def initialize data
+            raise ValueError, "invalid atom length" if data.length > 255
+            super data
+        end
+    end
+
+    class Tuple < Array
+    end
+
+    class ImproperList < Array
+        attr_accessor :tail
+
+        def initialize array, tail
+            raise ValueError, "empty list not allowed" if array.empty?
+            raise TypeError, "non list object expected for tail" \
+                if tail.is_a? Array
+            @tail = tail
+            super array
+        end
+
+        def == other
+            self.class == other.class and self.to_a == other.to_a \
+                and self.tail == other.tail
+        end
+
+        def === other
+            self == other
+        end
+
+        def eql? other
+            self == other
+        end
+
+        def hash
+            [self.class, self.to_a, self.tail].hash
+        end
+    end
+
     class OpaqueObject
         attr_accessor :data
         attr_accessor :language
@@ -108,8 +111,22 @@ module ErlTerm
             return encode_term(Tuple.new([MARKER, @language, @data]))
         end
 
-        # TODO: Add 'hash' and 'eq' methods
-        # TODO: Tests for OpaqueObject
+        def == other
+            self.class == other.class and self.language == other.language \
+                and self.data == other.data
+        end
+
+        def === other
+            self == other
+        end
+
+        def eql? other
+            self == other
+        end
+
+        def hash
+            [self.class, self.language, self.data].hash
+        end
     end
 
     module_function
@@ -135,12 +152,13 @@ module ErlTerm
                 length = string[1,2].unpack("n")[0] + 3
                 raise IncompleteData, string if ln < length
                 name = string[3...length]
-                if name == "true":
-                    return true, string[length..-1]
-                elsif name == "false":
-                    return false, string[length..-1]
-                elsif name == "undefined":
-                    return nil, string[length..-1]
+                case name
+                    when "true"
+                        return true, string[length..-1]
+                    when "false"
+                        return false, string[length..-1]
+                    when "undefined"
+                        return nil, string[length..-1]
                 end
                 return Atom.new(name), string[length..-1]
             when 106

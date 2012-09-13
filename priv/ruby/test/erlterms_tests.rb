@@ -52,6 +52,57 @@ class TupleTestCase < Test::Unit::TestCase
     end
 end
 
+class OpaqueObjectTestCase < Test::Unit::TestCase
+    def test_opaque_object
+        obj = OpaqueObject.new "data", Atom.new("language")
+        assert_equal "data", obj.data
+        assert_equal "language", obj.language
+        assert_raise(TypeError){OpaqueObject.new("data", "language")}
+        assert_raise(TypeError){OpaqueObject.new([1, 2], Atom.new("language"))}
+    end
+
+    def test_comparison
+        obj = OpaqueObject.new "data", Atom.new("language")
+        assert_equal obj, obj
+        assert_equal obj, OpaqueObject.new("data", Atom.new("language"))
+        assert_not_equal obj, OpaqueObject.new("data", Atom.new("language2"))
+        assert_not_equal obj, OpaqueObject.new("data2", Atom.new("language"))
+    end
+
+    def test_decode
+        obj = OpaqueObject.decode "data", Atom.new("language")
+        assert_equal "data", obj.data
+        assert_equal "language", obj.language
+    end
+
+    def test_decode_ruby
+        data = OpaqueObject.decode "\004\b\"\ttest", Atom.new("ruby")
+        assert_equal "test", data
+    end
+
+    # TODO
+    #def test_encode
+    #    obj = OpaqueObject "data", Atom.new("language")
+    #    term = Tuple.new([Atom.new("$erlport.opaque"),
+    #        Atom.new("language"), "data"]),
+    #end
+
+    def test_encode_erlang
+        obj = OpaqueObject.new "data", Atom.new("erlang")
+        assert_equal "data", obj.encode
+    end
+
+    def test_hashing
+        obj = OpaqueObject.new "data", Atom.new("language")
+        obj2 = OpaqueObject.new "data", Atom.new("language")
+        assert_equal obj.hash, obj2.hash
+        obj3 = OpaqueObject.new "data", Atom.new("language2")
+        assert_not_equal obj.hash, obj3.hash
+        obj4 = OpaqueObject.new "data2", Atom.new("language")
+        assert_not_equal obj.hash, obj4.hash
+    end
+end
+
 class ImproperListTestCase < Test::Unit::TestCase
     def test_improper_list
         improper = ImproperList.new [1, 2, 3], "tail"
@@ -60,7 +111,22 @@ class ImproperListTestCase < Test::Unit::TestCase
         assert_equal "tail", improper.tail
     end
 
-    def test_improper_list_errors
+    def test_comparison
+        improper = ImproperList.new [1, 2, 3], "tail"
+        assert_equal improper, improper
+        assert_equal improper, ImproperList.new([1, 2, 3], "tail")
+        assert_not_equal improper, ImproperList.new([1, 2, 3], "tail2")
+        assert_not_equal improper, ImproperList.new([1, 2], "tail")
+    end
+
+    def test_hashing
+        hash = ImproperList.new([1, 2, 3], "tail").hash
+        assert_equal hash, ImproperList.new([1, 2, 3], "tail").hash
+        assert_not_equal hash, ImproperList.new([1, 2, 3], "tail2").hash
+        assert_not_equal hash, ImproperList.new([1, 2], "tail").hash
+    end
+
+    def test_errors
         assert_raise(TypeError){ImproperList.new([1, 2, 3], ["invalid"])}
         assert_raise(ValueError){ImproperList.new([], "tail")}
     end
