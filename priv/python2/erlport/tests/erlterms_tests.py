@@ -71,6 +71,7 @@ class ImproperListTestCase(unittest.TestCase):
 
     def test_comparison(self):
         improper = ImproperList([1, 2, 3], "tail")
+        self.assertEqual(improper, improper)
         self.assertEqual(improper, ImproperList([1, 2, 3], "tail"))
         self.assertNotEqual(improper, ImproperList([1, 2, 3], "tail2"))
         self.assertNotEqual(improper, ImproperList([1, 2], "tail"))
