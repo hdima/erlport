@@ -172,7 +172,7 @@ def decode(string):
         raise ValueError("unknown protocol version: %r" % string[0])
     if string[1:2] == b'P':
         # compressed term
-        if len(string) < 6:
+        if len(string) < 16:
             raise IncompleteData(string)
         d = decompressobj()
         term_string = d.decompress(string[6:]) + d.flush()
