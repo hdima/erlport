@@ -337,4 +337,18 @@ class DecodeTestCase < Test::Unit::TestCase
         assert_equal [6618611909121, "tail"],
             decode("\x83o\0\0\0\6\0\1\2\3\4\5\6tail")
     end
+
+    def test_decode_compressed_term
+        assert_raise(IncompleteData){decode("\x83P")}
+        assert_raise(IncompleteData){decode("\x83P\0")}
+        assert_raise(IncompleteData){decode("\x83P\0\0")}
+        assert_raise(IncompleteData){decode("\x83P\0\0\0")}
+        assert_raise(IncompleteData){decode("\x83P\0\0\0\0")}
+        assert_raise(ValueError){decode("\x83P\0\0\0\x16" \
+            "\x78\xda\xcb\x66\x10\x49\xc1\2\0\x5d\x60\x08\x50")}
+        assert_equal [[100] * 20, ""], decode("\x83P\0\0\0\x17" \
+            "\x78\xda\xcb\x66\x10\x49\xc1\2\0\x5d\x60\x08\x50")
+        assert_equal [[100] * 20, "tail"], decode("\x83P\0\0\0\x17" \
+            "\x78\xda\xcb\x66\x10\x49\xc1\2\0\x5d\x60\x08\x50tail")
+    end
 end

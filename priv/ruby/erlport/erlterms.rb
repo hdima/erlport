@@ -34,6 +34,8 @@
 
 # TODO: Add some method to String to convert from arrays?
 
+require "zlib"
+
 module ErlTerm
     class ValueError < Exception
         def initialize string
@@ -134,13 +136,25 @@ module ErlTerm
         raise IncompleteData, string if string == ""
         raise ValueError, "unknown protocol version: %s" % string[0] \
             if string[0] != 131
-        # TODO: Compressed terms
+        if string[1] == 80
+            raise IncompleteData, string if string.length < 16
+            zstream = Zlib::Inflate.new
+            term_string = zstream.inflate(string[6..-1])
+            unused = zstream.finish
+            zstream.close
+            uncompressed_size = string[2,4].unpack("N")[0]
+            raise ValueError, "invalid compressed tag, #{uncompressed_size}" \
+                " bytes but got #{term_string.length}" \
+                if term_string.length != uncompressed_size
+            # tail data returned by decode_term() can be simple ignored
+            term, _tail = decode_term term_string
+            return term, unused
+        end
         decode_term string[1..-1]
     end
 
     private
 
-    module_function
     def decode_term string
         raise IncompleteData, string if string == ""
         tag = string[0]
