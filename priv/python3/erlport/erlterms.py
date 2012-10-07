@@ -353,13 +353,6 @@ def encode_term(term,
         else:
             raise ValueError("invalid tuple arity: %r" % arity)
         return header + b"".join(map(encode_term, term))
-    elif t is ImproperList:
-        length = len(term)
-        if length > 4294967295:
-            raise ValueError("invalid improper list length")
-        header = char_int4_pack(b"l", length)
-        return (header + b"".join(map(encode_term, term))
-            + encode_term(term.tail))
     elif t is list:
         length = len(term)
         if not term:
@@ -372,7 +365,7 @@ def encode_term(term,
             else:
                 return char_int2_pack(b'k', length) + b
         elif length > 4294967295:
-            raise ValueError("invalid list length")
+            raise ValueError("invalid list length: %r" % length)
         return (char_int4_pack(b'l', length)
             + b"".join(map(encode_term, term)) + b"j")
     elif t is str or t is String:
@@ -412,13 +405,20 @@ def encode_term(term,
             return char_2bytes_pack(b"n", length, sign) + b
         elif length <= 4294967295:
             return char_int4_byte_pack(b"o", length, sign) + b
-        raise ValueError("invalid integer value")
+        raise ValueError("invalid integer value with length: %r" % length)
     elif t is float:
         return char_float_pack(b"F", term)
     elif term is None:
         return b"d\0\11undefined"
     elif t is OpaqueObject:
         return term.encode()
+    elif t is ImproperList:
+        length = len(term)
+        if length > 4294967295:
+            raise ValueError("invalid improper list length: %r" % length)
+        header = char_int4_pack(b"l", length)
+        return (header + b"".join(map(encode_term, term))
+            + encode_term(term.tail))
 
     try:
         data = dumps(term, PICKLE_PROTOCOL)
