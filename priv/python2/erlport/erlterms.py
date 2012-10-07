@@ -39,7 +39,8 @@ from zlib import decompressobj, compress
 from cPickle import loads, dumps
 
 
-# It seems protocol version 2 supported by all Python versions from 2.5 to 3.2
+# It seems protocol version 2 is supported by all Python versions
+# from 2.5 to 3.2
 PICKLE_PROTOCOL = 2
 
 class IncompleteData(ValueError):
@@ -56,9 +57,10 @@ class Atom(str):
     __slots__ = ()
 
     def __new__(cls, s):
-        if isinstance(s, Atom):
+        t = type(s)
+        if t is Atom:
             return s
-        elif not isinstance(s, str):
+        elif not issubclass(t, str):
             raise TypeError("str object expected")
         elif len(s) > 255:
             raise ValueError("invalid atom length")
@@ -74,12 +76,13 @@ class String(unicode):
     __slots__ = ()
 
     def __new__(cls, s):
-        if isinstance(s, String):
+        t = type(s)
+        if t is String:
             return s
-        elif isinstance(s, list):
+        elif issubclass(t, list):
             # Will raise TypeError if can't be converted
             s = u"".join(map(unichr, s))
-        elif not isinstance(s, unicode):
+        elif not issubclass(t, unicode):
             raise TypeError("list or unicode object expected")
         return super(String, cls).__new__(cls, s)
 
@@ -122,9 +125,9 @@ class OpaqueObject(object):
     marker = Atom("$erlport.opaque")
 
     def __init__(self, data, language):
-        if not isinstance(data, str):
+        if type(data) is not str:
             raise TypeError("data must be instance of str")
-        if not isinstance(language, Atom):
+        if type(language) is not Atom:
             raise TypeError("language must be instance of Atom")
         self.data = data
         self.language = language
@@ -331,16 +334,17 @@ def encode(term, compressed=False):
 
 def encode_term(term,
         # Hack to turn globals into locals
-        tuple=tuple, len=len, isinstance=isinstance, list=list,
-        int_long=(int, long), array=array, unicode=unicode, Atom=Atom, str=str,
-        map=map, float=float, ord=ord, dict=dict, True=True, False=False,
-        dumps=dumps, PICKLE_PROTOCOL=PICKLE_PROTOCOL, ValueError=ValueError,
+        tuple=tuple, len=len, list=list, int=int, long=long, type=type,
+        array=array, unicode=unicode, Atom=Atom, str=str, map=map, float=float,
+        ord=ord, dict=dict, True=True, False=False, dumps=dumps,
+        PICKLE_PROTOCOL=PICKLE_PROTOCOL, ValueError=ValueError,
         OpaqueObject=OpaqueObject, OverflowError=OverflowError,
         char_int4_pack=_char_int4_pack, char_int2_pack=_char_int2_pack,
         char_signed_int4_pack=_char_signed_int4_pack,
         char_float_pack=_char_float_pack, char_2bytes_pack=_char_2bytes_pack,
         char_int4_byte_pack=_char_int4_byte_pack, python=_python):
-    if isinstance(term, tuple):
+    t = type(term)
+    if t is tuple:
         arity = len(term)
         if arity <= 255:
             header = "h%c" % arity
@@ -349,14 +353,13 @@ def encode_term(term,
         else:
             raise ValueError("invalid tuple arity")
         return header + "".join(map(encode_term, term))
-    # Must be before list
-    elif isinstance(term, ImproperList):
+    elif t is ImproperList:
         length = len(term)
         if length > 4294967295:
             raise ValueError("invalid improper list length")
         header = char_int4_pack('l', length)
         return header + "".join(map(encode_term, term)) + encode_term(term.tail)
-    elif isinstance(term, list):
+    elif t is list:
         length = len(term)
         if not term:
             return "j"
@@ -365,7 +368,8 @@ def encode_term(term,
                 # Array coersion will allow floats as a deprecated feature in
                 # Python 2.6 and previous versions
                 for t in term:
-                    if not isinstance(t, int_long):
+                    typ = type(t)
+                    if not (typ is int or typ is long):
                         raise TypeError
                 b = array('B', term).tostring()
             except (TypeError, OverflowError):
@@ -376,21 +380,20 @@ def encode_term(term,
             raise ValueError("invalid list length")
         return (char_int4_pack('l', length)
             + "".join(map(encode_term, term)) + "j")
-    elif isinstance(term, unicode):
+    elif t is unicode or t is String:
         return encode_term(map(ord, term))
-    elif isinstance(term, Atom):
+    elif t is Atom:
         return char_int2_pack('d', len(term)) + term
-    elif isinstance(term, str):
+    elif t is str:
         length = len(term)
         if length > 4294967295:
             raise ValueError("invalid binary length")
         return char_int4_pack('m', length) + term
-    # Must be before int type
     elif term is True:
         return "d\0\4true"
     elif term is False:
         return "d\0\5false"
-    elif isinstance(term, int_long):
+    elif t is int or t is long:
         if 0 <= term <= 255:
             return 'a%c' % term
         elif -2147483648 <= term <= 2147483647:
@@ -414,11 +417,11 @@ def encode_term(term,
         elif length <= 4294967295:
             return char_int4_byte_pack('o', length, sign) + bytes.tostring()
         raise ValueError("invalid integer value")
-    elif isinstance(term, float):
+    elif t is float:
         return char_float_pack('F', term)
     elif term is None:
         return "d\0\11undefined"
-    elif isinstance(term, OpaqueObject):
+    elif t is OpaqueObject:
         return term.encode()
 
     try:
