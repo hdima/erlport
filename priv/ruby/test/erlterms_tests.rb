@@ -352,3 +352,15 @@ class DecodeTestCase < Test::Unit::TestCase
             "\x78\xda\xcb\x66\x10\x49\xc1\2\0\x5d\x60\x08\x50tail")
     end
 end
+
+class EncodeTestCase < Test::Unit::TestCase
+    def test_decode
+        assert_equal "\x83h\0", encode(Tuple.new([]))
+        assert_equal "\x83h\2h\0h\0",
+            encode(Tuple.new([Tuple.new([]), Tuple.new([])]))
+        assert_equal "\x83h\xff" + "h\0" * 255,
+            encode(Tuple.new([Tuple.new([])] * 255))
+        assert_equal "\x83i\0\0\1\0" + "h\0" * 256,
+            encode(Tuple.new([Tuple.new([])] * 256))
+    end
+end

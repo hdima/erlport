@@ -153,6 +153,18 @@ module ErlTerm
         decode_term string[1..-1]
     end
 
+    module_function
+    def encode term, compressed=false
+        encoded_term = encode_term term
+        # default compression level is 6
+        compressed = compressed == true ? 6: 0
+        if compressed > 0 and compressed <= 9
+            # TODO: Compressed terms
+            return "ERROR"
+        end
+        "\x83" + encoded_term
+    end
+
     private
 
     def decode_term string
@@ -256,5 +268,20 @@ module ErlTerm
         end
 
         raise ValueError, "unsupported data: '%s'" % string
+    end
+
+    def encode_term term
+        case term
+            when Tuple
+                arity = term.length
+                if arity <= 255
+                    header = "h#{arity.chr}"
+                elsif arity <= 4294967295
+                    header = [105, arity].pack("CN")
+                else
+                    raise ValueError, "invalid tuple arity: #{arity}"
+                end
+                return header + term.map{|i| encode_term i}.join
+        end
     end
 end
