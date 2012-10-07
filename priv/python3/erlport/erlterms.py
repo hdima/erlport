@@ -351,7 +351,7 @@ def encode_term(term,
         elif arity <= 4294967295:
             header = char_int4_pack(b'i', arity)
         else:
-            raise ValueError("invalid tuple arity")
+            raise ValueError("invalid tuple arity: %r" % arity)
         return header + b"".join(map(encode_term, term))
     elif t is ImproperList:
         length = len(term)
