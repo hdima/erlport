@@ -65,7 +65,7 @@ module ErlTerm
         def initialize array, tail
             raise ValueError, "empty list not allowed" if array.empty?
             raise TypeError, "non list object expected for tail" \
-                if tail.is_a? Array
+                if tail.is_a? Array and not tail.is_a? Tuple
             @tail = tail
             super array
         end
@@ -282,6 +282,54 @@ module ErlTerm
                     raise ValueError, "invalid tuple arity: #{arity}"
                 end
                 return header + term.map{|i| encode_term i}.join
+            # Should be before Array
+            when ImproperList
+                length = term.length
+                raise ValueError, "invalid improper list length: #{length}" \
+                    if length > 4294967295
+                header = [108, length].pack("CN")
+                return header + term.map{|i| encode_term i}.join \
+                    + encode_term(term.tail)
+            when Array
+                length = term.length
+                if term.empty?
+                    return "j"
+                elsif length <= 65535
+                    if term.index{|i| not i.is_a? Integer or i > 255} == nil
+                        return [107, length].pack("Cn") + term.pack("C*")
+                    end
+                elsif length > 4294967295
+                    raise ValueError, "invalid list length: #{length}"
+                end
+                return [108, length].pack("CN") \
+                    + term.map{|i| encode_term i}.join + "j"
+            when Integer
+                if term >= 0 and term <= 255
+                    return "a#{term.chr}"
+                elsif term >= -2147483648 and term <= 2147483647
+                    return [98, term].pack("CN")
+                end
+
+                if term >= 0
+                    sign = 0
+                else
+                    sign = 1
+                    term = -term
+                end
+
+                bytes = []
+                while term != 0
+                    bytes.push(term & 0xff)
+                    term >>= 8
+                end
+
+                length = bytes.length
+                if length <= 255
+                    return [110, length, sign].pack("CCC") + bytes.pack("C*")
+                elsif length <= 4294967295
+                    return [111, length, sign].pack("CNC") + bytes.pack("C*")
+                end
+                raise ValueError, "invalid integer value with length #{length}"
         end
     end
 end

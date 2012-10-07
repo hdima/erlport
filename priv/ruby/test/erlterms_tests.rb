@@ -363,4 +363,44 @@ class EncodeTestCase < Test::Unit::TestCase
         assert_equal "\x83i\0\0\1\0" + "h\0" * 256,
             encode(Tuple.new([Tuple.new([])] * 256))
     end
+
+    def test_encode_empty_list
+        assert_equal "\x83j", encode([])
+    end
+
+    def test_encode_string_list
+        assert_equal "\x83k\0\1\0", encode([0])
+        r = (0..255).to_a
+        assert_equal "\x83k\1\0" + r.pack("C*"), encode(r)
+    end
+
+    def test_encode_list
+        assert_equal "\x83l\0\0\0\1jj", encode([[]])
+        assert_equal "\x83l\0\0\0\5jjjjjj", encode([[], [], [], [], []])
+    end
+
+    def test_encode_improper_list
+        assert_equal "\x83l\0\0\0\1h\0h\0",
+            encode(ImproperList.new([Tuple.new([])], Tuple.new([])))
+        assert_equal "\x83l\0\0\0\1a\0a\1", encode(ImproperList.new([0], 1))
+    end
+
+    def test_encode_short_integer
+        assert_equal "\x83a\0", encode(0)
+        assert_equal "\x83a\xff", encode(255)
+    end
+
+    def test_encode_integer
+        assert_equal "\x83b\xff\xff\xff\xff", encode(-1)
+        assert_equal "\x83b\x80\0\0\0", encode(-2147483648)
+        assert_equal "\x83b\0\0\1\0", encode(256)
+        assert_equal "\x83b\x7f\xff\xff\xff", encode(2147483647)
+    end
+
+    def test_encode_long_integer
+        assert_equal "\x83n\4\0\0\0\0\x80", encode(2147483648)
+        assert_equal "\x83n\4\1\1\0\0\x80", encode(-2147483649)
+        assert_equal "\x83o\0\0\1\0\0" + "\0" * 255 + "\1", encode(2 ** 2040)
+        assert_equal "\x83o\0\0\1\0\1" + "\0" * 255 + "\1", encode(-2 ** 2040)
+    end
 end
