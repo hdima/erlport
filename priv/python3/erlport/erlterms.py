@@ -56,6 +56,8 @@ class Atom(bytes):
 
     __slots__ = ()
 
+    __atoms = {}
+
     def __new__(cls, s):
         t = type(s)
         if t is Atom:
@@ -64,7 +66,10 @@ class Atom(bytes):
             raise TypeError("bytes object expected")
         elif len(s) > 255:
             raise ValueError("invalid atom length")
-        return super(Atom, cls).__new__(cls, s)
+        atoms = cls.__atoms
+        if s not in atoms:
+            atoms[s] = super(Atom, cls).__new__(cls, s)
+        return atoms[s]
 
     def __repr__(self):
         return "Atom(%s)" % super(Atom, self).__repr__()

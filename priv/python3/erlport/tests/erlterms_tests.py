@@ -42,6 +42,8 @@ class AtomTestCase(unittest.TestCase):
         self.assertEqual(b"test", atom)
         self.assertEqual("Atom(b'test')", repr(atom))
         self.assertTrue(atom is Atom(atom))
+        self.assertFalse(atom is Atom(b"test2"))
+        self.assertTrue(atom is Atom(b"test"))
         self.assertEqual(b"X" * 255, Atom(b"X" * 255))
 
     def test_invalid_atom(self):
