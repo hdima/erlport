@@ -58,10 +58,11 @@ class ListTestCase(unittest.TestCase):
         self.assertEqual([116, 101, 115, 116], lst)
         self.assertEqual("List([116, 101, 115, 116])", repr(lst))
 
-    def test_to_unicode(self):
+    def test_to_string(self):
         lst = List([116, 101, 115, 116])
-        self.assertEqual(u"test", lst.to_unicode())
-        self.assertRaises(TypeError, List("ab").to_unicode)
+        self.assertEqual(u"test", lst.to_string())
+        self.assertTrue(isinstance(lst.to_string(), unicode))
+        self.assertRaises(TypeError, List("ab").to_string)
 
 class ImproperListTestCase(unittest.TestCase):
 

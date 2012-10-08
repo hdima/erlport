@@ -80,7 +80,7 @@ class List(list):
 
     __slots__ = ()
 
-    def to_unicode(self):
+    def to_string(self):
         # Will raise TypeError if can't be converted
         return u"".join(map(unichr, self))
 
@@ -239,7 +239,7 @@ def decode_term(string,
                 raise IncompleteData(string)
             length, = int4_unpack(string[1:5])
             tail = string[5:]
-        lst = []
+        lst = List()
         append = lst.append
         _decode_term = decode_term
         while length > 0:
@@ -252,7 +252,7 @@ def decode_term(string,
             if tail[0] != "j":
                 improper_tail, tail = _decode_term(tail)
                 return ImproperList(lst, improper_tail), tail
-            return List(lst), tail[1:]
+            return lst, tail[1:]
         if len(lst) == 3 and lst[0] == opaque:
             return decode_opaque(lst[2], lst[1]), tail
         return tuple(lst), tail

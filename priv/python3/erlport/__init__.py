@@ -30,5 +30,5 @@
 __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 __version__ = "1.0"
 
-from erlport.erlterms import Atom, String, ImproperList
+from erlport.erlterms import Atom, List, ImproperList
 from erlport.erlang import Erlang
