@@ -30,7 +30,7 @@ import unittest
 from pickle import dumps
 
 from erlport import erlterms
-from erlport.erlterms import Atom, String, ImproperList, OpaqueObject
+from erlport.erlterms import Atom, List, ImproperList, OpaqueObject
 from erlport.erlterms import encode, decode, IncompleteData
 
 
@@ -48,17 +48,18 @@ class AtomTestCase(unittest.TestCase):
         self.assertRaises(ValueError, Atom, "X" * 256)
         self.assertRaises(TypeError, Atom, [1, 2])
 
-class StringTestCase(unittest.TestCase):
+class ListTestCase(unittest.TestCase):
 
-    def test_string(self):
-        string = String(u"test")
-        self.assertEqual(String, type(string))
-        self.assertEqual(u"test", string)
-        self.assertEqual("String(u'test')", repr(string))
-        self.assertTrue(string is String(string))
-        self.assertEqual(u"test", String([116, 101, 115, 116]))
-        self.assertRaises(TypeError, String, (1, 2))
-        self.assertRaises(TypeError, String, ["a", "b"])
+    def test_list(self):
+        lst = List([116, 101, 115, 116])
+        self.assertTrue(isinstance(lst, list))
+        self.assertEqual([116, 101, 115, 116], lst)
+        self.assertEqual("List([116, 101, 115, 116])", repr(lst))
+
+    def test_to_unicode(self):
+        lst = List([116, 101, 115, 116])
+        self.assertEqual(u"test", lst.to_unicode())
+        self.assertRaises(TypeError, List("ab").to_unicode)
 
 class ImproperListTestCase(unittest.TestCase):
 
@@ -153,6 +154,7 @@ class DecodeTestCase(unittest.TestCase):
 
     def test_decode_empty_list(self):
         self.assertEqual(([], ""), decode("\x83j"))
+        self.assertTrue(isinstance(decode("\x83j")[0], List))
         self.assertEqual(([], "tail"), decode("\x83jtail"))
 
     def test_decode_string_list(self):
@@ -163,6 +165,7 @@ class DecodeTestCase(unittest.TestCase):
         self.assertEqual(([], ""), decode("\x83k\0\0"))
         self.assertEqual(([], "tail"), decode("\x83k\0\0tail"))
         self.assertEqual(([116, 101, 115, 116], ""), decode("\x83k\0\4test"))
+        self.assertTrue(isinstance(decode("\x83k\0\4test")[0], List))
         self.assertEqual(([116, 101, 115, 116], "tail"),
             decode("\x83k\0\4testtail"))
 
@@ -176,6 +179,7 @@ class DecodeTestCase(unittest.TestCase):
         self.assertEqual(([], ""), decode("\x83l\0\0\0\0j"))
         self.assertEqual(([], "tail"), decode("\x83l\0\0\0\0jtail"))
         self.assertEqual(([[], []], ""), decode("\x83l\0\0\0\2jjj"))
+        self.assertTrue(isinstance(decode("\x83l\0\0\0\2jjj")[0], List))
         self.assertEqual(([[], []], "tail"), decode("\x83l\0\0\0\2jjjtail"))
 
     def test_decode_improper_list(self):
@@ -343,6 +347,8 @@ class EncodeTestCase(unittest.TestCase):
     def test_encode_list(self):
         self.assertEqual("\x83l\0\0\0\1jj", encode([[]]))
         self.assertEqual("\x83l\0\0\0\5jjjjjj", encode([[], [], [], [], []]))
+        self.assertEqual("\x83l\0\0\0\5jjjjjj",
+            encode(List([List([]), List([]), List([]), List([]), List([])])))
 
     def test_encode_improper_list(self):
         self.assertEqual("\x83l\0\0\0\1h\0h\0", encode(ImproperList([()], ())))
@@ -350,7 +356,6 @@ class EncodeTestCase(unittest.TestCase):
 
     def test_encode_unicode(self):
         self.assertEqual("\x83j", encode(u""))
-        self.assertEqual("\x83j", encode(String(u"")))
         self.assertEqual("\x83k\0\4test", encode(u"test"))
         self.assertEqual("\x83k\0\2\0\xff", encode(u"\0\xff"))
         self.assertEqual("\x83l\0\0\0\1b\0\0\1\0j", encode(u"\u0100"))
@@ -433,7 +438,7 @@ def get_suite():
     load = unittest.TestLoader().loadTestsFromTestCase
     suite = unittest.TestSuite()
     suite.addTests(load(AtomTestCase))
-    suite.addTests(load(StringTestCase))
+    suite.addTests(load(ListTestCase))
     suite.addTests(load(ImproperListTestCase))
     suite.addTests(load(OpaqueObjectTestCase))
     suite.addTests(load(DecodeTestCase))

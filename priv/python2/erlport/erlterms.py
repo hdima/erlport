@@ -70,24 +70,17 @@ class Atom(str):
         return "Atom(%s)" % super(Atom, self).__repr__()
 
 
-class String(unicode):
-    """Erlang list/string wrapper."""
+class List(list):
+    """List which also can be converted to Unicode string."""
 
     __slots__ = ()
 
-    def __new__(cls, s):
-        t = type(s)
-        if t is String:
-            return s
-        elif issubclass(t, list):
-            # Will raise TypeError if can't be converted
-            s = u"".join(map(unichr, s))
-        elif not issubclass(t, unicode):
-            raise TypeError("list or unicode object expected")
-        return super(String, cls).__new__(cls, s)
+    def to_unicode(self):
+        # Will raise TypeError if can't be converted
+        return u"".join(map(unichr, self))
 
     def __repr__(self):
-        return "String(%s)" % super(String, self).__repr__()
+        return "List(%s)" % super(List, self).__repr__()
 
 
 class ImproperList(list):
@@ -219,7 +212,7 @@ def decode_term(string,
         return Atom(name), string[length:]
     elif tag == "j":
         # NIL_EXT
-        return [], string[1:]
+        return List(), string[1:]
     elif tag == "k":
         # STRING_EXT
         ln = len(string)
@@ -228,7 +221,7 @@ def decode_term(string,
         length = int2_unpack(string[1:3])[0] + 3
         if ln < length:
             raise IncompleteData(string)
-        return array("B", string[3:length]).tolist(), string[length:]
+        return List(array("B", string[3:length]).tolist()), string[length:]
     elif tag in "lhi":
         # LIST_EXT, SMALL_TUPLE_EXT, LARGE_TUPLE_EXT
         if tag == "h":
@@ -254,7 +247,7 @@ def decode_term(string,
             if tail[0] != "j":
                 improper_tail, tail = _decode_term(tail)
                 return ImproperList(lst, improper_tail), tail
-            return lst, tail[1:]
+            return List(lst), tail[1:]
         if len(lst) == 3 and lst[0] == opaque:
             return decode_opaque(lst[2], lst[1]), tail
         return tuple(lst), tail
@@ -337,10 +330,10 @@ def encode_term(term,
         tuple=tuple, len=len, list=list, int=int, long=long, type=type,
         array=array, unicode=unicode, Atom=Atom, str=str, map=map, float=float,
         ord=ord, dict=dict, True=True, False=False, dumps=dumps,
-        PICKLE_PROTOCOL=PICKLE_PROTOCOL, ValueError=ValueError,
-        OpaqueObject=OpaqueObject, OverflowError=OverflowError,
-        char_int4_pack=_char_int4_pack, char_int2_pack=_char_int2_pack,
-        char_signed_int4_pack=_char_signed_int4_pack,
+        PICKLE_PROTOCOL=PICKLE_PROTOCOL, OpaqueObject=OpaqueObject,
+        ImproperList=ImproperList, char_int4_pack=_char_int4_pack,
+        char_int2_pack=_char_int2_pack,
+        char_signed_int4_pack=_char_signed_int4_pack, List=List,
         char_float_pack=_char_float_pack, char_2bytes_pack=_char_2bytes_pack,
         char_int4_byte_pack=_char_int4_byte_pack, python=_python):
     t = type(term)
@@ -353,7 +346,7 @@ def encode_term(term,
         else:
             raise ValueError("invalid tuple arity: %r" % arity)
         return header + "".join(map(encode_term, term))
-    elif t is list:
+    elif t is list or t is List:
         length = len(term)
         if not term:
             return "j"
@@ -374,7 +367,7 @@ def encode_term(term,
             raise ValueError("invalid list length: %r" % length)
         return (char_int4_pack('l', length)
             + "".join(map(encode_term, term)) + "j")
-    elif t is unicode or t is String:
+    elif t is unicode:
         return encode_term(map(ord, term))
     elif t is Atom:
         return char_int2_pack('d', len(term)) + term
