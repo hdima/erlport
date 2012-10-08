@@ -32,8 +32,6 @@
 #    http://www.erlang.org/doc/apps/erts/erl_ext_dist.html
 #
 
-# TODO: Add some method to String to convert from arrays?
-
 require "zlib"
 
 module ErlTerm
@@ -50,6 +48,7 @@ module ErlTerm
     end
 
     class Atom < String
+        # TODO: Cache
         def initialize data
             raise ValueError, "invalid atom length" if data.length > 255
             super data
