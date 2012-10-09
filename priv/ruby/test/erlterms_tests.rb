@@ -36,6 +36,8 @@ class AtomTestCase < Test::Unit::TestCase
         atom = Atom.new("test")
         assert_equal Atom, atom.class
         assert_equal "test", atom
+        assert_not_equal atom.object_id, Atom.new("test2").object_id
+        assert_equal atom.object_id, Atom.new("test").object_id
         assert_equal "X" * 255, Atom.new("X" * 255)
     end
 

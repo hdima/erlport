@@ -48,10 +48,13 @@ module ErlTerm
     end
 
     class Atom < String
-        # TODO: Cache
-        def initialize data
+        @@atoms = {}
+        def self.new data
             raise ValueError, "invalid atom length" if data.length > 255
-            super data
+            if not @@atoms.member?(data)
+                @@atoms[data] = super data
+            end
+            @@atoms[data]
         end
     end
 
