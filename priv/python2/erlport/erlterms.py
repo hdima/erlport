@@ -322,6 +322,8 @@ def encode(term, compressed=False):
         if compressed is True:
             # default compression level of 6
             compressed = 6
+        elif compressed < 0 or compressed > 9:
+            raise ValueError("invalid compression level: %r" % (compressed,))
         zlib_term = compress(encoded_term, compressed)
         ln = len(encoded_term)
         if len(zlib_term) + 5 <= ln:
@@ -379,7 +381,7 @@ def encode_term(term,
     elif t is str:
         length = len(term)
         if length > 4294967295:
-            raise ValueError("invalid binary length")
+            raise ValueError("invalid binary length: %r" % length)
         return char_int4_pack('m', length) + term
     elif term is True:
         return "d\0\4true"
