@@ -82,12 +82,12 @@ class OpaqueObjectTestCase < Test::Unit::TestCase
         assert_equal "test", data
     end
 
-    # TODO
-    #def test_encode
-    #    obj = OpaqueObject "data", Atom.new("language")
-    #    term = Tuple.new([Atom.new("$erlport.opaque"),
-    #        Atom.new("language"), "data"]),
-    #end
+    def test_encode
+        obj = OpaqueObject.new("data", Atom.new("language"))
+        term = Tuple.new([Atom.new("$erlport.opaque"),
+            Atom.new("language"), "data"])
+        assert_equal encode(term), "\x83" + obj.encode()
+    end
 
     def test_encode_erlang
         obj = OpaqueObject.new "data", Atom.new("erlang")
@@ -387,6 +387,21 @@ class EncodeTestCase < Test::Unit::TestCase
         assert_equal "\x83l\0\0\0\1a\0a\1", encode(ImproperList.new([0], 1))
     end
 
+    def test_encode_atom
+        assert_equal "\x83d\0\0", encode(Atom.new(""))
+        assert_equal "\x83d\0\4test", encode(Atom.new("test"))
+    end
+
+    def test_encode_string
+        assert_equal "\x83m\0\0\0\0", encode("")
+        assert_equal "\x83m\0\0\0\4test", encode("test")
+    end
+
+    def test_encode_boolean
+        assert_equal "\x83d\0\4true", encode(true)
+        assert_equal "\x83d\0\5false", encode(false)
+    end
+
     def test_encode_short_integer
         assert_equal "\x83a\0", encode(0)
         assert_equal "\x83a\xff", encode(255)
@@ -404,5 +419,49 @@ class EncodeTestCase < Test::Unit::TestCase
         assert_equal "\x83n\4\1\1\0\0\x80", encode(-2147483649)
         assert_equal "\x83o\0\0\1\0\0" + "\0" * 255 + "\1", encode(2 ** 2040)
         assert_equal "\x83o\0\0\1\0\1" + "\0" * 255 + "\1", encode(-2 ** 2040)
+    end
+
+    def test_encode_float
+        assert_equal "\x83F\0\0\0\0\0\0\0\0", encode(0.0)
+        assert_equal "\x83F?\xe0\0\0\0\0\0\0", encode(0.5)
+        assert_equal "\x83F\xbf\xe0\0\0\0\0\0\0", encode(-0.5)
+        assert_equal "\x83F@\t!\xfbM\x12\xd8J", encode(3.1415926)
+        assert_equal "\x83F\xc0\t!\xfbM\x12\xd8J", encode(-3.1415926)
+    end
+
+    def test_encode_none
+        assert_equal "\x83d\0\11undefined", encode(nil)
+    end
+
+    def test_encode_opaque_object
+        assert_equal "\x83h\3d\0\x0f$erlport.opaqued\0\10language" \
+            "m\0\0\0\4data", encode(OpaqueObject.new("data", \
+                Atom.new("language")))
+        assert_equal "\x83data",
+            encode(OpaqueObject.new("data", Atom.new("erlang")))
+    end
+
+    def test_ruby_opaque_object
+        assert_equal "\203h\003d\000\017$erlport.opaqued" \
+            "\000\004rubym\000\000\000\004\004\b{\000", encode({})
+        assert_raise(ValueError){encode(Module.new())}
+    end
+
+    def test_encode_compressed_term
+        assert_equal "\x83l\x00\x00\x00\x05jjjjjj", encode([[]] * 5, true)
+        assert_equal "\x83P\x00\x00\x00\x15" \
+            "x\x9c\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
+            encode([[]] * 15, true)
+        assert_equal "\x83P\x00\x00\x00\x15" \
+            "x\x9c\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
+            encode([[]] * 15, 6)
+        assert_equal "\x83P\x00\x00\x00\x15" \
+            "x\xda\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
+            encode([[]] * 15, 9)
+        assert_equal "\x83l\0\0\0\x0f" + "j" * 15 + "j",
+            encode([[]] * 15, 0)
+        assert_equal "\x83P\x00\x00\x00\x15" \
+            "x\x01\xcba``\xe0\xcfB\x03\x00B@\x07\x1c",
+            encode([[]] * 15, 1)
     end
 end

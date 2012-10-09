@@ -58,6 +58,7 @@ module ErlTerm
         end
     end
 
+    # TODO: Shouldn't be just a marker
     class Tuple < Array
     end
 
@@ -158,11 +159,21 @@ module ErlTerm
     module_function
     def encode term, compressed=false
         encoded_term = encode_term term
-        # default compression level is 6
-        compressed = compressed == true ? 6: 0
-        if compressed > 0 and compressed <= 9
-            # TODO: Compressed terms
-            return "ERROR"
+        if compressed == true
+            # default compression level is 6
+            compressed = 6
+        elsif not compressed.is_a? Integer
+            compressed = 0
+        elsif compressed < 0 or compressed > 9:
+            raise ValueError, "invalid compression level: #{compressed}"
+        end
+        if compressed > 0
+            zlib_term = Zlib::Deflate.deflate(encoded_term, compressed)
+            ln = encoded_term.length
+            if zlib_term.length + 5 <= ln
+                # Compressed term should be smaller
+                return [131, 80, ln].pack("CCN") + zlib_term
+            end
         end
         "\x83" + encoded_term
     end
@@ -305,6 +316,18 @@ module ErlTerm
                 end
                 return [108, length].pack("CN") \
                     + term.map{|i| encode_term i}.join + "j"
+            # Should be before String
+            when Atom
+                return [100, term.length].pack("Cn") + term
+            when String
+                length = term.length
+                raise ValueError("invalid binary length: #{length}") \
+                    if length > 4294967295
+                return [109, length].pack("CN") + term
+            when true
+                return "d\0\4true"
+            when false
+                return "d\0\5false"
             when Integer
                 if term >= 0 and term <= 255
                     return "a#{term.chr}"
@@ -332,6 +355,19 @@ module ErlTerm
                     return [111, length, sign].pack("CNC") + bytes.pack("C*")
                 end
                 raise ValueError, "invalid integer value with length #{length}"
+            when Float
+                return [70, term].pack("CG")
+            when nil
+                return "d\0\11undefined"
+            when OpaqueObject
+                return term.encode
         end
+
+        begin
+            data = Marshal.dump(term)
+        rescue
+            raise ValueError, "unsupported data type: #{term.class}"
+        end
+        return OpaqueObject.new(data, Atom.new("ruby")).encode()
     end
 end
