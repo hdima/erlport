@@ -33,14 +33,9 @@
 #
 
 require "zlib"
+require "erlport/errors"
 
 module ErlTerm
-    class ValueError < Exception
-        def initialize string
-            super "value error: '#{string}'"
-        end
-    end
-
     class IncompleteData < Exception
         def initialize string
             super "incomplete data: '#{string}'"
