@@ -1,3 +1,7 @@
+- Can we support some environment variables? For example to control Python
+  executable? But there's a problem with environment variables and options
+  precedence.
+
 - Allow calls in selected processes in Erlang. For example we can add
   erlang.create_call_processes(n=1) -> [pid()] function and select it like
   this:
