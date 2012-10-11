@@ -30,6 +30,8 @@ require "erlport/erlterms"
 
 module ErlProto
     class Port
+        attr_reader :in_d, :out_d
+
         @@formats = {
             1 => "C",
             2 => "n",
@@ -44,15 +46,15 @@ module ErlProto
             raise ValueError, "invalid packet size value: #{packet}" \
                 if @format == nil
             if descriptors != nil
-                in_d, out_d = descriptors
+                @in_d, @out_d = descriptors
             elsif use_stdio
-                in_d, out_d = 0, 1
+                @in_d, @out_d = 0, 1
             else
-                in_d, out_d = 3, 4
+                @in_d, @out_d = 3, 4
             end
 
-            @in = IO.new(in_d)
-            @out = IO.new(out_d)
+            @in = IO.new(@in_d)
+            @out = IO.new(@out_d)
 
             @packet = packet
             @compressed = compressed

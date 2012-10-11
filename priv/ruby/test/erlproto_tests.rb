@@ -35,10 +35,12 @@ include ErlTerm
 class TestPortClient
     attr_reader :port
 
-    def initialize *args
+    def initialize packet=4, use_stdio=true, compressed=false, \
+            buffer_size=65536
         r, @out = IO.pipe
         @in, w = IO.pipe
-        @port = Port.new(4, true, false, descriptors=[r.fileno, w.fileno])
+        @port = Port.new(packet, use_stdio, compressed, \
+            descriptors=[r.fileno, w.fileno], buffer_size)
     end
 
     def read
@@ -68,5 +70,25 @@ class PortTestCase < Test::Unit::TestCase
         client = TestPortClient.new()
         assert_equal 12, client.port.write(Atom.new("test"))
         assert_equal "\0\0\0\10\x83d\0\4test", client.read
+    end
+
+    def test_invalid_packet_value
+        assert_raise(ValueError){Port.new(0)}
+        assert_raise(ValueError){Port.new(3)}
+    end
+
+    def test_use_stdio
+        port = Port.new()
+        assert_equal 0, port.in_d
+        assert_equal 1, port.out_d
+        port = Port.new(4, true)
+        assert_equal 0, port.in_d
+        assert_equal 1, port.out_d
+    end
+
+    def test_nouse_stdio
+        port = Port.new(4, false)
+        assert_equal 3, port.in_d
+        assert_equal 4, port.out_d
     end
 end
