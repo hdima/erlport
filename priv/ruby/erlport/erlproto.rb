@@ -25,6 +25,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+require "thread"
+
 require "erlport/errors"
 require "erlport/erlterms"
 
@@ -60,32 +62,38 @@ module ErlProto
             @compressed = compressed
             @buffer = ""
             @buffer_size = buffer_size
+
+            @read_lock = Mutex.new
+            @write_lock = Mutex.new
         end
 
         def read
             packet = @packet
             buffer = @buffer
-            while buffer.length < packet
-                buffer += read_data()
-            end
-            length = unpack(buffer[0...packet]) + packet
-            while buffer.length < length
-                buffer += read_data()
-            end
-            term, @buffer = ErlTerm.decode(buffer[packet..-1])
-            term
+            @read_lock.synchronize {
+                while buffer.length < packet
+                    buffer += read_data()
+                end
+                length = unpack(buffer[0...packet]) + packet
+                while buffer.length < length
+                    buffer += read_data()
+                end
+                term, @buffer = ErlTerm.decode(buffer[packet..-1])
+                term
+            }
         end
 
         def write message
             data = ErlTerm.encode(message, compressed=@compressed)
             length = data.length
             data = pack(length) + data
-            while data.length != 0
-                # TODO: How to handle EPIPE?
-                n = @out.syswrite(data)
-                raise EOFError if n == 0
-                data = data[n..-1]
-            end
+            @write_lock.synchronize {
+                while data != ""
+                    n = @out.syswrite(data)
+                    raise EOFError, "end of file reached" if n == 0
+                    data = data[n..-1]
+                end
+            }
             length + @packet
         end
 
@@ -105,9 +113,8 @@ module ErlProto
         end
 
         def read_data
-            # TODO: How to handle EPIPE?
             buf = @in.sysread(@buffer_size)
-            raise EOFError if buf == nil or buf == ""
+            raise EOFError, "end of file reached" if buf == nil or buf == ""
             buf
         end
     end
