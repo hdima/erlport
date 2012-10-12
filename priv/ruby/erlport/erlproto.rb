@@ -89,7 +89,11 @@ module ErlProto
             data = pack(length) + data
             @write_lock.synchronize {
                 while data != ""
-                    n = @out.syswrite(data)
+                    begin
+                        n = @out.syswrite(data)
+                    rescue Errno::EPIPE
+                        raise EOFError, "end of file reached"
+                    end
                     raise EOFError, "end of file reached" if n == 0
                     data = data[n..-1]
                 end
@@ -113,7 +117,11 @@ module ErlProto
         end
 
         def read_data
-            buf = @in.sysread(@buffer_size)
+            begin
+                buf = @in.sysread(@buffer_size)
+            rescue Errno::EPIPE
+                raise EOFError, "end of file reached"
+            end
             raise EOFError, "end of file reached" if buf == nil or buf == ""
             buf
         end

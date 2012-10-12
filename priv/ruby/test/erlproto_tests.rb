@@ -59,15 +59,15 @@ end
 
 class PortTestCase < Test::Unit::TestCase
     def test_default_port_read
-        client = TestPortClient.new()
+        client = TestPortClient.new
         assert_equal 12, client.write("\0\0\0\10\x83d\0\4test")
-        atom = client.port.read()
+        atom = client.port.read
         assert atom.is_a? Atom
         assert_equal Atom.new("test"), atom
     end
 
     def test_default_port_write
-        client = TestPortClient.new()
+        client = TestPortClient.new
         assert_equal 12, client.port.write(Atom.new("test"))
         assert_equal "\0\0\0\10\x83d\0\4test", client.read
     end
@@ -90,5 +90,100 @@ class PortTestCase < Test::Unit::TestCase
         port = Port.new(4, false)
         assert_equal 3, port.in_d
         assert_equal 4, port.out_d
+    end
+
+    def test_port_close
+        client = TestPortClient.new
+        client.port.close
+        assert_raise(Errno::EPIPE){client.write("data")}
+        assert_raise(EOFError){client.read}
+    end
+
+    def test_closed_port
+        client = TestPortClient.new
+        # client.port.read can raise Errno::EBADF sometimes
+        assert_raise(EOFError){client.close; client.port.read}
+        assert_raise(EOFError){client.port.write("data")}
+    end
+
+    def test_read_multiple_terms
+        client = TestPortClient.new
+        atom_data = "\0\0\0\10\x83d\0\4test"
+        assert_equal 24, client.write(atom_data + atom_data)
+        atom = client.port.read
+        assert atom.is_a? Atom
+        assert_equal Atom.new("test"), atom
+        atom = client.port.read()
+        assert atom.is_a? Atom
+        assert_equal Atom.new("test"), atom
+    end
+
+    def test_small_buffer_read
+        client = TestPortClient.new(4, true, false, buffer_size=1)
+        assert_equal 12, client.write("\0\0\0\10\x83d\0\4test")
+        atom = client.port.read
+        assert atom.is_a? Atom
+        assert_equal Atom.new("test"), atom
+    end
+
+    def test_invalid_buffer_size
+        assert_raise(ValueError){Port.new(4, true, false, nil, buffer_size=0)}
+    end
+
+    def test_packet4_port_read
+        client = TestPortClient.new(packet=4)
+        assert_equal 12, client.write("\0\0\0\10\x83d\0\4test")
+        atom = client.port.read
+        assert atom.is_a? Atom
+        assert_equal Atom.new("test"), atom
+    end
+
+    def test_packet4_port_write
+        client = TestPortClient.new(packet=4)
+        assert_equal 12, client.port.write(Atom.new("test"))
+        assert_equal "\0\0\0\10\x83d\0\4test", client.read
+    end
+
+    def test_packet2_port_read
+        client = TestPortClient.new(packet=2)
+        assert_equal 10, client.write("\0\10\x83d\0\4test")
+        atom = client.port.read
+        assert atom.is_a? Atom
+        assert_equal Atom.new("test"), atom
+    end
+
+    def test_packet2_port_write
+        client = TestPortClient.new(packet=2)
+        assert_equal 10, client.port.write(Atom.new("test"))
+        assert_equal "\0\10\x83d\0\4test", client.read
+    end
+
+    def test_packet1_port_read
+        client = TestPortClient.new(packet=1)
+        assert_equal 9, client.write("\10\x83d\0\4test")
+        atom = client.port.read
+        assert atom.is_a? Atom
+        assert_equal Atom.new("test"), atom
+    end
+
+    def test_packet1_port_write
+        client = TestPortClient.new(packet=1)
+        assert_equal 9, client.port.write(Atom.new("test"))
+        assert_equal "\10\x83d\0\4test", client.read
+    end
+
+    def test_compressed_port_read
+        client = TestPortClient.new(packet=1, true, compressed=true)
+        assert_equal 26, client.write("\x19\x83P\0\0\0\x1a\x78\x9c\xcb\x61" \
+            "\x60\x60\x60\xcd\x66\x60\xd4\x43\xc7\x59\0\x30\x48\3\xde")
+        assert_equal [[46], [46], [46], [46], [46]], client.port.read
+    end
+
+    def test_compressed_port_write
+        client = TestPortClient.new(packet=1, true, compressed=true)
+        assert_equal 26, client.port.write([[46], [46], [46], [46], [46]])
+        assert_equal "\x19\x83P\0\0\0\x1a\x78\x9c\xcb\x61" \
+            "\x60\x60\x60\xcd\x66\x60\xd4\x43\xc7\x59\0\x30\x48\3\xde",
+            client.read
     end
 end
