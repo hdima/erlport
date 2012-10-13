@@ -175,6 +175,7 @@ module ErlTerm
 
     private
 
+    module_function
     def decode_term string
         raise IncompleteData, string if string == ""
         tag = string[0]
@@ -278,6 +279,7 @@ module ErlTerm
         raise ValueError, "unsupported data: '%s'" % string
     end
 
+    module_function
     def encode_term term
         case term
             when Tuple
