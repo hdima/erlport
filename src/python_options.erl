@@ -65,7 +65,7 @@ parse([{python, Python} | Tail], Options) ->
     % Will be checked later
     parse(Tail, Options#python_options{python=Python});
 parse([{python_path, PythonPath}=Value | Tail], Options) ->
-    case filter_invalid_paths(PythonPath) of
+    case erlport_options:filter_invalid_paths(PythonPath) of
         {ok, Path} ->
             % Paths will be checked later
             parse(Tail, Options#python_options{python_path=Path});
@@ -109,25 +109,6 @@ set_by_name(Name, Value, Options) ->
             setelement(N, Options, Value)
     end.
 
-filter_invalid_paths(Paths=[List | _]) when is_list(List) ->
-    case lists:filter(fun (L) -> not is_list(L) end, Paths) of
-        [] ->
-            {ok, Paths};
-        Invalid ->
-            {error, Invalid}
-    end;
-filter_invalid_paths(Path=[Integer | _]) when is_integer(Integer) ->
-    case lists:filter(fun (I) -> not is_integer(I) end, Path) of
-        "" ->
-            {ok, string:tokens(Path, ":")};
-        Invalid ->
-            {error, Invalid}
-    end;
-filter_invalid_paths(List) when is_list(List) ->
-    {error, invalid_path};
-filter_invalid_paths(_Paths) ->
-    {error, not_list}.
-
 update_python_path(Env0, PythonPath0, MajVersion) ->
     case code:priv_dir(erlport) of
         {error, bad_name} ->
@@ -136,7 +117,7 @@ update_python_path(Env0, PythonPath0, MajVersion) ->
             PythonDir = lists:concat([python, MajVersion]),
             ErlPortPath = filename:join(PrivDir, PythonDir),
             {PathFromEnv, Env2} = extract_python_path(Env0, "", []),
-            case join_python_path([[ErlPortPath], PythonPath0,
+            case erlport_options:join_path([[ErlPortPath], PythonPath0,
                     string:tokens(PathFromEnv, ":")]) of
                 {ok, PythonPath} ->
                     Env3 = [{"PYTHONPATH", PythonPath} | Env2],
@@ -145,31 +126,6 @@ update_python_path(Env0, PythonPath0, MajVersion) ->
                     Error
             end
     end.
-
-join_python_path(Parts=[_|_]) ->
-    remove_duplicate_path(lists:append(Parts), [], sets:new()).
-
-remove_duplicate_path([P | Tail], Paths, Seen) ->
-    case P of
-        "" ->
-            remove_duplicate_path(Tail, Paths, Seen);
-        P ->
-            case filelib:is_dir(P) of
-                true ->
-                    AP = filename:absname(P),
-                    case sets:is_element(AP, Seen) of
-                        false ->
-                            Seen2 = sets:add_element(AP, Seen),
-                            remove_duplicate_path(Tail, [AP | Paths], Seen2);
-                        true ->
-                            remove_duplicate_path(Tail, Paths, Seen)
-                    end;
-                false ->
-                    {error, {not_dir, P}}
-            end
-    end;
-remove_duplicate_path([], Paths, _Seen) ->
-    {ok, string:join(lists:reverse(Paths), ":")}.
 
 get_python(Python=[_|_]) ->
     {PythonCommand, Options} = lists:splitwith(fun (C) -> C =/= $ end, Python),

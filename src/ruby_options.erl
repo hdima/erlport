@@ -65,8 +65,7 @@ parse([{ruby, Ruby} | Tail], Options) ->
     % Will be checked later
     parse(Tail, Options#ruby_options{ruby=Ruby});
 parse([{ruby_lib, RubyLib}=Value | Tail], Options) ->
-    % TODO: Extract filter_invalid_paths to erlport_options module
-    case filter_invalid_paths(RubyLib) of
+    case erlport_options:filter_invalid_paths(RubyLib) of
         {ok, Path} ->
             % Paths will be checked later
             parse(Tail, Options#ruby_options{ruby_lib=Path});
@@ -110,27 +109,6 @@ set_by_name(Name, Value, Options) ->
             setelement(N, Options, Value)
     end.
 
-% TODO: Exctract to erlport_options?
-filter_invalid_paths(Paths=[List | _]) when is_list(List) ->
-    case lists:filter(fun (L) -> not is_list(L) end, Paths) of
-        [] ->
-            {ok, Paths};
-        Invalid ->
-            {error, Invalid}
-    end;
-filter_invalid_paths(Path=[Integer | _]) when is_integer(Integer) ->
-    case lists:filter(fun (I) -> not is_integer(I) end, Path) of
-        "" ->
-            {ok, string:tokens(Path, ":")};
-        Invalid ->
-            {error, Invalid}
-    end;
-filter_invalid_paths(List) when is_list(List) ->
-    {error, invalid_path};
-filter_invalid_paths(_Paths) ->
-    {error, not_list}.
-
-% TODO: Exctract to erlport_options?
 update_ruby_lib(Env0, RubyPath0) ->
     case code:priv_dir(erlport) of
         {error, bad_name} ->
@@ -138,7 +116,7 @@ update_ruby_lib(Env0, RubyPath0) ->
         PrivDir ->
             ErlPortPath = filename:join(PrivDir, "ruby"),
             {PathFromEnv, Env2} = extract_ruby_lib(Env0, "", []),
-            case join_ruby_lib([[ErlPortPath], RubyPath0,
+            case erlport_options:join_path([[ErlPortPath], RubyPath0,
                     string:tokens(PathFromEnv, ":")]) of
                 {ok, RubyPath} ->
                     Env3 = [{"RUBYLIB", RubyPath} | Env2],
@@ -147,33 +125,6 @@ update_ruby_lib(Env0, RubyPath0) ->
                     Error
             end
     end.
-
-% TODO: Exctract to erlport_options?
-join_ruby_lib(Parts=[_|_]) ->
-    remove_duplicate_path(lists:append(Parts), [], sets:new()).
-
-% TODO: Exctract to erlport_options?
-remove_duplicate_path([P | Tail], Paths, Seen) ->
-    case P of
-        "" ->
-            remove_duplicate_path(Tail, Paths, Seen);
-        P ->
-            case filelib:is_dir(P) of
-                true ->
-                    AP = filename:absname(P),
-                    case sets:is_element(AP, Seen) of
-                        false ->
-                            Seen2 = sets:add_element(AP, Seen),
-                            remove_duplicate_path(Tail, [AP | Paths], Seen2);
-                        true ->
-                            remove_duplicate_path(Tail, Paths, Seen)
-                    end;
-                false ->
-                    {error, {not_dir, P}}
-            end
-    end;
-remove_duplicate_path([], Paths, _Seen) ->
-    {ok, string:join(lists:reverse(Paths), ":")}.
 
 get_ruby(Ruby=[_|_]) ->
     {RubyCommand, Options} = lists:splitwith(fun (C) -> C =/= $ end, Ruby),
@@ -197,7 +148,6 @@ get_ruby(Ruby=[_|_]) ->
 get_ruby(Ruby) ->
     {error, {invalid_option, {ruby, Ruby}}}.
 
-% TODO: Exctract to erlport_options?
 extract_ruby_lib([{"RUBYLIB", P} | Tail], Path, Env) ->
     extract_ruby_lib(Tail, [P, ":" | Path], Env);
 extract_ruby_lib([Item | Tail], Path, Env) ->

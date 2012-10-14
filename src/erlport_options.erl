@@ -39,7 +39,9 @@
 -export([
     parse/1,
     timeout/1,
-    update_port_options/3
+    update_port_options/3,
+    join_path/1,
+    filter_invalid_paths/1
     ]).
 
 
@@ -123,12 +125,27 @@ parse(UnknownOption) ->
 %%% Utility functions
 %%%
 
+%%
+%% @doc Check timeout value
+%%
+
+-spec timeout(Timeout::pos_integer() | infinity) ->
+    {ok, Timeout::pos_integer() | infinity} | error.
+
 timeout(Timeout) when is_integer(Timeout) andalso Timeout > 0 ->
     {ok, Timeout};
 timeout(Timeout=infinity) ->
     {ok, Timeout};
 timeout(_) ->
     error.
+
+%%
+%% @doc Update port options with path and use_stdio options
+%%
+
+-spec update_port_options(PortOptions::[{atom(), term()} | atom()],
+        Path::string() | undefined, UseStdio::use_stdio | nouse_stdio) ->
+    PortOptions::[{atom(), term()} | atom()].
 
 update_port_options(PortOptions, Path, UseStdio) ->
     PortOptions1 = case Path of
@@ -144,9 +161,67 @@ update_port_options(PortOptions, Path, UseStdio) ->
             PortOptions1
     end.
 
+%%
+%% @doc Join paths to a ":" delimited string and remove duplicate parts
+%%
+
+-spec join_path(Parts::[Path::string() | [Path::string()]]) ->
+    {ok, Path::string()} | {error, term()}.
+
+join_path(Parts=[_|_]) ->
+    remove_duplicate_path(lists:append(Parts), [], sets:new()).
+
+%%
+%% @doc Filter invalid paths from list of paths
+%%
+
+-spec filter_invalid_paths(Paths::[Path::string() | [Path::string()]]) ->
+    {ok, Paths::[Path::string() | [Path::string()]]} | {error, term()}.
+
+filter_invalid_paths(Paths=[List | _]) when is_list(List) ->
+    case lists:filter(fun (L) -> not is_list(L) end, Paths) of
+        [] ->
+            {ok, Paths};
+        Invalid ->
+            {error, Invalid}
+    end;
+filter_invalid_paths(Path=[Integer | _]) when is_integer(Integer) ->
+    case lists:filter(fun (I) -> not is_integer(I) end, Path) of
+        "" ->
+            {ok, string:tokens(Path, ":")};
+        Invalid ->
+            {error, Invalid}
+    end;
+filter_invalid_paths(List) when is_list(List) ->
+    {error, invalid_path};
+filter_invalid_paths(_Paths) ->
+    {error, not_list}.
+
 %%%
 %%% Internal functions
 %%%
+
+remove_duplicate_path([P | Tail], Paths, Seen) ->
+    case P of
+        "" ->
+            remove_duplicate_path(Tail, Paths, Seen);
+        P ->
+            case filelib:is_dir(P) of
+                true ->
+                    AP = filename:absname(P),
+                    case sets:is_element(AP, Seen) of
+                        false ->
+                            Seen2 = sets:add_element(AP, Seen),
+                            remove_duplicate_path(Tail, [AP | Paths], Seen2);
+                        true ->
+                            remove_duplicate_path(Tail, Paths, Seen)
+                    end;
+                false ->
+                    {error, {not_dir, P}}
+            end
+    end;
+remove_duplicate_path([], Paths, _Seen) ->
+    {ok, string:join(lists:reverse(Paths), ":")}.
 
 filter_invalid_env(Env) when is_list(Env) ->
     lists:filter(fun
