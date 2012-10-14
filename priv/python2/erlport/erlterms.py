@@ -66,6 +66,7 @@ class Atom(str):
             raise TypeError("str object expected")
         elif len(s) > 255:
             raise ValueError("invalid atom length")
+        s = intern(s)
         atoms = cls.__atoms
         if s not in atoms:
             atoms[s] = super(Atom, cls).__new__(cls, s)
