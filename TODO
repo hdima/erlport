@@ -1,3 +1,7 @@
+- Redefine STDOUT/STDIN in Python/Ruby and ignore/log output?
+
+- Create some tools for debuggig external programs? Like logging to file etc.
+
 - Use Ruby Symbols for atoms in Ruby. But it not allowed to create empty
   Symbols so maybe we can only encode Symbols as atoms?
 
