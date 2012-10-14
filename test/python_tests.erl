@@ -234,6 +234,10 @@ opaque_type_test_() -> [{setup,
         fun () -> F = fun () -> true end, ?assertIdentity(P, F) end
     ] end} || Setup <- [fun setup/0, fun setup3/0]].
 
+%%%
+%%% Utility functions
+%%%
+
 log_event(Event) ->
     true = ets:insert(events, {events, Event}).
 

@@ -56,7 +56,25 @@ module Erlang
     def call mod, function, args
         raise InvalidMode, "you need call Erlang.start(port) function first" \
             if @@port == nil
-        # TODO
+
+        raise ValueError, mod.to_s \
+            if not (mod.is_a? Symbol or mod.is_a? EmptySymbol)
+        raise ValueError, function.to_s \
+            if not (function.is_a? Symbol or function.is_a? EmptySymbol)
+        raise ValueError, args.to_s if not args.is_a? Array
+
+        # TODO: Call lock
+        @@port.write(Tuple.new([:C, mod, function, args]))
+        response = @@port.read
+        raise InvalidMessage, response.to_s if response.length != 2
+        mtype, value = response
+
+        if mtype != :r
+            # TODO: Raise error based on error value
+            raise Exception, "error" if mtype == :e
+            raise UnknownMessage, response.to_s
+        end
+        value
     end
 
     private
@@ -79,7 +97,7 @@ module Erlang
                     @@port.write(
                         self.call_with_error_handler(mod, function, args))
                     @@client = false
-                default
+                else
                     raise UnknownMessage, "unknown message: #{message}"
             end
         end

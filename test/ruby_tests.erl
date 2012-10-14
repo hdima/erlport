@@ -27,10 +27,17 @@
 
 -module(ruby_tests).
 
+-export([test_callback/2]).
+
 -include_lib("eunit/include/eunit.hrl").
 
+
+test_callback(PrevResult, N) ->
+    log_event({test_callback, PrevResult, N}),
+    N.
+
 setup() ->
-    {ok, P} = ruby:start_link(),
+    {ok, P} = ruby:start_link([{cd, "test/ruby"}]),
     P.
 
 cleanup(P) ->
@@ -39,6 +46,91 @@ cleanup(P) ->
 call_test_() -> {setup,
     fun setup/0,
     fun cleanup/1,
-    fun (P) ->
-        ?_assertEqual(4, ruby:call(P, '', 'Kernel::eval', [<<"2 + 2">>]))
+    fun (R) ->
+        ?_assertEqual(4, ruby:call(R, '', 'Kernel::eval', [<<"2 + 2">>]))
     end}.
+
+compressed_test_() -> {setup,
+    fun () ->
+        {ok, R} = ruby:start_link([{compressed, 9}, {cd, "test/ruby"}]),
+        R
+    end,
+    fun cleanup/1,
+    fun (R) ->
+        fun () ->
+            S1 = list_to_binary(lists:duplicate(200, $0)),
+            S2 = list_to_binary(lists:duplicate(200, $1)),
+            ?assertEqual(<<S1/binary, S2/binary>>,
+                ruby:call(R, test, 'Test::add', [S1, S2]))
+        end
+    end}.
+
+call_pipeline_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (P) ->
+        {inparallel, [
+            ?_assertEqual(N + 1, ruby:call(P, test, 'Test::add', [N , 1]))
+            || N <- lists:seq(1, 50)]}
+    end}.
+
+queue_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (P) ->
+        {inparallel, [
+            ?_assertEqual(262144, ruby:call(P, test, 'Test::len',
+                [<<0:262144/unit:8>>]))
+            || _ <- lists:seq(1, 50)]}
+    end}.
+
+switch_test_() -> {setup,
+    fun () ->
+        setup_event_logger(),
+        setup()
+    end,
+    fun (P) ->
+        cleanup(P),
+        cleanup_event_logger()
+    end,
+    fun (P) -> [
+        fun () ->
+            ?assertEqual(ok, ruby:switch(P, switch, switch, [5])),
+            timer:sleep(500),
+            ?assertEqual([
+                {test_callback, 0, 0},
+                {test_callback, 0, 1},
+                {test_callback, 1, 2},
+                {test_callback, 2, 3},
+                {test_callback, 3, 4}
+                ], get_events())
+        end,
+        fun () ->
+            ?assertEqual(5, ruby:switch(P, switch, switch, [5], [block])),
+            ?assertEqual([
+                {test_callback, 0, 0},
+                {test_callback, 0, 1},
+                {test_callback, 1, 2},
+                {test_callback, 2, 3},
+                {test_callback, 3, 4}
+                ], get_events())
+        end
+    ] end}.
+
+%%%
+%%% Utility functions
+%%%
+
+log_event(Event) ->
+    true = ets:insert(events, {events, Event}).
+
+get_events() ->
+    Events = [E || {_, E} <- ets:lookup(events, events)],
+    true = ets:delete(events, events),
+    Events.
+
+setup_event_logger() ->
+    ets:new(events, [public, named_table, duplicate_bag]).
+
+cleanup_event_logger() ->
+    true = ets:delete(events).
