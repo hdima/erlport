@@ -27,6 +27,7 @@
 
 require "erlport/erlterms"
 
+include ErlTerm
 
 class ErlPortError < Exception
 end
@@ -62,7 +63,7 @@ module Erlang
 
     module_function
     def loop
-        switch_ack = ErlTerm::Atom.new("s")
+        switch_ack = Atom.new("s")
         while true
             message = @@port.read
             raise InvalidMessage, "invalid message: #{message}" \
@@ -87,19 +88,23 @@ module Erlang
     module_function
     def call_with_error_handler mod, function, args
         begin
-            require mod
+            require mod if mod != ""
             idx = function.rindex("::")
             if idx == nil
-                send(function, *args)
+                # TODO: Forbid calls without a library?
+                r = send(function, *args)
             else
                 container = eval function[0...idx]
                 fun = function[idx + 2..-1]
-                container.send(fun, *args)
+                r = container.send(fun, *args)
             end
+            # TODO: Encode result
+            Tuple.new([Atom.new("r"), r])
         rescue Exception => why
+            # TODO: Update exception format
             exc = Atom.new(why.inspect())
             exc_tb = why.backtrace().reverse()
-            [Atom.new("e"), [exc, why.message, ext_tb]]
+            Tuple.new([Atom.new("e"), [exc, why.message, exc_tb]])
         end
     end
 end
