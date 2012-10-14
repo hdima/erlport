@@ -1,3 +1,5 @@
+- Can EmptySymbol be subclassed from Symbol?
+
 - What about different Ruby versions?
 
 - Ruby Erlang::call method
