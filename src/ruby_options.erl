@@ -81,8 +81,10 @@ parse([Option | Tail], Options) ->
             Error
     end;
 parse([], Options=#ruby_options{env=Env0, ruby_lib=RubyLib0,
-        ruby=Ruby, port_options=PortOptions, packet=Packet}) ->
-    PortOptions1 = update_port_options(PortOptions, Options),
+        ruby=Ruby, port_options=PortOptions, packet=Packet,
+        cd=Path, use_stdio=UseStdio}) ->
+    PortOptions1 = erlport_options:update_port_options(
+        PortOptions, Path, UseStdio),
     case get_ruby(Ruby) of
         {ok, RubyFilename} ->
             case update_ruby_lib(Env0, RubyLib0) of
@@ -178,8 +180,6 @@ get_ruby(Ruby=[_|_]) ->
     case os:find_executable(RubyCommand) of
         false ->
             case Ruby of
-                % TODO: Default should be atom so we not conflict with user
-                % defined names?
                 ?DEFAULT_RUBY ->
                     {error, ruby_not_found};
                 _ ->
@@ -187,14 +187,12 @@ get_ruby(Ruby=[_|_]) ->
             end;
         Filename ->
             Fullname = filename:absname(Filename),
-            {ok, Fullname ++ Options}
-            % TODO: ?
-            %case check_ruby_version(Fullname) of
-            %    {ok, {MajVersion, _, _}} ->
-            %        {ok, Fullname ++ Options, MajVersion};
-            %    {error, _}=Error ->
-            %        Error
-            %end
+            case check_ruby_version(Fullname) of
+                {ok, _Version} ->
+                    {ok, Fullname ++ Options};
+                {error, _}=Error ->
+                    Error
+            end
     end;
 get_ruby(Ruby) ->
     {error, {invalid_option, {ruby, Ruby}}}.
@@ -207,35 +205,18 @@ extract_ruby_lib([Item | Tail], Path, Env) ->
 extract_ruby_lib([], Path, Env) ->
     {lists:append(lists:reverse(Path)), lists:reverse(Env)}.
 
-% TODO: Exctract to erlport_options?
-update_port_options(PortOptions, #ruby_options{cd=Path,
-        use_stdio=UseStdio}) ->
-    PortOptions1 = case Path of
-        undefined ->
-            PortOptions;
-        Path ->
-            [{cd, Path} | PortOptions]
-    end,
-    case UseStdio of
-        nouse_stdio ->
-            [UseStdio | PortOptions1];
-        _ ->
-            PortOptions1
+check_ruby_version(Ruby) ->
+    Out = os:cmd(Ruby ++ " -v"),
+    case re:run(Out, "^ruby ([0-9]+)\.([0-9]+)\.([0-9]+) ",
+            [{capture, all_but_first, list}]) of
+        {match, StrVersion} ->
+            Version = list_to_tuple([list_to_integer(N) || N <- StrVersion]),
+            if
+                Version >= {1, 8, 0} andalso Version < {1, 9, 0} ->
+                    {ok, Version};
+                true ->
+                    {error, {unsupported_ruby_version, Out}}
+            end;
+        nomatch ->
+            {error, {invalid_ruby, Ruby}}
     end.
-
-% TODO: ?
-%check_ruby_version(Ruby) ->
-%    Out = os:cmd(Ruby ++ " -V"),
-%    case re:run(Out, "^Ruby ([0-9]+)\.([0-9]+)\.([0-9]+)$",
-%            [{capture, all_but_first, list}]) of
-%        {match, StrVersion} ->
-%            Version = list_to_tuple([list_to_integer(N) || N <- StrVersion]),
-%            if
-%                Version >= {2, 5, 0} andalso Version < {4, 0, 0} ->
-%                    {ok, Version};
-%                true ->
-%                    {error, {unsupported_ruby_version, Out}}
-%            end;
-%        nomatch ->
-%            {error, {invalid_ruby, Ruby}}
-%    end.

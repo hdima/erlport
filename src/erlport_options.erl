@@ -38,7 +38,8 @@
 
 -export([
     parse/1,
-    timeout/1
+    timeout/1,
+    update_port_options/3
     ]).
 
 
@@ -122,6 +123,31 @@ parse(UnknownOption) ->
 %%% Utility functions
 %%%
 
+timeout(Timeout) when is_integer(Timeout) andalso Timeout > 0 ->
+    {ok, Timeout};
+timeout(Timeout=infinity) ->
+    {ok, Timeout};
+timeout(_) ->
+    error.
+
+update_port_options(PortOptions, Path, UseStdio) ->
+    PortOptions1 = case Path of
+        undefined ->
+            PortOptions;
+        Path ->
+            [{cd, Path} | PortOptions]
+    end,
+    case UseStdio of
+        nouse_stdio ->
+            [UseStdio | PortOptions1];
+        _ ->
+            PortOptions1
+    end.
+
+%%%
+%%% Internal functions
+%%%
+
 filter_invalid_env(Env) when is_list(Env) ->
     lists:filter(fun
         ({N, V}) when is_list(N), is_list(V) ->
@@ -131,10 +157,3 @@ filter_invalid_env(Env) when is_list(Env) ->
         end, Env);
 filter_invalid_env(_Env) ->
     not_list.
-
-timeout(Timeout) when is_integer(Timeout) andalso Timeout > 0 ->
-    {ok, Timeout};
-timeout(Timeout=infinity) ->
-    {ok, Timeout};
-timeout(_) ->
-    error.

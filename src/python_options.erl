@@ -80,8 +80,10 @@ parse([Option | Tail], Options) ->
             Error
     end;
 parse([], Options=#python_options{env=Env0, python_path=PythonPath0,
-        python=Python, port_options=PortOptions, packet=Packet}) ->
-    PortOptions1 = update_port_options(PortOptions, Options),
+        python=Python, port_options=PortOptions, packet=Packet,
+        cd=Path, use_stdio=UseStdio}) ->
+    PortOptions1 = erlport_options:update_port_options(
+        PortOptions, Path, UseStdio),
     case get_python(Python) of
         {ok, PythonFilename, MajVersion} ->
             case update_python_path(Env0, PythonPath0, MajVersion) of
@@ -197,21 +199,6 @@ extract_python_path([Item | Tail], Path, Env) ->
     extract_python_path(Tail, Path, [Item | Env]);
 extract_python_path([], Path, Env) ->
     {lists:append(lists:reverse(Path)), lists:reverse(Env)}.
-
-update_port_options(PortOptions, #python_options{cd=Path,
-        use_stdio=UseStdio}) ->
-    PortOptions1 = case Path of
-        undefined ->
-            PortOptions;
-        Path ->
-            [{cd, Path} | PortOptions]
-    end,
-    case UseStdio of
-        nouse_stdio ->
-            [UseStdio | PortOptions1];
-        _ ->
-            PortOptions1
-    end.
 
 check_python_version(Python) ->
     Out = os:cmd(Python ++ " -V"),
