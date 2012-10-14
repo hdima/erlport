@@ -1,9 +1,12 @@
+- What about different Ruby versions?
+
+- Ruby Erlang::call method
+
+- Ruby encoder/decoder for arguments/results
+
 - Redefine STDOUT/STDIN in Python/Ruby and ignore/log output?
 
 - Create some tools for debuggig external programs? Like logging to file etc.
-
-- Use Ruby Symbols for atoms in Ruby. But it not allowed to create empty
-  Symbols so maybe we can only encode Symbols as atoms?
 
 - Can we support some environment variables? For example to control Python
   executable? But there's a problem with environment variables and options
@@ -66,7 +69,7 @@
 
 - Check default port options on Windows
 
-- Other languages? Ruby? What about different Ruby versions?
+- Perl support. What about different Perl versions?
 
 - Add worker_pool module with pluggable workers selection policies
 

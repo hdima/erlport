@@ -31,18 +31,13 @@ require 'erlport/erlterms'
 include ErlTerm
 
 
-class AtomTestCase < Test::Unit::TestCase
-    def test_atom
-        atom = Atom.new("test")
-        assert_equal Atom, atom.class
-        assert_equal "test", atom
-        assert_not_equal atom.object_id, Atom.new("test2").object_id
-        assert_equal atom.object_id, Atom.new("test").object_id
-        assert_equal "X" * 255, Atom.new("X" * 255)
-    end
-
-    def test_invalid_atom
-        assert_raise(ValueError){Atom.new("X" * 256)}
+class EmptySymbolTestCase < Test::Unit::TestCase
+    def test_empty_symbol
+        e = EmptySymbol.new
+        e2 = EmptySymbol.new
+        assert_equal e, e2
+        assert_equal "", e.to_s
+        assert_equal e.to_s, e2.to_s
     end
 end
 
@@ -56,51 +51,50 @@ end
 
 class OpaqueObjectTestCase < Test::Unit::TestCase
     def test_opaque_object
-        obj = OpaqueObject.new "data", Atom.new("language")
+        obj = OpaqueObject.new "data", :language
         assert_equal "data", obj.data
-        assert_equal "language", obj.language
+        assert_equal :language, obj.language
         assert_raise(TypeError){OpaqueObject.new("data", "language")}
-        assert_raise(TypeError){OpaqueObject.new([1, 2], Atom.new("language"))}
+        assert_raise(TypeError){OpaqueObject.new([1, 2], :language)}
     end
 
     def test_comparison
-        obj = OpaqueObject.new "data", Atom.new("language")
+        obj = OpaqueObject.new "data", :language
         assert_equal obj, obj
-        assert_equal obj, OpaqueObject.new("data", Atom.new("language"))
-        assert_not_equal obj, OpaqueObject.new("data", Atom.new("language2"))
-        assert_not_equal obj, OpaqueObject.new("data2", Atom.new("language"))
+        assert_equal obj, OpaqueObject.new("data", :language)
+        assert_not_equal obj, OpaqueObject.new("data", :language2)
+        assert_not_equal obj, OpaqueObject.new("data2", :language)
     end
 
     def test_decode
-        obj = OpaqueObject.decode "data", Atom.new("language")
+        obj = OpaqueObject.decode "data", :language
         assert_equal "data", obj.data
-        assert_equal "language", obj.language
+        assert_equal :language, obj.language
     end
 
     def test_decode_ruby
-        data = OpaqueObject.decode "\004\b\"\ttest", Atom.new("ruby")
+        data = OpaqueObject.decode "\004\b\"\ttest", :ruby
         assert_equal "test", data
     end
 
     def test_encode
-        obj = OpaqueObject.new("data", Atom.new("language"))
-        term = Tuple.new([Atom.new("$erlport.opaque"),
-            Atom.new("language"), "data"])
+        obj = OpaqueObject.new("data", :language)
+        term = Tuple.new([:"$erlport.opaque", :language, "data"])
         assert_equal encode(term), "\x83" + obj.encode()
     end
 
     def test_encode_erlang
-        obj = OpaqueObject.new "data", Atom.new("erlang")
+        obj = OpaqueObject.new "data", :erlang
         assert_equal "data", obj.encode
     end
 
     def test_hashing
-        obj = OpaqueObject.new "data", Atom.new("language")
-        obj2 = OpaqueObject.new "data", Atom.new("language")
+        obj = OpaqueObject.new "data", :language
+        obj2 = OpaqueObject.new "data", :language
         assert_equal obj.hash, obj2.hash
-        obj3 = OpaqueObject.new "data", Atom.new("language2")
+        obj3 = OpaqueObject.new "data", :language2
         assert_not_equal obj.hash, obj3.hash
-        obj4 = OpaqueObject.new "data2", Atom.new("language")
+        obj4 = OpaqueObject.new "data2", :language
         assert_not_equal obj.hash, obj4.hash
     end
 end
@@ -146,11 +140,11 @@ class DecodeTestCase < Test::Unit::TestCase
         assert_raise(IncompleteData){decode("\x83d")}
         assert_raise(IncompleteData){decode("\x83d\0")}
         assert_raise(IncompleteData){decode("\x83d\0\1")}
-        assert_equal Atom, decode("\x83d\0\0")[0].class
-        assert_equal [Atom.new(""), ""], decode("\x83d\0\0")
-        assert_equal [Atom.new(""), "tail"], decode("\x83d\0\0tail")
-        assert_equal [Atom.new("test"), ""], decode("\x83d\0\4test")
-        assert_equal [Atom.new("test"), "tail"], decode("\x83d\0\4testtail")
+        assert_equal EmptySymbol, decode("\x83d\0\0")[0].class
+        assert_equal [EmptySymbol.new, ""], decode("\x83d\0\0")
+        assert_equal [EmptySymbol.new, "tail"], decode("\x83d\0\0tail")
+        assert_equal [:test, ""], decode("\x83d\0\4test")
+        assert_equal [:test, "tail"], decode("\x83d\0\4testtail")
     end
 
     def test_decode_predefined_atoms
@@ -197,14 +191,14 @@ class DecodeTestCase < Test::Unit::TestCase
         improper, tail = decode("\x83l\0\0\0\1jd\0\4tail")
         assert_equal ImproperList, improper.class
         assert_equal [[]], improper
-        assert_equal Atom, improper.tail.class
-        assert_equal Atom.new("tail"), improper.tail
+        assert_equal Symbol, improper.tail.class
+        assert_equal :tail, improper.tail
         assert_equal "", tail
         improper, tail = decode("\x83l\0\0\0\1jd\0\4tailtail")
         assert_equal ImproperList, improper.class
         assert_equal [[]], improper
-        assert_equal Atom, improper.tail.class
-        assert_equal Atom.new("tail"), improper.tail
+        assert_equal Symbol, improper.tail.class
+        assert_equal :tail, improper.tail
         assert_equal "tail", tail
     end
 
@@ -236,13 +230,13 @@ class DecodeTestCase < Test::Unit::TestCase
             "m\0\0\0\4data")
         assert_equal OpaqueObject, opaque.class
         assert_equal "data", opaque.data
-        assert_equal "language", opaque.language
+        assert_equal :language, opaque.language
         assert_equal "", tail
         opaque, tail = decode("\x83h\3d\0\x0f$erlport.opaqued\0\10language" \
             "m\0\0\0\4datatail")
         assert_equal OpaqueObject, opaque.class
         assert_equal "data", opaque.data
-        assert_equal "language", opaque.language
+        assert_equal :language, opaque.language
         assert_equal "tail", tail
     end
 
@@ -388,8 +382,8 @@ class EncodeTestCase < Test::Unit::TestCase
     end
 
     def test_encode_atom
-        assert_equal "\x83d\0\0", encode(Atom.new(""))
-        assert_equal "\x83d\0\4test", encode(Atom.new("test"))
+        assert_equal "\x83d\0\0", encode(EmptySymbol.new)
+        assert_equal "\x83d\0\4test", encode(:test)
     end
 
     def test_encode_string
@@ -436,9 +430,9 @@ class EncodeTestCase < Test::Unit::TestCase
     def test_encode_opaque_object
         assert_equal "\x83h\3d\0\x0f$erlport.opaqued\0\10language" \
             "m\0\0\0\4data", encode(OpaqueObject.new("data", \
-                Atom.new("language")))
+                :language))
         assert_equal "\x83data",
-            encode(OpaqueObject.new("data", Atom.new("erlang")))
+            encode(OpaqueObject.new("data", :erlang))
     end
 
     def test_ruby_opaque_object

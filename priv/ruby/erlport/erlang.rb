@@ -63,17 +63,17 @@ module Erlang
 
     module_function
     def loop
-        switch_ack = Atom.new("s")
+        switch_ack = :s
         while true
             message = @@port.read
             raise InvalidMessage, "invalid message: #{message}" \
                 if message.length != 4
             mtype, mod, function, args = message
             case mtype
-                when "C"
+                when :C
                     @@port.write(
                         self.call_with_error_handler(mod, function, args))
-                when "S"
+                when :S
                     @@port.write(switch_ack)
                     @@client = true
                     @@port.write(
@@ -88,23 +88,24 @@ module Erlang
     module_function
     def call_with_error_handler mod, function, args
         begin
-            require mod if mod != ""
-            idx = function.rindex("::")
+            m = mod.to_s
+            f = function.to_s
+            require m if m != ""
+            idx = f.rindex("::")
             if idx == nil
-                # TODO: Forbid calls without a library?
-                r = send(function, *args)
+                r = send(f, *args)
             else
-                container = eval function[0...idx]
-                fun = function[idx + 2..-1]
+                container = eval f[0...idx]
+                fun = f[idx + 2..-1]
                 r = container.send(fun, *args)
             end
             # TODO: Encode result
-            Tuple.new([Atom.new("r"), r])
+            Tuple.new([:r, r])
         rescue Exception => why
             # TODO: Update exception format
-            exc = Atom.new(why.inspect())
+            exc = why.inspect().to_sym
             exc_tb = why.backtrace().reverse()
-            Tuple.new([Atom.new("e"), [exc, why.message, exc_tb]])
+            Tuple.new([:e, [exc, why.message, exc_tb]])
         end
     end
 end

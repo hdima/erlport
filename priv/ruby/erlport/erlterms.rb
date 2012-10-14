@@ -42,14 +42,15 @@ module ErlTerm
         end
     end
 
-    class Atom < String
-        @@atoms = {}
-        def self.new data
-            raise ValueError, "invalid atom length" if data.length > 255
-            if not @@atoms.member?(data)
-                @@atoms[data] = super data
-            end
-            @@atoms[data]
+    class EmptySymbol
+        @@symbol = nil
+        def self.new
+            @@symbol = super if @@symbol == nil
+            @@symbol
+        end
+
+        def to_s
+            ""
         end
     end
 
@@ -58,7 +59,7 @@ module ErlTerm
     end
 
     class ImproperList < Array
-        attr_accessor :tail
+        attr_reader :tail
 
         def initialize array, tail
             raise ValueError, "empty list not allowed" if array.empty?
@@ -87,27 +88,27 @@ module ErlTerm
     end
 
     class OpaqueObject
-        attr_accessor :data
-        attr_accessor :language
+        attr_reader :data
+        attr_reader :language
 
-        MARKER = Atom.new("$erlport.opaque")
+        MARKER = :"$erlport.opaque"
 
         def initialize data, language
             raise TypeError, "data must be instance of String" \
                 if not data.is_a? String
-            raise TypeError, "language must be instance of Atom" \
-                if not language.is_a? Atom
+            raise TypeError, "language must be instance of Symbol" \
+                if not language.is_a? Symbol
             @data = data
             @language = language
         end
 
         def self.decode data, language
-            return Marshal.load(data) if language == "ruby"
+            return Marshal.load(data) if language == :ruby
             return OpaqueObject.new data, language
         end
 
         def encode
-            return @data if @language == "erlang"
+            return @data if @language == :erlang
             return encode_term(Tuple.new([MARKER, @language, @data]))
         end
 
@@ -194,8 +195,10 @@ module ErlTerm
                         return false, string[length..-1]
                     when "undefined"
                         return nil, string[length..-1]
+                    when ""
+                        return EmptySymbol.new(), string[length..-1]
                 end
-                return Atom.new(name), string[length..-1]
+                return name.to_sym, string[length..-1]
             when 106
                 # NIL_EXT
                 return [], string[1..-1]
@@ -313,18 +316,23 @@ module ErlTerm
                 end
                 return [108, length].pack("CN") \
                     + term.map{|i| encode_term i}.join + "j"
-            # Should be before String
-            when Atom
-                return [100, term.length].pack("Cn") + term
+            when Symbol
+                s = term.to_s
+                length = s.length
+                raise ValueError, "invalid atom length: #{length}" \
+                    if length > 255
+                return [100, length].pack("Cn") + s
             when String
                 length = term.length
-                raise ValueError("invalid binary length: #{length}") \
+                raise ValueError, "invalid binary length: #{length}" \
                     if length > 4294967295
                 return [109, length].pack("CN") + term
             when true
                 return "d\0\4true"
             when false
                 return "d\0\5false"
+            when EmptySymbol
+                return "d\0\0"
             when Integer
                 if term >= 0 and term <= 255
                     return "a#{term.chr}"
@@ -365,6 +373,6 @@ module ErlTerm
         rescue
             raise ValueError, "unsupported data type: #{term.class}"
         end
-        return OpaqueObject.new(data, Atom.new("ruby")).encode()
+        return OpaqueObject.new(data, :ruby).encode()
     end
 end

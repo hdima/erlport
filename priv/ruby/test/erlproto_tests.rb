@@ -62,13 +62,13 @@ class PortTestCase < Test::Unit::TestCase
         client = TestPortClient.new
         assert_equal 12, client.write("\0\0\0\10\x83d\0\4test")
         atom = client.port.read
-        assert atom.is_a? Atom
-        assert_equal Atom.new("test"), atom
+        assert atom.is_a? Symbol
+        assert_equal :test, atom
     end
 
     def test_default_port_write
         client = TestPortClient.new
-        assert_equal 12, client.port.write(Atom.new("test"))
+        assert_equal 12, client.port.write(:test)
         assert_equal "\0\0\0\10\x83d\0\4test", client.read
     end
 
@@ -111,19 +111,19 @@ class PortTestCase < Test::Unit::TestCase
         atom_data = "\0\0\0\10\x83d\0\4test"
         assert_equal 24, client.write(atom_data + atom_data)
         atom = client.port.read
-        assert atom.is_a? Atom
-        assert_equal Atom.new("test"), atom
+        assert atom.is_a? Symbol
+        assert_equal :test, atom
         atom = client.port.read()
-        assert atom.is_a? Atom
-        assert_equal Atom.new("test"), atom
+        assert atom.is_a? Symbol
+        assert_equal :test, atom
     end
 
     def test_small_buffer_read
         client = TestPortClient.new(4, true, false, buffer_size=1)
         assert_equal 12, client.write("\0\0\0\10\x83d\0\4test")
         atom = client.port.read
-        assert atom.is_a? Atom
-        assert_equal Atom.new("test"), atom
+        assert atom.is_a? Symbol
+        assert_equal :test, atom
     end
 
     def test_invalid_buffer_size
@@ -134,13 +134,13 @@ class PortTestCase < Test::Unit::TestCase
         client = TestPortClient.new(packet=4)
         assert_equal 12, client.write("\0\0\0\10\x83d\0\4test")
         atom = client.port.read
-        assert atom.is_a? Atom
-        assert_equal Atom.new("test"), atom
+        assert atom.is_a? Symbol
+        assert_equal :test, atom
     end
 
     def test_packet4_port_write
         client = TestPortClient.new(packet=4)
-        assert_equal 12, client.port.write(Atom.new("test"))
+        assert_equal 12, client.port.write(:test)
         assert_equal "\0\0\0\10\x83d\0\4test", client.read
     end
 
@@ -148,13 +148,13 @@ class PortTestCase < Test::Unit::TestCase
         client = TestPortClient.new(packet=2)
         assert_equal 10, client.write("\0\10\x83d\0\4test")
         atom = client.port.read
-        assert atom.is_a? Atom
-        assert_equal Atom.new("test"), atom
+        assert atom.is_a? Symbol
+        assert_equal :test, atom
     end
 
     def test_packet2_port_write
         client = TestPortClient.new(packet=2)
-        assert_equal 10, client.port.write(Atom.new("test"))
+        assert_equal 10, client.port.write(:test)
         assert_equal "\0\10\x83d\0\4test", client.read
     end
 
@@ -162,13 +162,13 @@ class PortTestCase < Test::Unit::TestCase
         client = TestPortClient.new(packet=1)
         assert_equal 9, client.write("\10\x83d\0\4test")
         atom = client.port.read
-        assert atom.is_a? Atom
-        assert_equal Atom.new("test"), atom
+        assert atom.is_a? Symbol
+        assert_equal :test, atom
     end
 
     def test_packet1_port_write
         client = TestPortClient.new(packet=1)
-        assert_equal 9, client.port.write(Atom.new("test"))
+        assert_equal 9, client.port.write(:test)
         assert_equal "\10\x83d\0\4test", client.read
     end
 
