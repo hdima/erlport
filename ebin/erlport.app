@@ -30,6 +30,7 @@
         erlport,
         erlport_options,
         erlport_utils,
+        messagehub,
         python,
         python_options,
         ruby,
