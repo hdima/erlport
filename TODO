@@ -35,9 +35,6 @@
 
 - Refactor tests
 
-- Return error for 'nouse_stdio' option on Windows? It seems this option
-  unsupported or have no effect on Windows?
-
 - Add publish/subscribe mode with direct messaging support? Pids, funs, MFAs
   can be subscribed in Erlang and callable objects in Python:
 
@@ -45,9 +42,10 @@
   unsubscribe(Topic, Subscriber)
   publish(Topic | Subscriber, Message) (or send?)
 
-  Should we add ID to published messages?
+  We can add messagehub and it can understand other hubs and erlport processes
+  on subscribe/unsubscribe
 
-  Should we add independed event hubs or it can be added later?
+  We need to add sender ID to messages on send.
 
 - Add 'threaded' mode for switch and run switch call in threads in Python. What
   is the use case for this mode? Threads:
@@ -59,27 +57,15 @@
 
 - Add custom encode/decode handlers in Erlang
 
-- Convert Python tests from doctests to unittest
-
-- Check exports in erlport/__init__.py
-
-- Comments for modules
+- Add worker_pool module with pluggable workers selection policies
 
 - How to handle Python <-> Python exceptions? We can pass it inside some error
   term. Errors/exceptions should be like opaque types marked with the language
   but store some known structures as values
 
-- Check default port options on Windows
+- Check default port options on Windows. Return error for 'nouse_stdio' option
+  on Windows? It seems this option unsupported or have no effect on Windows?
 
 - Perl support. What about different Perl versions?
 
-- Add worker_pool module with pluggable workers selection policies
-
-Later
------
-
-- Maybe we can try variable length length field as in Twisted Banana/Protocol
-  Buffers protocols?
-
-- After some number of subscribers we can create publishing workers (with
-  (un)subscribe/publish functions) which can publish messages in parallel.
+- Comments for modules
