@@ -40,12 +40,11 @@
 
 -export([
     stop/1,
-    call/4,
     call/5,
-    switch/4,
     switch/5
     ]).
 
+%% Behaviour callbacks
 -export([
     init/1,
     client/2,
@@ -72,16 +71,6 @@ stop(Pid) when is_pid(Pid) ->
     gen_fsm:send_all_state_event(Pid, stop).
 
 %%
-%% @equiv call(Instance, Module, Function, Args, [])
-%%
-
--spec call(Instance::pid(), Module::atom(), Function::atom(), Args::list()) ->
-    Result::term().
-
-call(Instance, Module, Function, Args) ->
-    call(Instance, Module, Function, Args, []).
-
-%%
 %% @doc Call remote function with arguments and options and return result
 %%
 
@@ -101,17 +90,6 @@ call(Pid, Module, Function, Args, Options) when is_pid(Pid)
             % TODO: Unpack Error if needed
             erlang:error(Error)
     end.
-
-%%
-%% @equiv switch(Instance, Module, Function, Args, [])
-%%
-
--spec switch(Instance::pid(), Module::atom(), Function::atom(),
-        Args::list()) ->
-    Result::term().
-
-switch(Instance, Module, Function, Args) ->
-    switch(Instance, Module, Function, Args, []).
 
 %%
 %% @doc Pass control to remote side by calling the function with arguments
