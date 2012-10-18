@@ -58,7 +58,7 @@
 
 -record(state, {
     % TODO: Maybe value should be set()?
-    % Topic -> [Pid]
+    % Topic -> ordset([Pid])
     subscribers = dict:new() :: dict()
     }).
 
@@ -209,31 +209,47 @@ code_change(_OldVsn, State, _Extra) ->
 %%%
 
 remove_subscriber(Topic, Subscriber, Subscribers) ->
-    try dict:update(Topic, fun (TopicSubscribers) ->
-                [P || P <- TopicSubscribers, P =/= Subscriber]
-            end, Subscribers)
-    catch
-        error:badarg -> Subscribers
+    case dict:find(Topic, Subscribers) of
+        {ok, TopicSubscribers} ->
+            case ordsets:del_element(Subscriber, TopicSubscribers) of
+                TopicSubscribers ->
+                    Subscribers;
+                [] ->
+                    dict:erase(Topic, Subscribers);
+                Updated ->
+                    dict:store(Topic, Updated, Subscribers)
+            end;
+        error ->
+            Subscribers
     end.
 
 add_subscriber(Topic, Subscriber, Subscribers) ->
-    dict:update(Topic, fun (TopicSubscribers) ->
-            [Subscriber | [P || P <- TopicSubscribers, P =/= Subscriber]]
-        end, [Subscriber], Subscribers).
+    case dict:find(Topic, Subscribers) of
+        {ok, TopicSubscribers} ->
+            case ordsets:add_element(Subscriber, TopicSubscribers) of
+                TopicSubscribers ->
+                    Subscribers;
+                Updated ->
+                    dict:store(Topic, Updated, Subscribers)
+            end;
+        error ->
+            dict:store(Topic, [Subscriber], Subscribers)
+    end.
 
 remove_dead_subscriber(Subscriber, Subscribers) ->
+    % TODO: Remove empty list
     dict:map(fun (_Topic, TopicSubscribers) ->
             [P || P <- TopicSubscribers, P =/= Subscriber]
         end, Subscribers).
 
 send_messages(Topic, Message, Subscribers) ->
-    try dict:fetch(Topic, Subscribers) of
-        TopicSubscribers ->
+    case dict:find(Topic, Subscribers) of
+        {ok, TopicSubscribers} ->
             lists:foreach(fun (Pid) ->
                     Pid ! Message
-                end, TopicSubscribers)
-    catch
-        error:badarg -> ok
+                end, TopicSubscribers);
+        error ->
+            ok
     end.
 
 start(Fun, ServerName) ->
