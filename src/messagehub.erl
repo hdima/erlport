@@ -33,7 +33,9 @@
 
 -export([
     start/0,
+    start/1,
     start_link/0,
+    start_link/1,
     stop/1,
     subscribe/3,
     unsubscribe/3,
@@ -82,12 +84,13 @@
 -spec start() -> {ok, Hub::messagehub()} | {error, term()}.
 
 start() ->
-    case gen_server:start(?MODULE, undefined, []) of
-        {ok, Pid} ->
-            {ok, #messagehub{pid=Pid}};
-        Error ->
-            Error
-    end.
+    start(start, pid).
+
+-spec start(ServerName::{local | global, Name::atom()}) ->
+    {ok, Hub::messagehub()} | {error, term()}.
+
+start(ServerName) ->
+    start(start, ServerName).
 
 
 %%
@@ -97,12 +100,13 @@ start() ->
 -spec start_link() -> {ok, Hub::messagehub()} | {error, term()}.
 
 start_link() ->
-    case gen_server:start_link(?MODULE, undefined, []) of
-        {ok, Pid} ->
-            {ok, #messagehub{pid=Pid}};
-        Error ->
-            Error
-    end.
+    start(start_link, pid).
+
+-spec start_link(ServerName::{local | global, Name::atom()}) ->
+    {ok, Hub::messagehub()} | {error, term()}.
+
+start_link(ServerName) ->
+    start(start_link, ServerName).
 
 
 %%
@@ -230,4 +234,18 @@ send_messages(Topic, Message, Subscribers) ->
                 end, TopicSubscribers)
     catch
         error:badarg -> ok
+    end.
+
+start(Fun, ServerName) ->
+    Result = case ServerName of
+        pid ->
+            gen_server:Fun(?MODULE, undefined, []);
+        ServerName ->
+            gen_server:Fun(ServerName, ?MODULE, undefined, [])
+    end,
+    case Result of
+        {ok, Pid} ->
+            {ok, #messagehub{pid=Pid}};
+        Error ->
+            Error
     end.
