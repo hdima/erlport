@@ -60,28 +60,38 @@
 
 -include("erlport.hrl").
 
+-type server_name() :: {local, Name::atom()}
+    | {global, GlobalName::term()}
+    | {via, Module::atom(), ViaName::term()}.
+-type server_instance() :: pid()
+    | atom()
+    | {Name::atom(), Node::atom()}
+    | {global, GlobalName::term()}
+    | {via, Module::atom(), ViaName::term()}.
+
+-export_type([server_name/0, server_instance/0]).
 
 %%
 %% @doc Stop port protocol
 %%
 
--spec stop(Instance::pid()) -> ok.
+-spec stop(Instance::server_instance()) -> ok.
 
-stop(Pid) when is_pid(Pid) ->
+stop(Pid) ->
     gen_fsm:send_all_state_event(Pid, stop).
 
 %%
 %% @doc Call remote function with arguments and options and return result
 %%
 
--spec call(Instance::pid(), Module::atom(), Function::atom(),
+-spec call(Instance::server_instance(), Module::atom(), Function::atom(),
         Args::list(),
         Options::[{timeout, Timeout::pos_integer() | infinity}]) ->
     Result::term().
 
-call(Pid, Module, Function, Args, Options) when is_pid(Pid)
-        andalso is_atom(Module) andalso is_atom(Function)
-        andalso is_list(Args) andalso is_list(Options) ->
+call(Pid, Module, Function, Args, Options) when is_atom(Module)
+        andalso is_atom(Function) andalso is_list(Args)
+        andalso is_list(Options) ->
     Request = {call, Module, Function, Args, Options},
     case gen_fsm:sync_send_event(Pid, Request, infinity) of
         {ok, Result} ->
@@ -95,14 +105,14 @@ call(Pid, Module, Function, Args, Options) when is_pid(Pid)
 %% @doc Pass control to remote side by calling the function with arguments
 %%
 
--spec switch(Instance::pid(), Module::atom(), Function::atom(), Args::list(),
-        Options::[{timeout, Timeout::pos_integer() | infinity}
+-spec switch(Instance::server_instance(), Module::atom(), Function::atom(),
+        Args::list(), Options::[{timeout, Timeout::pos_integer() | infinity}
             | wait_for_result]) ->
     Result::ok | term() | {error, Reason::term()}.
 
-switch(Pid, Module, Function, Args, Options) when is_pid(Pid)
-        andalso is_atom(Module) andalso is_atom(Function)
-        andalso is_list(Args) andalso is_list(Options) ->
+switch(Pid, Module, Function, Args, Options) when is_atom(Module)
+        andalso is_atom(Function) andalso is_list(Args)
+        andalso is_list(Options) ->
     Request = {switch, Module, Function, Args, Options},
     case proplists:get_value(wait_for_result, Options, false) of
         false ->

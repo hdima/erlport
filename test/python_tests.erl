@@ -52,6 +52,33 @@ setup3() ->
 cleanup(P) ->
     ok = python:stop(P).
 
+start_stop_test_() -> [
+    fun () ->
+        {ok, P} = python:start(),
+        ?assertEqual(ok, python:stop(P))
+    end,
+    fun () ->
+        {ok, P} = python:start_link(),
+        ?assertEqual(ok, python:stop(P))
+    end,
+    fun () ->
+        ?assertMatch({ok, _}, python:start({local, python_test})),
+        ?assertEqual(ok, python:stop(python_test))
+    end,
+    fun () ->
+        ?assertMatch({ok, _}, python:start_link({local, python_test})),
+        ?assertEqual(ok, python:stop(python_test))
+    end,
+    fun () ->
+        ?assertMatch({ok, _}, python:start({local, python_test}, [])),
+        ?assertEqual(ok, python:stop(python_test))
+    end,
+    fun () ->
+        ?assertMatch({ok, _}, python:start_link({local, python_test}, [])),
+        ?assertEqual(ok, python:stop(python_test))
+    end
+    ].
+
 call_test_() -> [{setup,
     Setup,
     fun cleanup/1,

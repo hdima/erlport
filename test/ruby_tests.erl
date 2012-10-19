@@ -43,6 +43,33 @@ setup() ->
 cleanup(P) ->
     ok = ruby:stop(P).
 
+start_stop_test_() -> [
+    fun () ->
+        {ok, P} = ruby:start(),
+        ?assertEqual(ok, ruby:stop(P))
+    end,
+    fun () ->
+        {ok, P} = ruby:start_link(),
+        ?assertEqual(ok, ruby:stop(P))
+    end,
+    fun () ->
+        ?assertMatch({ok, _}, ruby:start({local, ruby_test})),
+        ?assertEqual(ok, ruby:stop(ruby_test))
+    end,
+    fun () ->
+        ?assertMatch({ok, _}, ruby:start_link({local, ruby_test})),
+        ?assertEqual(ok, ruby:stop(ruby_test))
+    end,
+    fun () ->
+        ?assertMatch({ok, _}, ruby:start({local, ruby_test}, [])),
+        ?assertEqual(ok, ruby:stop(ruby_test))
+    end,
+    fun () ->
+        ?assertMatch({ok, _}, ruby:start_link({local, ruby_test}, [])),
+        ?assertEqual(ok, ruby:stop(ruby_test))
+    end
+    ].
+
 call_test_() -> {setup,
     fun setup/0,
     fun cleanup/1,

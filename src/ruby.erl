@@ -38,16 +38,16 @@
 -export([
     start/0,
     start/1,
+    start/2,
     start_link/0,
     start_link/1,
+    start_link/2,
     stop/1,
     call/4,
     call/5,
     switch/4,
     switch/5
     ]).
-
--opaque instance() :: pid().
 
 -include("ruby.hrl").
 
@@ -57,7 +57,7 @@
 %%
 
 -spec start() ->
-    {ok, instance()} | {error, Reason::term()}.
+    {ok, pid()} | {error, Reason::term()}.
 
 start() ->
     start([]).
@@ -66,18 +66,30 @@ start() ->
 %% @doc Start Ruby instance
 %%
 
--spec start(Options::ruby_options:options()) ->
-    {ok, instance()} | {error, Reason::term()}.
+-spec start(ruby_options:options() | erlport:server_name()) ->
+    {ok, pid()} | {error, Reason::term()}.
 
-start(Options) ->
-    start(start, Options).
+start(Options) when is_list(Options) ->
+    start(start, pid, Options);
+start(Name) ->
+    start(start, Name, []).
+
+%%
+%% @doc Start named Ruby instance
+%%
+
+-spec start(Name::erlport:server_name(), Options::ruby_options:options()) ->
+    {ok, pid()} | {error, Reason::term()}.
+
+start(Name, Options) when is_list(Options) ->
+    start(start, Name, Options).
 
 %%
 %% @equiv start_link([])
 %%
 
 -spec start_link() ->
-    {ok, instance()} | {error, Reason::term()}.
+    {ok, pid()} | {error, Reason::term()}.
 
 start_link() ->
     start_link([]).
@@ -86,27 +98,40 @@ start_link() ->
 %% @doc Start linked Ruby instance
 %%
 
--spec start_link(Options::ruby_options:options()) ->
-    {ok, instance()} | {error, Reason::term()}.
+-spec start_link(ruby_options:options() | erlport:server_name()) ->
+    {ok, pid()} | {error, Reason::term()}.
 
-start_link(Options) ->
-    start(start_link, Options).
+start_link(Options) when is_list(Options) ->
+    start(start_link, pid, Options);
+start_link(Name) ->
+    start(start_link, Name, []).
+
+%%
+%% @doc Start named and linked Ruby instance
+%%
+
+-spec start_link(Name::erlport:server_name(),
+        Options::ruby_options:options()) ->
+    {ok, pid()} | {error, Reason::term()}.
+
+start_link(Name, Options) when is_list(Options) ->
+    start(start_link, Name, Options).
 
 %%
 %% @doc Stop Ruby instance
 %%
 
--spec stop(Instance::instance()) -> ok.
+-spec stop(Instance::erlport:server_instance()) -> ok.
 
-stop(Pid) when is_pid(Pid) ->
+stop(Pid) ->
     erlport:stop(Pid).
 
 %%
 %% @equiv call(Instance, Module, Function, Args, [])
 %%
 
--spec call(Instance::instance(), Module::atom(), Function::atom(),
-        Args::list()) ->
+-spec call(Instance::erlport:server_instance(), Module::atom(),
+        Function::atom(), Args::list()) ->
     Result::term().
 
 call(Instance, Module, Function, Args) ->
@@ -116,20 +141,20 @@ call(Instance, Module, Function, Args) ->
 %% @doc Call Ruby function with arguments and return result
 %%
 
--spec call(Instance::instance(), Module::atom(), Function::atom(),
-        Args::list(),
+-spec call(Instance::erlport:server_instance(), Module::atom(),
+        Function::atom(), Args::list(),
         Options::[{timeout, Timeout::pos_integer() | infinity}]) ->
     Result::term().
 
-call(Pid, Module, Function, Args, Options) when is_pid(Pid) ->
+call(Pid, Module, Function, Args, Options) ->
     erlport:call(Pid, Module, Function, Args, Options).
 
 %%
 %% @equiv switch(Instance, Module, Function, Args, [])
 %%
 
--spec switch(Instance::instance(), Module::atom(), Function::atom(),
-        Args::list()) ->
+-spec switch(Instance::erlport:server_instance(), Module::atom(),
+        Function::atom(), Args::list()) ->
     Result::term().
 
 switch(Instance, Module, Function, Args) ->
@@ -139,24 +164,29 @@ switch(Instance, Module, Function, Args) ->
 %% @doc Pass control to Ruby by calling the function with arguments
 %%
 
--spec switch(Instance::instance(), Module::atom(), Function::atom(),
-        Args::list(),
+-spec switch(Instance::erlport:server_instance(), Module::atom(),
+        Function::atom(), Args::list(),
         Options::[{timeout, Timeout::pos_integer() | infinity}
             | wait_for_result]) ->
     Result::ok | term() | {error, Reason::term()}.
 
-switch(Pid, Module, Function, Args, Options) when is_pid(Pid) ->
+switch(Pid, Module, Function, Args, Options) ->
     erlport:switch(Pid, Module, Function, Args, Options).
 
 %%%============================================================================
 %%% Utility functions
 %%%============================================================================
 
-start(Function, OptionsList) when is_list(OptionsList) ->
+start(Function, Name, OptionsList) when is_list(OptionsList) ->
     case ruby_options:parse(OptionsList) of
         {ok, Options=#ruby_options{start_timeout=Timeout}} ->
             Init = init_factory(Options),
-            gen_fsm:Function(erlport, Init, [{timeout, Timeout}]);
+            case Name of
+                pid ->
+                    gen_fsm:Function(erlport, Init, [{timeout, Timeout}]);
+                Name ->
+                    gen_fsm:Function(Name, erlport, Init, [{timeout, Timeout}])
+            end;
         Error={error, _} ->
             Error
     end.
