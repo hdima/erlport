@@ -145,7 +145,8 @@ switch(Instance, Module, Function, Args) ->
 
 -spec switch(Instance::instance(), Module::atom(), Function::atom(),
         Args::list(),
-        Options::[{timeout, Timeout::pos_integer() | infinity} | block]) ->
+        Options::[{timeout, Timeout::pos_integer() | infinity}
+            | wait_for_result]) ->
     Result::ok | term() | {error, Reason::term()}.
 
 switch(#python{pid=Pid}, Module, Function, Args, Options) ->

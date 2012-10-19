@@ -96,14 +96,15 @@ call(Pid, Module, Function, Args, Options) when is_pid(Pid)
 %%
 
 -spec switch(Instance::pid(), Module::atom(), Function::atom(), Args::list(),
-        Options::[{timeout, Timeout::pos_integer() | infinity} | block]) ->
+        Options::[{timeout, Timeout::pos_integer() | infinity}
+            | wait_for_result]) ->
     Result::ok | term() | {error, Reason::term()}.
 
 switch(Pid, Module, Function, Args, Options) when is_pid(Pid)
         andalso is_atom(Module) andalso is_atom(Function)
         andalso is_list(Args) andalso is_list(Options) ->
     Request = {switch, Module, Function, Args, Options},
-    case proplists:get_value(block, Options, false) of
+    case proplists:get_value(wait_for_result, Options, false) of
         false ->
             gen_fsm:sync_send_event(Pid, Request, infinity);
         _ ->
@@ -157,7 +158,7 @@ client({switch, Module, Function, Args, Options}, From, State=#state{
         {ok, Timeout} ->
             Data = erlport_utils:encode_term({'S', Module, Function,
                 erlport_utils:prepare_list(Args)}, Compressed),
-            case proplists:get_value(block, Options, false) of
+            case proplists:get_value(wait_for_result, Options, false) of
                 false ->
                     erlport_utils:try_send_request(switch, From, Data,
                         server, State, Timeout);
