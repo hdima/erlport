@@ -39,6 +39,8 @@
     stop/1,
     subscribe/3,
     unsubscribe/3,
+    subscribe_all/2,
+    unsubscribe_all/2,
     send/4
     ]).
 
@@ -52,105 +54,128 @@
     code_change/3
     ]).
 
--record(messagehub, {
-    pid :: pid()
-    }).
-
 -record(state, {
-    % TODO: Maybe value should be set()?
-    % Topic -> ordset([Pid])
+    all = ordsets:new() :: ordsets:ordset(pid()),
+    % Topic -> ordsets([Pid])
+    topics = dict:new() :: dict(),
+    % Pid -> ordsets([Topic])
     subscribers = dict:new() :: dict()
     }).
 
 % TODO: Need type spec for Python/Ruby subscribers (ErlPort Pid and
 % function path)
 -type message() :: term().
-% TODO: Add Python/Ruby senders
 -type sender() :: pid().
 % TODO: Should it be only atoms?
 -type topic() :: atom().
--type messagehub() :: #messagehub{}.
-% TODO: Add #python{} and #ruby{}
--type subscriber() :: pid()
-    | messagehub().
+-type subscriber() :: pid().
 
 -define(IS_TOPIC(T), is_atom(T)).
 
 
 %%
-%% Start message hub
+%% @doc Start message hub
 %%
 
--spec start() -> {ok, Hub::messagehub()} | {error, term()}.
+-spec start() -> {ok, Hub::pid()} | {error, term()}.
 
 start() ->
     start(start, pid).
 
--spec start(ServerName::{local | global, Name::atom()}) ->
-    {ok, Hub::messagehub()} | {error, term()}.
+%%
+%% @doc Start named message hub
+%%
+
+-spec start(ServerName::erlport:server_name()) ->
+    {ok, Hub::pid()} | {error, term()}.
 
 start(ServerName) ->
     start(start, ServerName).
 
-
 %%
-%% Start linked message hub
+%% @doc Start linked message hub
 %%
 
--spec start_link() -> {ok, Hub::messagehub()} | {error, term()}.
+-spec start_link() -> {ok, Hub::pid()} | {error, term()}.
 
 start_link() ->
     start(start_link, pid).
 
--spec start_link(ServerName::{local | global, Name::atom()}) ->
-    {ok, Hub::messagehub()} | {error, term()}.
+%%
+%% @doc Start named and linked message hub
+%%
+
+-spec start_link(ServerName::erlport:server_name()) ->
+    {ok, Hub::pid()} | {error, term()}.
 
 start_link(ServerName) ->
     start(start_link, ServerName).
 
 
 %%
-%% Stop message hub
+%% @doc Stop message hub
 %%
 
--spec stop(Hub::messagehub()) -> ok.
+-spec stop(Hub::erlport:server_instance()) -> ok.
 
-stop(#messagehub{pid=Pid}) ->
+stop(Pid) ->
     gen_server:cast(Pid, stop).
 
 
 %%
-%% Subscribe subscriber on topic messages
+%% @doc Subscribe subscriber on topic messages
 %%
 
--spec subscribe(Hub::messagehub(), Topic::topic(), Subscriber::subscriber()) ->
+-spec subscribe(Hub::erlport:server_instance(), Topic::topic(),
+        Subscriber::subscriber()) ->
     ok | {error, term()}.
 
-subscribe(#messagehub{pid=Pid}, Topic, Subscriber) when ?IS_TOPIC(Topic) ->
+subscribe(Pid, Topic, Subscriber) when ?IS_TOPIC(Topic) ->
     gen_server:call(Pid, {subscribe, Topic, Subscriber}).
 
 
 %%
-%% Unsubscribe subscriber from topic messages
+%% @doc Unsubscribe subscriber from topic messages
 %%
 
--spec unsubscribe(Hub::messagehub(), Topic::topic(),
+-spec unsubscribe(Hub::erlport:server_instance(), Topic::topic(),
         Subscriber::subscriber()) ->
     ok | {error, term()}.
 
-unsubscribe(#messagehub{pid=Pid}, Topic, Subscriber) when ?IS_TOPIC(Topic) ->
+unsubscribe(Pid, Topic, Subscriber) when ?IS_TOPIC(Topic) ->
     gen_server:call(Pid, {unsubscribe, Topic, Subscriber}).
 
+%%
+%% @doc Subscriber subscriber to all messages
+%%
+
+-spec subscribe_all(Hub::erlport:server_instance(),
+        Subscriber::subscriber()) ->
+    ok | {error, term()}.
+
+subscribe_all(Pid, Subscriber) ->
+    gen_server:call(Pid, {subscribe_all, Subscriber}).
 
 %%
-%% Send message for topic
+%% @doc Unsubscriber subscriber from all messages
 %%
 
--spec send(Hub::messagehub(), Topic::topic(), Message::message(),
+-spec unsubscribe_all(Hub::erlport:server_instance(),
+        Subscriber::subscriber()) ->
+    ok | {error, term()}.
+
+unsubscribe_all(Pid, Subscriber) ->
+    gen_server:call(Pid, {unsubscribe_all, Subscriber}).
+
+%%
+%% @doc Send message for topic
+%%
+
+-spec send(Hub::erlport:server_instance(), Topic::topic(), Message::message(),
         Sender::sender()) ->
     ok.
 
-send(#messagehub{pid=Pid}, Topic, Message, Sender) when ?IS_TOPIC(Topic) ->
+send(Pid, Topic, Message, Sender) when ?IS_TOPIC(Topic) ->
     gen_server:cast(Pid, {send, Topic, Message, Sender}).
 
 %%%
@@ -163,25 +188,48 @@ init(undefined) ->
 
 
 handle_call({subscribe, Topic, Subscriber}, _From,
-        State=#state{subscribers=Subscribers})
+        State=#state{topics=Topics, all=All, subscribers=Subscribers})
         when ?IS_TOPIC(Topic) andalso is_pid(Subscriber) ->
-    NewSubscribers = add_subscriber(Topic, Subscriber, Subscribers),
+    NewTopics = add_element(Topic, Subscriber, Topics),
+    NewAll = remove_set_element(Subscriber, All),
+    NewSubscribers = add_element(Topic, Subscriber, Subscribers),
     true = link(Subscriber),
-    {reply, ok, State#state{subscribers=NewSubscribers}};
+    {reply, ok, State#state{topics=NewTopics, all=NewAll,
+        subscribers=NewSubscribers}};
 handle_call({unsubscribe, Topic, Subscriber}, _From,
-        State=#state{subscribers=Subscribers})
+        State=#state{topics=Topics, subscribers=Subscribers})
         when ?IS_TOPIC(Topic) andalso is_pid(Subscriber) ->
     true = unlink(Subscriber),
-    NewSubscribers = remove_subscriber(Topic, Subscriber, Subscribers),
-    {reply, ok, State#state{subscribers=NewSubscribers}};
+    NewTopics = remove_element(Topic, Subscriber, Topics),
+    NewSubscribers = remove_element(Topic, Subscriber, Subscribers),
+    {reply, ok, State#state{topics=NewTopics, subscribers=NewSubscribers}};
+handle_call({subscribe_all, Subscriber}, _From,
+        State=#state{all=All, topics=Topics, subscribers=Subscribers}) ->
+    {SubscriptionTopics, NewSubscribers} = pop_all_values(
+        Subscriber, Subscribers),
+    NewTopics = remove_element_by_list(Subscriber, SubscriptionTopics, Topics),
+    NewAll = add_set_element(Subscriber, All),
+    {reply, ok, State#state{topics=NewTopics, subscribers=NewSubscribers,
+        all=NewAll}};
+handle_call({unsubscribe_all, Subscriber}, _From,
+        State=#state{all=All, topics=Topics, subscribers=Subscribers}) ->
+    NewAll = remove_set_element(Subscriber, All),
+    {SubscriptionTopics, NewSubscribers} = pop_all_values(
+        Subscriber, Subscribers),
+    NewTopics = remove_element_by_list(Subscriber, SubscriptionTopics, Topics),
+    {reply, ok, State#state{topics=NewTopics, subscribers=NewSubscribers,
+        all=NewAll}};
 handle_call(Request, From, State) ->
     {reply, {error, {invalid_message, ?MODULE, From, Request}}, State}.
 
 
-handle_cast({send, Topic, Message, Sender},
-        State=#state{subscribers=Subscribers}) when ?IS_TOPIC(Topic) ->
+handle_cast({send, Topic, Payload, Sender},
+        State=#state{topics=Topics, all=All}) when ?IS_TOPIC(Topic) ->
     % TODO: Message should be defined by a record?
-    send_messages(Topic, {topic_message, Sender, Topic, Message}, Subscribers),
+    % TODO: Sender should inside list?
+    Message = {topic_message, Sender, Topic, Payload},
+    send_messages(Message, All),
+    send_messages(Topic, Message, Topics),
     {noreply, State};
 handle_cast(stop, State) ->
     {stop, normal, State};
@@ -189,10 +237,14 @@ handle_cast(_Request, State) ->
     {noreply, State}.
 
 
-handle_info({'EXIT', From, _Reason}, State=#state{subscribers=Subscribers}) ->
+handle_info({'EXIT', From, _Reason}, State=#state{topics=Topics,
+        subscribers=Subscribers, all=All}) ->
     % TODO: Log error or just ignore?
-    NewSubscribers = remove_dead_subscriber(From, Subscribers),
-    {noreply, State#state{subscribers=NewSubscribers}};
+    {SubscriptionTopics, NewSubscribers} = pop_all_values(From, Subscribers),
+    NewTopics = remove_element_by_list(From, SubscriptionTopics, Topics),
+    NewAll = remove_set_element(From, All),
+    {noreply, State#state{topics=NewTopics, subscribers=NewSubscribers,
+        all=NewAll}};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -208,60 +260,70 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%
 
-remove_subscriber(Topic, Subscriber, Subscribers) ->
-    case dict:find(Topic, Subscribers) of
-        {ok, TopicSubscribers} ->
-            case ordsets:del_element(Subscriber, TopicSubscribers) of
-                TopicSubscribers ->
-                    Subscribers;
+remove_element(Key, Element, Dict) ->
+    case dict:find(Key, Dict) of
+        {ok, Values} ->
+            case ordsets:del_element(Element, Values) of
+                Values ->
+                    Dict;
                 [] ->
-                    dict:erase(Topic, Subscribers);
+                    dict:erase(Key, Dict);
                 Updated ->
-                    dict:store(Topic, Updated, Subscribers)
+                    dict:store(Key, Updated, Dict)
             end;
         error ->
-            Subscribers
+            Dict
     end.
 
-add_subscriber(Topic, Subscriber, Subscribers) ->
-    case dict:find(Topic, Subscribers) of
-        {ok, TopicSubscribers} ->
-            case ordsets:add_element(Subscriber, TopicSubscribers) of
-                TopicSubscribers ->
-                    Subscribers;
+add_element(Key, New, Dict) ->
+    case dict:find(Key, Dict) of
+        {ok, Values} ->
+            case ordsets:add_element(New, Values) of
+                Values ->
+                    Dict;
                 Updated ->
-                    dict:store(Topic, Updated, Subscribers)
+                    dict:store(Key, Updated, Dict)
             end;
         error ->
-            dict:store(Topic, [Subscriber], Subscribers)
+            dict:store(Key, [New], Dict)
     end.
 
-remove_dead_subscriber(Subscriber, Subscribers) ->
-    % TODO: Remove empty list
-    dict:map(fun (_Topic, TopicSubscribers) ->
-            [P || P <- TopicSubscribers, P =/= Subscriber]
-        end, Subscribers).
+remove_set_element(Element, Set) ->
+    ordsets:del_element(Element, Set).
+
+add_set_element(Element, Set) ->
+    ordsets:add_element(Element, Set).
+
+pop_all_values(Key, Dict) ->
+    case dict:find(Key, Dict) of
+        {ok, Values} ->
+            {Values, dict:erase(Key, Dict)};
+        error ->
+            {[], Dict}
+    end.
+
+remove_element_by_list(Element, List, Dict) ->
+    lists:foldl(fun (E, D) ->
+            remove_element(E, Element, D)
+        end, Dict, List).
 
 send_messages(Topic, Message, Subscribers) ->
     case dict:find(Topic, Subscribers) of
         {ok, TopicSubscribers} ->
-            lists:foreach(fun (Pid) ->
-                    Pid ! Message
-                end, TopicSubscribers);
+            send_messages(Message, TopicSubscribers);
         error ->
             ok
     end.
 
-start(Fun, ServerName) ->
-    Result = case ServerName of
+send_messages(Message, Subscribers) ->
+    lists:foreach(fun (Pid) ->
+            Pid ! Message
+        end, Subscribers).
+
+start(Function, ServerName) ->
+    case ServerName of
         pid ->
-            gen_server:Fun(?MODULE, undefined, []);
+            gen_server:Function(?MODULE, undefined, []);
         ServerName ->
-            gen_server:Fun(ServerName, ?MODULE, undefined, [])
-    end,
-    case Result of
-        {ok, Pid} ->
-            {ok, #messagehub{pid=Pid}};
-        Error ->
-            Error
+            gen_server:Function(ServerName, ?MODULE, undefined, [])
     end.

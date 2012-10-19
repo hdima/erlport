@@ -1,4 +1,5 @@
-- Allow to create registered processes for python/ruby/...
+- erlport:server_name/0 and erlport:server_instances() types should be moved to
+  some utils module?
 
 - Should we tag external functions (Python/Ruby) with language? For example
   {python, Module.Function}.
@@ -8,22 +9,13 @@
   for full path or just directly to the final Pid. And it seems message source
   also need to be represent by a list.
 
-- We can store Pid -> [Topic] mapping to optimize removal by Pid
-
-- We need subscribe_all so other hubs can be subscribed to messages for all
-  topics
-
 - Use monitors instead of links in message hub
 
 - Add subscriber behaviour so we can abstract message hubs
 
 - We need to send subscribe/unsubscribe messages for ortogonal subscribtions
 
-- Direct messagin support in message hub
-
-- Message hubs can be named (registered processes)
-
-- Should we return records for all processes or is it OK to just return Pids?
+- Direct messaging support in message hub
 
 - (Ruby) Can EmptySymbol be subclassed from Symbol?
 
