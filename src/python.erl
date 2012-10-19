@@ -47,11 +47,7 @@
     switch/5
     ]).
 
--record(python, {
-    pid :: pid()
-    }).
-
--opaque instance() :: #python{}.
+-opaque instance() :: pid().
 
 -include("python.hrl").
 
@@ -102,7 +98,7 @@ start_link(Options) ->
 
 -spec stop(Instance::instance()) -> ok.
 
-stop(#python{pid=Pid}) ->
+stop(Pid) when is_pid(Pid) ->
     erlport:stop(Pid).
 
 %%
@@ -125,7 +121,7 @@ call(Instance, Module, Function, Args) ->
         Options::[{timeout, Timeout::pos_integer() | infinity}]) ->
     Result::term().
 
-call(#python{pid=Pid}, Module, Function, Args, Options) ->
+call(Pid, Module, Function, Args, Options) when is_pid(Pid) ->
     erlport:call(Pid, Module, Function, Args, Options).
 
 %%
@@ -149,7 +145,7 @@ switch(Instance, Module, Function, Args) ->
             | wait_for_result]) ->
     Result::ok | term() | {error, Reason::term()}.
 
-switch(#python{pid=Pid}, Module, Function, Args, Options) ->
+switch(Pid, Module, Function, Args, Options) when is_pid(Pid) ->
     erlport:switch(Pid, Module, Function, Args, Options).
 
 %%%============================================================================
@@ -160,12 +156,7 @@ start(Function, OptionsList) when is_list(OptionsList) ->
     case python_options:parse(OptionsList) of
         {ok, Options=#python_options{start_timeout=Timeout}} ->
             Init = init_factory(Options),
-            case gen_fsm:Function(erlport, Init, [{timeout, Timeout}]) of
-                {ok, Pid} ->
-                    {ok, #python{pid=Pid}};
-                {error, _}=Error ->
-                    Error
-            end;
+            gen_fsm:Function(erlport, Init, [{timeout, Timeout}]);
         Error={error, _} ->
             Error
     end.

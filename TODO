@@ -1,3 +1,5 @@
+- Allow to create registered processes for python/ruby/...
+
 - Should we tag external functions (Python/Ruby) with language? For example
   {python, Module.Function}.
 
