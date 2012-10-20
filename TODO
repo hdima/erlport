@@ -50,20 +50,6 @@
   continue. If port was closed and we have an error to report we can try to
   report it with logging module
 
-- Refactor tests
-
-- Add publish/subscribe mode with direct messaging support? Pids, funs, MFAs
-  can be subscribed in Erlang and callable objects in Python:
-
-  subscribe(Topic (atom() or any type?), pid() | function() | {M, F, A})
-  unsubscribe(Topic, Subscriber)
-  publish(Topic | Subscriber, Message) (or send?)
-
-  We can add messagehub and it can understand other hubs and erlport processes
-  on subscribe/unsubscribe
-
-  We need to add sender ID to messages on send.
-
 - Add 'threaded' mode for switch and run switch call in threads in Python. What
   is the use case for this mode? Threads:
 
@@ -86,3 +72,5 @@
 - Perl support. What about different Perl versions?
 
 - Comments for modules
+
+- Refactor tests?
