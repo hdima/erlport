@@ -13,8 +13,6 @@
 
 - Add subscriber behaviour so we can abstract message hubs
 
-- We need to send subscribe/unsubscribe messages for ortogonal subscribtions
-
 - Direct messaging support in message hub
 
 - (Ruby) Can EmptySymbol be subclassed from Symbol?

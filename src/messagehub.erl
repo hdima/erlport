@@ -37,11 +37,17 @@
     start_link/0,
     start_link/1,
     stop/1,
+    send/4,
     subscribe/3,
     unsubscribe/3,
     subscribe_all/2,
-    unsubscribe_all/2,
-    send/4
+    unsubscribe_all/2
+    ]).
+
+-export([
+    get_topics/1,
+    get_topic_subscribers/2,
+    get_all_subscribers/1
     ]).
 
 %% Behaviour callbacks
@@ -69,6 +75,7 @@
 % TODO: Should it be only atoms?
 -type topic() :: atom().
 -type subscriber() :: pid().
+-type hub() :: erlport:server_instance().
 
 -define(IS_TOPIC(T), is_atom(T)).
 
@@ -116,7 +123,7 @@ start_link(ServerName) ->
 %% @doc Stop message hub
 %%
 
--spec stop(Hub::erlport:server_instance()) -> ok.
+-spec stop(Hub::hub()) -> ok.
 
 stop(Pid) ->
     gen_server:cast(Pid, stop).
@@ -126,31 +133,28 @@ stop(Pid) ->
 %% @doc Subscribe subscriber on topic messages
 %%
 
--spec subscribe(Hub::erlport:server_instance(), Topic::topic(),
-        Subscriber::subscriber()) ->
+-spec subscribe(Hub::hub(), Subscriber::subscriber(), Topic::topic()) ->
     ok | {error, term()}.
 
-subscribe(Pid, Topic, Subscriber) when ?IS_TOPIC(Topic) ->
-    gen_server:call(Pid, {subscribe, Topic, Subscriber}).
+subscribe(Pid, Subscriber, Topic) when ?IS_TOPIC(Topic) ->
+    gen_server:call(Pid, {subscribe, Subscriber, Topic}).
 
 
 %%
 %% @doc Unsubscribe subscriber from topic messages
 %%
 
--spec unsubscribe(Hub::erlport:server_instance(), Topic::topic(),
-        Subscriber::subscriber()) ->
+-spec unsubscribe(Hub::hub(), Subscriber::subscriber(), Topic::topic()) ->
     ok | {error, term()}.
 
-unsubscribe(Pid, Topic, Subscriber) when ?IS_TOPIC(Topic) ->
-    gen_server:call(Pid, {unsubscribe, Topic, Subscriber}).
+unsubscribe(Pid, Subscriber, Topic) when ?IS_TOPIC(Topic) ->
+    gen_server:call(Pid, {unsubscribe, Subscriber, Topic}).
 
 %%
 %% @doc Subscriber subscriber to all messages
 %%
 
--spec subscribe_all(Hub::erlport:server_instance(),
-        Subscriber::subscriber()) ->
+-spec subscribe_all(Hub::hub(), Subscriber::subscriber()) ->
     ok | {error, term()}.
 
 subscribe_all(Pid, Subscriber) ->
@@ -160,8 +164,7 @@ subscribe_all(Pid, Subscriber) ->
 %% @doc Unsubscriber subscriber from all messages
 %%
 
--spec unsubscribe_all(Hub::erlport:server_instance(),
-        Subscriber::subscriber()) ->
+-spec unsubscribe_all(Hub::hub(), Subscriber::subscriber()) ->
     ok | {error, term()}.
 
 unsubscribe_all(Pid, Subscriber) ->
@@ -171,12 +174,40 @@ unsubscribe_all(Pid, Subscriber) ->
 %% @doc Send message for topic
 %%
 
--spec send(Hub::erlport:server_instance(), Topic::topic(), Message::message(),
-        Sender::sender()) ->
+-spec send(Hub::hub(), Topic::topic(), Message::message(), Sender::sender()) ->
     ok.
 
 send(Pid, Topic, Message, Sender) when ?IS_TOPIC(Topic) ->
     gen_server:cast(Pid, {send, Topic, Message, Sender}).
+
+%%
+%% @doc Return all registered topics
+%%
+
+-spec get_topics(Hub::hub()) -> [Topic::topic()].
+
+get_topics(Hub) ->
+    gen_server:call(Hub, get_topics).
+
+%%
+%% @doc Return all subscribers for the topic
+%%
+
+-spec get_topic_subscribers(Hub::hub(), Topic::topic()) ->
+    [Subscriber::subscriber()].
+
+get_topic_subscribers(Hub, Topic) when ?IS_TOPIC(Topic) ->
+    gen_server:call(Hub, {get_topic_subscribers, Topic}).
+
+%%
+%% @doc Return subscribers for all messages
+%%
+
+-spec get_all_subscribers(Hub::hub()) ->
+    [Subscriber::subscriber()].
+
+get_all_subscribers(Hub) ->
+    gen_server:call(Hub, get_all_subscribers).
 
 %%%
 %%% Behaviour callbacks
@@ -187,38 +218,95 @@ init(undefined) ->
     {ok, #state{}}.
 
 
-handle_call({subscribe, Topic, Subscriber}, _From,
+handle_call({subscribe, Subscriber, Topic}, _From,
         State=#state{topics=Topics, all=All, subscribers=Subscribers})
         when ?IS_TOPIC(Topic) andalso is_pid(Subscriber) ->
     NewTopics = add_element(Topic, Subscriber, Topics),
-    NewAll = remove_set_element(Subscriber, All),
-    NewSubscribers = add_element(Topic, Subscriber, Subscribers),
+    NewAll = case ordsets:del_element(Subscriber, All) of
+        All ->
+            All;
+        New ->
+            Subscriber ! {unsubscribed_all, self()},
+            New
+    end,
+    NewSubscribers = case add_element(Subscriber, Topic, Subscribers) of
+        Subscribers ->
+            Subscribers;
+        New2 ->
+            Subscriber ! {subscribed, self(), Topic},
+            New2
+    end,
     true = link(Subscriber),
     {reply, ok, State#state{topics=NewTopics, all=NewAll,
         subscribers=NewSubscribers}};
-handle_call({unsubscribe, Topic, Subscriber}, _From,
+handle_call({unsubscribe, Subscriber, Topic}, _From,
         State=#state{topics=Topics, subscribers=Subscribers})
         when ?IS_TOPIC(Topic) andalso is_pid(Subscriber) ->
     true = unlink(Subscriber),
     NewTopics = remove_element(Topic, Subscriber, Topics),
-    NewSubscribers = remove_element(Topic, Subscriber, Subscribers),
+    NewSubscribers = case remove_element(Subscriber, Topic, Subscribers) of
+        Subscribers ->
+            Subscribers;
+        New ->
+            Subscriber ! {unsubscribed, self(), Topic},
+            New
+    end,
     {reply, ok, State#state{topics=NewTopics, subscribers=NewSubscribers}};
 handle_call({subscribe_all, Subscriber}, _From,
         State=#state{all=All, topics=Topics, subscribers=Subscribers}) ->
     {SubscriptionTopics, NewSubscribers} = pop_all_values(
         Subscriber, Subscribers),
-    NewTopics = remove_element_by_list(Subscriber, SubscriptionTopics, Topics),
-    NewAll = add_set_element(Subscriber, All),
+    NewTopics = case remove_element_by_list(Subscriber,
+            SubscriptionTopics, Topics) of
+        Topics ->
+            Topics;
+        New ->
+            % TODO: Maybe it's enough to send only {unsubscribed_all} message?
+            lists:foreach(fun (Topic) ->
+                Subscriber ! {unsubscribed, self(), Topic}
+                end, SubscriptionTopics),
+            New
+    end,
+    NewAll = case ordsets:add_element(Subscriber, All) of
+        All ->
+            All;
+        New2 ->
+            Subscriber ! {subscribed_all, self()},
+            New2
+    end,
+    true = link(Subscriber),
     {reply, ok, State#state{topics=NewTopics, subscribers=NewSubscribers,
         all=NewAll}};
 handle_call({unsubscribe_all, Subscriber}, _From,
         State=#state{all=All, topics=Topics, subscribers=Subscribers}) ->
-    NewAll = remove_set_element(Subscriber, All),
+    NewAll = case ordsets:del_element(Subscriber, All) of
+        All ->
+            All;
+        New ->
+            Subscriber ! {unsubscribed_all, self()},
+            New
+    end,
     {SubscriptionTopics, NewSubscribers} = pop_all_values(
         Subscriber, Subscribers),
-    NewTopics = remove_element_by_list(Subscriber, SubscriptionTopics, Topics),
+    NewTopics = case remove_element_by_list(Subscriber,
+            SubscriptionTopics, Topics) of
+        Topics ->
+            Topics;
+        New2 ->
+            lists:foreach(fun (Topic) ->
+                Subscriber ! {unsubscribed, self(), Topic}
+                end, SubscriptionTopics),
+            New2
+    end,
     {reply, ok, State#state{topics=NewTopics, subscribers=NewSubscribers,
         all=NewAll}};
+handle_call(get_topics, _From, State=#state{topics=Topics}) ->
+    {reply, dict:fetch_keys(Topics), State};
+handle_call({get_topic_subscribers, Topic}, _From,
+        State=#state{topics=Topics}) ->
+    {reply, get_all_values(Topic, Topics), State};
+handle_call(get_all_subscribers, _From, State=#state{all=All}) ->
+    {reply, All, State};
 handle_call(Request, From, State) ->
     {reply, {error, {invalid_message, ?MODULE, From, Request}}, State}.
 
@@ -242,7 +330,7 @@ handle_info({'EXIT', From, _Reason}, State=#state{topics=Topics,
     % TODO: Log error or just ignore?
     {SubscriptionTopics, NewSubscribers} = pop_all_values(From, Subscribers),
     NewTopics = remove_element_by_list(From, SubscriptionTopics, Topics),
-    NewAll = remove_set_element(From, All),
+    NewAll = ordsets:del_element(From, All),
     {noreply, State#state{topics=NewTopics, subscribers=NewSubscribers,
         all=NewAll}};
 handle_info(_Info, State) ->
@@ -288,18 +376,20 @@ add_element(Key, New, Dict) ->
             dict:store(Key, [New], Dict)
     end.
 
-remove_set_element(Element, Set) ->
-    ordsets:del_element(Element, Set).
-
-add_set_element(Element, Set) ->
-    ordsets:add_element(Element, Set).
-
 pop_all_values(Key, Dict) ->
     case dict:find(Key, Dict) of
         {ok, Values} ->
             {Values, dict:erase(Key, Dict)};
         error ->
             {[], Dict}
+    end.
+
+get_all_values(Key, Dict) ->
+    case dict:find(Key, Dict) of
+        {ok, Values} ->
+            Values;
+        error ->
+            []
     end.
 
 remove_element_by_list(Element, List, Dict) ->
