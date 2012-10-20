@@ -174,6 +174,7 @@ unsubscribe_all(Pid, Subscriber) ->
 %% @doc Send message for topic
 %%
 
+% TODO: It should be Hub, Message, Topic and optional Senders list?
 -spec send(Hub::hub(), Topic::topic(), Message::message(), Sender::sender()) ->
     ok.
 
