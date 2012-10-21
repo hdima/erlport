@@ -1,3 +1,5 @@
+- Messages should be defined by records
+
 - erlport:server_name/0 and erlport:server_instances() types should be moved to
   some utils module?
 

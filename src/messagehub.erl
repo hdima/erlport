@@ -37,7 +37,8 @@
     start_link/0,
     start_link/1,
     stop/1,
-    send/4,
+    send/3,
+    send/5,
     subscribe/3,
     unsubscribe/3,
     subscribe_all/2,
@@ -70,12 +71,15 @@
 
 % TODO: Need type spec for Python/Ruby subscribers (ErlPort Pid and
 % function path)
--type message() :: term().
--type sender() :: pid().
-% TODO: Should it be only atoms?
+-type payload() :: term().
+% TODO: How to represent external functions?
+-type sender() :: [pid()].
 -type topic() :: atom().
+% TODO: How to represent external functions?
+-type destination() :: [pid()].
 -type subscriber() :: pid().
 -type hub() :: erlport:server_instance().
+-type send_options() :: [route_by_path].
 
 -define(IS_TOPIC(T), is_atom(T)).
 
@@ -171,15 +175,42 @@ unsubscribe_all(Pid, Subscriber) ->
     gen_server:call(Pid, {unsubscribe_all, Subscriber}).
 
 %%
-%% @doc Send message for topic
+%% @doc Send message for topic or to selected destination
 %%
 
-% TODO: It should be Hub, Message, Topic and optional Senders list?
--spec send(Hub::hub(), Topic::topic(), Message::message(), Sender::sender()) ->
+-spec send(Hub::hub(), Payload::payload(), Topic::topic() | destination()) ->
     ok.
 
-send(Pid, Topic, Message, Sender) when ?IS_TOPIC(Topic) ->
-    gen_server:cast(Pid, {send, Topic, Message, Sender}).
+send(Hub, Payload, Topic) ->
+    send(Hub, Payload, Topic, [self()], []).
+
+%%
+%% @doc Send message for topic or to selected destination with explicit sender
+%%
+
+-spec send(Hub::hub(), Payload::payload(), Topic::topic() | destination(),
+        Sender::sender(), Options::send_options()) ->
+    ok.
+
+send(Hub, Payload, Topic, Sender=[_|_], Options) when ?IS_TOPIC(Topic)
+        andalso is_list(Options) ->
+    gen_server:cast(Hub, {send, Payload, Topic, Sender, Options});
+send(Hub, Payload, Destination=[_|_], Sender=[_|_], Options)
+        when is_list(Options) ->
+    case Options of
+        [] ->
+            Message = {direct_message, Payload, [Hub | Sender]},
+            lists:last(Destination) ! Message;
+        [route_by_path] ->
+            case Destination of
+                [Next] ->
+                    Message = {direct_message, Payload, [Hub | Sender]},
+                    Next ! Message;
+                [Next | Tail] ->
+                    Message = {routed_message, Payload, [Hub | Sender], Tail},
+                    Next ! Message
+            end
+    end.
 
 %%
 %% @doc Return all registered topics
@@ -315,8 +346,7 @@ handle_call(Request, From, State) ->
 handle_cast({send, Topic, Payload, Sender},
         State=#state{topics=Topics, all=All}) when ?IS_TOPIC(Topic) ->
     % TODO: Message should be defined by a record?
-    % TODO: Sender should inside list?
-    Message = {topic_message, Sender, Topic, Payload},
+    Message = {topic_message, Payload, Topic, [self(), Sender]},
     send_messages(Message, All),
     send_messages(Topic, Message, Topics),
     {noreply, State};
