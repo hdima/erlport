@@ -32,7 +32,7 @@
 -define(DEFAULT_CALL_TIMEOUT, infinity).
 
 -record(state, {
-    timeout :: erlport_options:call_timeout(),
+    timeout :: pos_integer() | infinity,
     compressed = 0 :: 0..9,
     port :: port(),
     queue = queue:new() :: queue(),

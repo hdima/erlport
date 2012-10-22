@@ -51,6 +51,10 @@
 
 -include("ruby.hrl").
 
+-type server_name() :: {local, Name::atom()}
+    | {global, GlobalName::term()}
+    | {via, Module::atom(), ViaName::term()}.
+
 
 %%
 %% @equiv start([])
@@ -66,7 +70,7 @@ start() ->
 %% @doc Start Ruby instance
 %%
 
--spec start(ruby_options:options() | erlport:server_name()) ->
+-spec start(ruby_options:options() | server_name()) ->
     {ok, pid()} | {error, Reason::term()}.
 
 start(Options) when is_list(Options) ->
@@ -78,7 +82,7 @@ start(Name) ->
 %% @doc Start named Ruby instance
 %%
 
--spec start(Name::erlport:server_name(), Options::ruby_options:options()) ->
+-spec start(Name::server_name(), Options::ruby_options:options()) ->
     {ok, pid()} | {error, Reason::term()}.
 
 start(Name, Options) when is_list(Options) ->
@@ -98,7 +102,7 @@ start_link() ->
 %% @doc Start linked Ruby instance
 %%
 
--spec start_link(ruby_options:options() | erlport:server_name()) ->
+-spec start_link(ruby_options:options() | server_name()) ->
     {ok, pid()} | {error, Reason::term()}.
 
 start_link(Options) when is_list(Options) ->
@@ -110,8 +114,7 @@ start_link(Name) ->
 %% @doc Start named and linked Ruby instance
 %%
 
--spec start_link(Name::erlport:server_name(),
-        Options::ruby_options:options()) ->
+-spec start_link(Name::server_name(), Options::ruby_options:options()) ->
     {ok, pid()} | {error, Reason::term()}.
 
 start_link(Name, Options) when is_list(Options) ->
