@@ -32,9 +32,9 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -define(_assertIdentity(P, V), ?_assertEqual((V),
-    python:call(P, identity, identity, [(V)]))).
+    python:call(P, test_utils, identity, [(V)]))).
 -define(assertIdentity(P, V), ?assertEqual((V),
-    python:call(P, identity, identity, [(V)]))).
+    python:call(P, test_utils, identity, [(V)]))).
 
 
 test_callback(PrevResult, N) ->
@@ -110,25 +110,15 @@ call_pipeline_test_() -> [{setup,
             || N <- lists:seq(1, 50)]}
     end} || Setup <- [fun setup/0, fun setup3/0]].
 
-queue_test_() -> {setup,
-    fun setup/0,
+queue_test_() -> [{setup,
+    Setup,
     fun cleanup/1,
     fun (P) ->
         {inparallel, [
-            ?_assertEqual(262144, python:call(P, '__builtin__', len,
+            ?_assertEqual(262144, python:call(P, test_utils, length,
                 [<<0:262144/unit:8>>]))
             || _ <- lists:seq(1, 50)]}
-    end}.
-
-queue3_test_() -> {setup,
-    fun setup3/0,
-    fun cleanup/1,
-    fun (P) ->
-        {inparallel, [
-            ?_assertEqual(262144, python:call(P, builtins, len,
-                [<<0:262144/unit:8>>]))
-            || _ <- lists:seq(1, 50)]}
-    end}.
+    end} || Setup <- [fun setup/0, fun setup3/0]].
 
 switch_test_() -> [{setup,
     fun () ->
@@ -141,7 +131,7 @@ switch_test_() -> [{setup,
     end,
     fun (P) -> [
         fun () ->
-            ?assertEqual(ok, python:switch(P, switch, switch, [5])),
+            ?assertEqual(ok, python:switch(P, test_utils, switch, [5])),
             timer:sleep(500),
             ?assertEqual([
                 {test_callback, 0, 0},
@@ -152,7 +142,7 @@ switch_test_() -> [{setup,
                 ], get_events())
         end,
         fun () ->
-            ?assertEqual(5, python:switch(P, switch, switch, [5],
+            ?assertEqual(5, python:switch(P, test_utils, switch, [5],
                 [wait_for_result])),
             ?assertEqual([
                 {test_callback, 0, 0},

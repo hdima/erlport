@@ -60,16 +60,13 @@
 
 -include("erlport.hrl").
 
--type server_name() :: {local, Name::atom()}
-    | {global, GlobalName::term()}
-    | {via, Module::atom(), ViaName::term()}.
 -type server_instance() :: pid()
     | atom()
     | {Name::atom(), Node::atom()}
     | {global, GlobalName::term()}
     | {via, Module::atom(), ViaName::term()}.
 
--export_type([server_name/0, server_instance/0]).
+-export_type([server_instance/0]).
 
 %%
 %% @doc Stop port protocol

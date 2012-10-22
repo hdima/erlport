@@ -69,6 +69,9 @@
     subscribers = dict:new() :: dict()
     }).
 
+-type server_name() :: {local, Name::atom()}
+    | {global, GlobalName::term()}
+    | {via, Module::atom(), ViaName::term()}.
 % TODO: Need type spec for Python/Ruby subscribers (ErlPort Pid and
 % function path)
 -type payload() :: term().
@@ -97,7 +100,7 @@ start() ->
 %% @doc Start named message hub
 %%
 
--spec start(ServerName::erlport:server_name()) ->
+-spec start(ServerName::server_name()) ->
     {ok, Hub::pid()} | {error, term()}.
 
 start(ServerName) ->
@@ -116,7 +119,7 @@ start_link() ->
 %% @doc Start named and linked message hub
 %%
 
--spec start_link(ServerName::erlport:server_name()) ->
+-spec start_link(ServerName::server_name()) ->
     {ok, Hub::pid()} | {error, term()}.
 
 start_link(ServerName) ->

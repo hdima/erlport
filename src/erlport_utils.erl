@@ -49,6 +49,7 @@
     ]).
 
 -type timer() :: undefined | reference().
+-type call_timeout() :: infinity | pos_integer().
 
 -define(is_allowed_term(T), (is_atom(T) orelse is_number(T)
     orelse is_binary(T))).
@@ -134,7 +135,7 @@ prepare_list(ImproperTail) ->
 %% @doc Start timer if needed
 %%
 
--spec start_timer(Timeout::erlport_options:call_timeout()) -> Timer::timer().
+-spec start_timer(Timeout::call_timeout()) -> Timer::timer().
 
 start_timer(infinity) ->
     undefined;

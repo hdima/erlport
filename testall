@@ -20,8 +20,8 @@ PYTHON3=" \
     $SANDBOX/Python-3.2.3 \
     "
 
-for erlang in $ERLANG; do
-    for python in $PYTHON; do
+for erlang in "erl"; do
+    for python in $PYTHON $PYTHON3; do
         echo
         echo "****************************************************************"
         echo
@@ -29,23 +29,12 @@ for erlang in $ERLANG; do
         echo
         echo "****************************************************************"
         echo
-        make clean || exit
-        PATH="$erlang:$python:$PATH" make test || exit
-    done
-    for python in $PYTHON3; do
-        echo
-        echo "****************************************************************"
-        echo
-        echo "Test $erlang and $python"
-        echo
-        echo "****************************************************************"
-        echo
-        make clean || exit
-        PATH="$erlang:$python:$PATH" make test || exit
+        make clean
+        (export PATH="$erlang:$python:$PATH"; make test) || exit
     done
 done
 
-make clean
+make clean || exit
 
 echo
 echo "ALL TEST OK!"

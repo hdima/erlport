@@ -88,7 +88,7 @@ compressed_test_() -> {setup,
             S1 = list_to_binary(lists:duplicate(200, $0)),
             S2 = list_to_binary(lists:duplicate(200, $1)),
             ?assertEqual(<<S1/binary, S2/binary>>,
-                ruby:call(R, test, 'Test::add', [S1, S2]))
+                ruby:call(R, test_utils, 'Test::add', [S1, S2]))
         end
     end}.
 
@@ -97,7 +97,7 @@ call_pipeline_test_() -> {setup,
     fun cleanup/1,
     fun (P) ->
         {inparallel, [
-            ?_assertEqual(N + 1, ruby:call(P, test, 'Test::add', [N , 1]))
+            ?_assertEqual(N + 1, ruby:call(P, test_utils, 'Test::add', [N , 1]))
             || N <- lists:seq(1, 50)]}
     end}.
 
@@ -106,7 +106,7 @@ queue_test_() -> {setup,
     fun cleanup/1,
     fun (P) ->
         {inparallel, [
-            ?_assertEqual(262144, ruby:call(P, test, 'Test::len',
+            ?_assertEqual(262144, ruby:call(P, test_utils, 'Test::len',
                 [<<0:262144/unit:8>>]))
             || _ <- lists:seq(1, 50)]}
     end}.
@@ -122,7 +122,7 @@ switch_test_() -> {setup,
     end,
     fun (P) -> [
         fun () ->
-            ?assertEqual(ok, ruby:switch(P, switch, switch, [5])),
+            ?assertEqual(ok, ruby:switch(P, test_utils, switch, [5])),
             timer:sleep(500),
             ?assertEqual([
                 {test_callback, 0, 0},
@@ -133,7 +133,7 @@ switch_test_() -> {setup,
                 ], get_events())
         end,
         fun () ->
-            ?assertEqual(5, ruby:switch(P, switch, switch, [5],
+            ?assertEqual(5, ruby:switch(P, test_utils, switch, [5],
                 [wait_for_result])),
             ?assertEqual([
                 {test_callback, 0, 0},

@@ -46,8 +46,6 @@
 - Add options to erlang.call: [{pid, Pid (special working process)}, {timeout,
   Timeout}]
 
-- Fix testall
-
 - Log some errors (for example if switch failed in async mode) and just
   continue. If port was closed and we have an error to report we can try to
   report it with logging module
