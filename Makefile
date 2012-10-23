@@ -54,16 +54,14 @@ $(TESTDIR):
 $(TESTDIR)/erlport.app:
 	cp -l ebin/erlport.app $(TESTDIR)
 
-test: python-test ruby-test $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS) \
-	erlang-test
+test: python-test ruby-test erlang-test
 
-test-verbose: python-test-verbose $(TESTDIR) $(TESTDIR)/erlport.app \
-	$(TESTBEAMS) erlang-test-verbose
+test-verbose: python-test-verbose ruby-test erlang-test-verbose
 
-erlang-test:
+erlang-test: $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
 	./runtest
 
-erlang-test-verbose:
+erlang-test-verbose: $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
 	./runtest verbose
 
 ruby-test:
