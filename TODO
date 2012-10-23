@@ -1,7 +1,11 @@
+- Maybe we need to return 'cast' function? But it also can be done with
+  publish/subscribe framework?
+
 - Messages should be defined by records
 
 - erlport:server_name/0 and erlport:server_instances() types should be moved to
-  some utils module?
+  some utils module? Maybe move types to a header file because -export_type
+  seems doesn't work as expected in Erlang R13
 
 - Should we tag external functions (Python/Ruby) with language? For example
   {python, Module.Function}.
@@ -25,7 +29,10 @@
 
 - Ruby encoder/decoder for arguments/results
 
-- Redefine STDOUT/STDIN in Python/Ruby and ignore/log output?
+- Redefine STDOUT/STDIN in Python/Ruby and ignore/log output? We can add option
+  'redirect_stdout' (and maybe 'stderr_to_stdout') and in this case redirect
+  Python/Ruby/... STDOUT to Erlang as messages. In other case just raise an
+  error. STDIN should always raise an error.
 
 - Create some tools for debuggig external programs? Like logging to file etc.
 
