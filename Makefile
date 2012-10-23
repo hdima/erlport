@@ -88,10 +88,8 @@ python3-test-verbose:
 check: $(TESTDIR) $(TESTBEAMS)
 	dialyzer $(TESTDIR) | fgrep -v -f dialyzer.ignore
 
-create-ignore-file:
-	rm -f dialyzer.ignore
-	touch dialyzer.ignore
-	make check > dialyzer.ignore
+create-ignore-file: $(TESTDIR) $(TESTBEAMS)
+	dialyzer $(TESTDIR) | egrep '^[^:]+:[0-9]+: ' > dialyzer.ignore; exit 0
 
 doc:
 	$(ERL) -eval 'edoc:application(erlport)' -s init stop
