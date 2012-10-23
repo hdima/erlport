@@ -7,6 +7,8 @@
   some utils module? Maybe move types to a header file because -export_type
   seems doesn't work as expected in Erlang R13
 
+- Support message handling in messagehub and erlport
+
 - For direct messages destination can be represented by a list of hops. For
   example [ErlPortPid, ExternalFunctionName]. And we can optionaly send message
   for full path or just directly to the final Pid. And it seems message source

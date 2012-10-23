@@ -236,14 +236,50 @@ unsubscribe_all_test_() -> {foreach,
         end
     ]}.
 
-get_messages() ->
-    get_messages([]).
+send_message_test_() -> {foreach,
+    fun setup/0,
+    fun cleanup/1, [
+        fun (H) ->
+            fun () ->
+                S = self(),
+                ?assertEqual(ok, messagehub:subscribe(H, S, test)),
+                ?assertEqual(ok, messagehub:send(H, "TEST", test)),
+                ?assertEqual([{subscribed, H, test},
+                    {topic_message, "TEST", test, [H, S]}], get_messages(3000))
+            end
+        end,
+        fun (H) ->
+            fun () ->
+                S = self(),
+                ?assertEqual(ok, messagehub:subscribe(H, S, test)),
+                ?assertEqual(ok, messagehub:send(H, "TEST", test)),
+                ?assertEqual(ok, messagehub:send(H, "TEST2", other)),
+                ?assertEqual([{subscribed, H, test},
+                    {topic_message, "TEST", test, [H, S]}], get_messages(3000))
+            end
+        end,
+        fun (H) ->
+            fun () ->
+                S = self(),
+                ?assertEqual(ok, messagehub:subscribe_all(H, S)),
+                ?assertEqual(ok, messagehub:send(H, "TEST", test)),
+                ?assertEqual([{subscribed_all, H},
+                    {topic_message, "TEST", test, [H, S]}], get_messages(3000))
+            end
+        end
+    ]}.
 
-get_messages(Messages) ->
+get_messages() ->
+    get_messages(0).
+
+get_messages(Timeout) when is_integer(Timeout) andalso Timeout >=0 ->
+    get_messages([], Timeout).
+
+get_messages(Messages, Timeout) ->
     receive
         M ->
-            get_messages([M | Messages])
+            get_messages([M | Messages], Timeout)
     after
-        0 ->
+        Timeout ->
             lists:reverse(Messages)
     end.

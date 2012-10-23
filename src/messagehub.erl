@@ -185,7 +185,7 @@ unsubscribe_all(Pid, Subscriber) ->
     ok.
 
 send(Hub, Payload, Topic) ->
-    send(Hub, Payload, Topic, [self()], []).
+    send(Hub, Payload, Topic, [Hub, self()], []).
 
 %%
 %% @doc Send message for topic or to selected destination with explicit sender
@@ -346,10 +346,12 @@ handle_call(Request, From, State) ->
     {reply, {error, {invalid_message, ?MODULE, From, Request}}, State}.
 
 
-handle_cast({send, Topic, Payload, Sender},
-        State=#state{topics=Topics, all=All}) when ?IS_TOPIC(Topic) ->
+% TODO: Add support for 'route_by_path' option
+handle_cast({send, Payload, Topic, Sender=[_|_], Options},
+        State=#state{topics=Topics, all=All}) when ?IS_TOPIC(Topic)
+        andalso is_list(Options) ->
     % TODO: Message should be defined by a record?
-    Message = {topic_message, Payload, Topic, [self(), Sender]},
+    Message = {topic_message, Payload, Topic, Sender},
     send_messages(Message, All),
     send_messages(Topic, Message, Topics),
     {noreply, State};
