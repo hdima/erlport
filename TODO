@@ -7,9 +7,6 @@
   some utils module? Maybe move types to a header file because -export_type
   seems doesn't work as expected in Erlang R13
 
-- Should we tag external functions (Python/Ruby) with language? For example
-  {python, Module.Function}.
-
 - For direct messages destination can be represented by a list of hops. For
   example [ErlPortPid, ExternalFunctionName]. And we can optionaly send message
   for full path or just directly to the final Pid. And it seems message source
@@ -18,8 +15,6 @@
 - Use monitors instead of links in message hub
 
 - Add subscriber behaviour so we can abstract message hubs
-
-- Direct messaging support in message hub
 
 - (Ruby) Can EmptySymbol be subclassed from Symbol?
 
