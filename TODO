@@ -1,8 +1,6 @@
 - Maybe we need to return 'cast' function? But it also can be done with
   publish/subscribe framework?
 
-- Messages should be defined by records
-
 - erlport:server_name/0 and erlport:server_instances() types should be moved to
   some utils module? Maybe move types to a header file because -export_type
   seems doesn't work as expected in Erlang R13

@@ -61,6 +61,8 @@
     code_change/3
     ]).
 
+-include("messages.hrl").
+
 -record(state, {
     all = ordsets:new() :: ordsets:ordset(pid()),
     % Topic -> ordsets([Pid])
@@ -202,15 +204,17 @@ send(Hub, Payload, Destination=[_|_], Sender=[_|_], Options)
         when is_list(Options) ->
     case Options of
         [] ->
-            Message = {direct_message, Payload, [Hub | Sender]},
+            Message = #direct_message{payload=Payload, sender=[Hub | Sender]},
             lists:last(Destination) ! Message;
         [route_by_path] ->
             case Destination of
                 [Next] ->
-                    Message = {direct_message, Payload, [Hub | Sender]},
+                    Message = #direct_message{payload=Payload,
+                        sender=[Hub | Sender]},
                     Next ! Message;
                 [Next | Tail] ->
-                    Message = {routed_message, Payload, [Hub | Sender], Tail},
+                    Message = #routed_message{payload=Payload,
+                        sender=[Hub | Sender], destination=Tail},
                     Next ! Message
             end
     end.
@@ -351,7 +355,7 @@ handle_cast({send, Payload, Topic, Sender=[_|_], Options},
         State=#state{topics=Topics, all=All}) when ?IS_TOPIC(Topic)
         andalso is_list(Options) ->
     % TODO: Message should be defined by a record?
-    Message = {topic_message, Payload, Topic, Sender},
+    Message = #topic_message{payload=Payload, topic=Topic, sender=Sender},
     send_messages(Message, All),
     send_messages(Topic, Message, Topics),
     {noreply, State};
