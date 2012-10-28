@@ -29,6 +29,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-include("messages.hrl").
+
 
 setup() ->
     {ok, H} = messagehub:start_link(),
@@ -245,7 +247,8 @@ send_message_test_() -> {foreach,
                 ?assertEqual(ok, messagehub:subscribe(H, S, test)),
                 ?assertEqual(ok, messagehub:send(H, "TEST", test)),
                 ?assertEqual([{subscribed, H, test},
-                    {topic_message, "TEST", test, [H, S]}], get_messages(3000))
+                    #message{sender=[H, S], destination=test, payload="TEST"}],
+                    get_messages(3000))
             end
         end,
         fun (H) ->
@@ -255,7 +258,8 @@ send_message_test_() -> {foreach,
                 ?assertEqual(ok, messagehub:send(H, "TEST", test)),
                 ?assertEqual(ok, messagehub:send(H, "TEST2", other)),
                 ?assertEqual([{subscribed, H, test},
-                    {topic_message, "TEST", test, [H, S]}], get_messages(3000))
+                    #message{sender=[H, S], destination=test, payload="TEST"}],
+                    get_messages(3000))
             end
         end,
         fun (H) ->
@@ -264,7 +268,8 @@ send_message_test_() -> {foreach,
                 ?assertEqual(ok, messagehub:subscribe_all(H, S)),
                 ?assertEqual(ok, messagehub:send(H, "TEST", test)),
                 ?assertEqual([{subscribed_all, H},
-                    {topic_message, "TEST", test, [H, S]}], get_messages(3000))
+                    #message{sender=[H, S], destination=test, payload="TEST"}],
+                    get_messages(3000))
             end
         end
     ]}.

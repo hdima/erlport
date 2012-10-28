@@ -25,19 +25,8 @@
 %%% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %%% POSSIBILITY OF SUCH DAMAGE.
 
--record(direct_message, {
-    payload :: term(),
-    sender :: [pid()]
-    }).
-
--record(routed_message, {
-    payload :: term(),
+-record(message, {
     sender :: [pid()],
-    destination :: [pid()]
-    }).
-
--record(topic_message, {
-    payload :: term(),
-    topic :: atom(),
-    sender :: [pid()]
+    destination :: [pid()] | atom(),
+    payload :: term()
     }).

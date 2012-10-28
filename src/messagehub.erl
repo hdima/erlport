@@ -204,17 +204,19 @@ send(Hub, Payload, Destination=[_|_], Sender=[_|_], Options)
         when is_list(Options) ->
     case Options of
         [] ->
-            Message = #direct_message{payload=Payload, sender=[Hub | Sender]},
-            lists:last(Destination) ! Message;
+            Dest = lists:last(Destination),
+            Message = #message{sender=[Hub | Sender], destination=[Dest],
+                payload=Payload},
+            Dest ! Message;
         [route_by_path] ->
             case Destination of
                 [Next] ->
-                    Message = #direct_message{payload=Payload,
-                        sender=[Hub | Sender]},
+                    Message = #message{sender=[Hub | Sender],
+                        destination=[Next], payload=Payload},
                     Next ! Message;
                 [Next | Tail] ->
-                    Message = #routed_message{payload=Payload,
-                        sender=[Hub | Sender], destination=Tail},
+                    Message = #message{sender=[Hub | Sender], destination=Tail,
+                        payload=Payload},
                     Next ! Message
             end
     end.
@@ -350,12 +352,10 @@ handle_call(Request, From, State) ->
     {reply, {error, {invalid_message, ?MODULE, From, Request}}, State}.
 
 
-% TODO: Add support for 'route_by_path' option
 handle_cast({send, Payload, Topic, Sender=[_|_], Options},
         State=#state{topics=Topics, all=All}) when ?IS_TOPIC(Topic)
         andalso is_list(Options) ->
-    % TODO: Message should be defined by a record?
-    Message = #topic_message{payload=Payload, topic=Topic, sender=Sender},
+    Message = #message{sender=Sender, destination=Topic, payload=Payload},
     send_messages(Message, All),
     send_messages(Topic, Message, Topics),
     {noreply, State};
@@ -365,6 +365,22 @@ handle_cast(_Request, State) ->
     {noreply, State}.
 
 
+handle_info(#message{destination=Destination, sender=Sender}=Message0,
+        State=#state{topics=Topics, all=All}) ->
+    case Destination of
+        [Self] when Self == self() ->
+            % Message Hub doesn't support message processing
+            ignore;
+        [Next | Tail] ->
+            Message = Message0#message{sender=[self() | Sender],
+                destination=Tail},
+            Next ! Message;
+        Topic when ?IS_TOPIC(Topic) ->
+            Message = Message0#message{sender=[self() | Sender]},
+            send_messages(Message, All),
+            send_messages(Topic, Message, Topics)
+    end,
+    {noreply, State};
 handle_info({'EXIT', From, _Reason}, State=#state{topics=Topics,
         subscribers=Subscribers, all=All}) ->
     % TODO: Log error or just ignore?
