@@ -68,7 +68,9 @@
     % Topic -> ordsets([Pid])
     topics = dict:new() :: dict(),
     % Pid -> ordsets([Topic])
-    subscribers = dict:new() :: dict()
+    subscribers = dict:new() :: dict(),
+    % Pid -> Monitor::reference()
+    monitors = dict:new() :: dict()
     }).
 
 -type server_name() :: {local, Name::atom()}
@@ -260,8 +262,8 @@ init(undefined) ->
 
 
 handle_call({subscribe, Subscriber, Topic}, _From,
-        State=#state{topics=Topics, all=All, subscribers=Subscribers})
-        when ?IS_TOPIC(Topic) andalso is_pid(Subscriber) ->
+        State=#state{topics=Topics, all=All, subscribers=Subscribers,
+        monitors=Monitors}) when ?IS_TOPIC(Topic) andalso is_pid(Subscriber) ->
     NewTopics = add_element(Topic, Subscriber, Topics),
     NewAll = case ordsets:del_element(Subscriber, All) of
         All ->
@@ -270,31 +272,34 @@ handle_call({subscribe, Subscriber, Topic}, _From,
             Subscriber ! {unsubscribed_all, self()},
             New
     end,
-    NewSubscribers = case add_element(Subscriber, Topic, Subscribers) of
+    {NewSubscribers, NewMonitors} = case add_element(Subscriber, Topic,
+            Subscribers) of
         Subscribers ->
-            Subscribers;
+            {Subscribers, Monitors};
         New2 ->
+            Monitor = monitor(process, Subscriber),
             Subscriber ! {subscribed, self(), Topic},
-            New2
+            {New2, dict:store(Subscriber, Monitor, Monitors)}
     end,
-    true = link(Subscriber),
     {reply, ok, State#state{topics=NewTopics, all=NewAll,
-        subscribers=NewSubscribers}};
+        subscribers=NewSubscribers, monitors=NewMonitors}};
 handle_call({unsubscribe, Subscriber, Topic}, _From,
-        State=#state{topics=Topics, subscribers=Subscribers})
+        State=#state{topics=Topics, subscribers=Subscribers, monitors=Monitors})
         when ?IS_TOPIC(Topic) andalso is_pid(Subscriber) ->
-    true = unlink(Subscriber),
     NewTopics = remove_element(Topic, Subscriber, Topics),
-    NewSubscribers = case remove_element(Subscriber, Topic, Subscribers) of
+    {NewSubscribers, NewMonitors} = case remove_element(Subscriber, Topic,
+            Subscribers) of
         Subscribers ->
-            Subscribers;
+            {Subscribers, Monitors};
         New ->
             Subscriber ! {unsubscribed, self(), Topic},
-            New
+            {New, demonitor_subscriber(Subscriber, Monitors)}
     end,
-    {reply, ok, State#state{topics=NewTopics, subscribers=NewSubscribers}};
+    {reply, ok, State#state{topics=NewTopics, subscribers=NewSubscribers,
+        monitors=NewMonitors}};
 handle_call({subscribe_all, Subscriber}, _From,
-        State=#state{all=All, topics=Topics, subscribers=Subscribers}) ->
+        State=#state{all=All, topics=Topics, subscribers=Subscribers,
+        monitors=Monitors}) ->
     {SubscriptionTopics, NewSubscribers} = pop_all_values(
         Subscriber, Subscribers),
     NewTopics = case remove_element_by_list(Subscriber,
@@ -308,24 +313,25 @@ handle_call({subscribe_all, Subscriber}, _From,
                 end, SubscriptionTopics),
             New
     end,
-    NewAll = case ordsets:add_element(Subscriber, All) of
+    {NewAll, NewMonitors} = case ordsets:add_element(Subscriber, All) of
         All ->
-            All;
+            {All, Monitors};
         New2 ->
+            Monitor = monitor(process, Subscriber),
             Subscriber ! {subscribed_all, self()},
-            New2
+            {New2, dict:store(Subscriber, Monitor, Monitors)}
     end,
-    true = link(Subscriber),
     {reply, ok, State#state{topics=NewTopics, subscribers=NewSubscribers,
-        all=NewAll}};
+        all=NewAll, monitors=NewMonitors}};
 handle_call({unsubscribe_all, Subscriber}, _From,
-        State=#state{all=All, topics=Topics, subscribers=Subscribers}) ->
-    NewAll = case ordsets:del_element(Subscriber, All) of
+        State=#state{all=All, topics=Topics, subscribers=Subscribers,
+        monitors=Monitors}) ->
+    {NewAll, NewMonitors} = case ordsets:del_element(Subscriber, All) of
         All ->
-            All;
+            {All, Monitors};
         New ->
             Subscriber ! {unsubscribed_all, self()},
-            New
+            {New, demonitor_subscriber(Subscriber, Monitors)}
     end,
     {SubscriptionTopics, NewSubscribers} = pop_all_values(
         Subscriber, Subscribers),
@@ -340,7 +346,7 @@ handle_call({unsubscribe_all, Subscriber}, _From,
             New2
     end,
     {reply, ok, State#state{topics=NewTopics, subscribers=NewSubscribers,
-        all=NewAll}};
+        all=NewAll, monitors=NewMonitors}};
 handle_call(get_topics, _From, State=#state{topics=Topics}) ->
     {reply, dict:fetch_keys(Topics), State};
 handle_call({get_topic_subscribers, Topic}, _From,
@@ -381,14 +387,16 @@ handle_info(#message{destination=Destination, sender=Sender}=Message0,
             send_messages(Topic, Message, Topics)
     end,
     {noreply, State};
-handle_info({'EXIT', From, _Reason}, State=#state{topics=Topics,
-        subscribers=Subscribers, all=All}) ->
+handle_info({'DOWN', _Monitor, process, Pid, _Info},
+        State=#state{topics=Topics, subscribers=Subscribers, all=All,
+            monitors=Monitors}) ->
     % TODO: Log error or just ignore?
-    {SubscriptionTopics, NewSubscribers} = pop_all_values(From, Subscribers),
-    NewTopics = remove_element_by_list(From, SubscriptionTopics, Topics),
-    NewAll = ordsets:del_element(From, All),
+    {SubscriptionTopics, NewSubscribers} = pop_all_values(Pid, Subscribers),
+    NewTopics = remove_element_by_list(Pid, SubscriptionTopics, Topics),
+    NewAll = ordsets:del_element(Pid, All),
+    NewMonitors = dict:erase(Pid, Monitors),
     {noreply, State#state{topics=NewTopics, subscribers=NewSubscribers,
-        all=NewAll}};
+        all=NewAll, monitors=NewMonitors}};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -472,4 +480,13 @@ start(Function, ServerName) ->
             gen_server:Function(?MODULE, undefined, []);
         ServerName ->
             gen_server:Function(ServerName, ?MODULE, undefined, [])
+    end.
+
+demonitor_subscriber(Subscriber, Monitors) ->
+    case dict:find(Subscriber, Monitors) of
+        {ok, Monitor} ->
+            true = demonitor(Monitor),
+            dict:erase(Subscriber, Monitors);
+        error ->
+            Monitors
     end.

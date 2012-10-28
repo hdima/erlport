@@ -10,8 +10,6 @@
 - How we should support external functions in sender and destination lists for
   messages?
 
-- Use monitors instead of links in message hub
-
 - Maybe we need to reduce/optimize number of messages sent as
   subscribe/unsubscribe events?
 
@@ -75,5 +73,3 @@
 - Perl support. What about different Perl versions?
 
 - Comments for modules
-
-- Refactor tests?
