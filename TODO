@@ -1,4 +1,4 @@
-- Maybe we need to return 'cast' function? But it also can be done with
+- Maybe we need to return 'cast' function? But can it also be done with
   publish/subscribe framework?
 
 - erlport:server_name/0 and erlport:server_instances() types should be moved to
