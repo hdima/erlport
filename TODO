@@ -73,3 +73,6 @@
 - Perl support. What about different Perl versions?
 
 - Comments for modules
+
+- Maybe it's possible to create an ErlPort interface which loads dynamic
+  libraries?
