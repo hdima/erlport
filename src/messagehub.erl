@@ -207,19 +207,13 @@ send(Hub, Payload, Destination=[_|_], Sender=[_|_], Options)
     case Options of
         [] ->
             Dest = lists:last(Destination),
-            Message = #message{sender=[Hub | Sender], destination=[Dest],
-                payload=Payload},
-            Dest ! Message;
+            do_send(Dest, [Hub | Sender], [Dest], Payload);
         [route_by_path] ->
             case Destination of
                 [Next] ->
-                    Message = #message{sender=[Hub | Sender],
-                        destination=[Next], payload=Payload},
-                    Next ! Message;
+                    do_send(Next, [Hub | Sender], [Next], Payload);
                 [Next | Tail] ->
-                    Message = #message{sender=[Hub | Sender], destination=Tail,
-                        payload=Payload},
-                    Next ! Message
+                    do_send(Next, [Hub | Sender], Tail, Payload)
             end
     end.
 
@@ -261,92 +255,18 @@ init(undefined) ->
     {ok, #state{}}.
 
 
-handle_call({subscribe, Subscriber, Topic}, _From,
-        State=#state{topics=Topics, all=All, subscribers=Subscribers,
-        monitors=Monitors}) when ?IS_TOPIC(Topic) andalso is_pid(Subscriber) ->
-    NewTopics = add_element(Topic, Subscriber, Topics),
-    NewAll = case ordsets:del_element(Subscriber, All) of
-        All ->
-            All;
-        New ->
-            Subscriber ! {unsubscribed_all, self()},
-            New
-    end,
-    {NewSubscribers, NewMonitors} = case add_element(Subscriber, Topic,
-            Subscribers) of
-        Subscribers ->
-            {Subscribers, Monitors};
-        New2 ->
-            Monitor = monitor(process, Subscriber),
-            Subscriber ! {subscribed, self(), Topic},
-            {New2, dict:store(Subscriber, Monitor, Monitors)}
-    end,
-    {reply, ok, State#state{topics=NewTopics, all=NewAll,
-        subscribers=NewSubscribers, monitors=NewMonitors}};
-handle_call({unsubscribe, Subscriber, Topic}, _From,
-        State=#state{topics=Topics, subscribers=Subscribers, monitors=Monitors})
+handle_call({subscribe, Subscriber, Topic}, _From, State=#state{})
         when ?IS_TOPIC(Topic) andalso is_pid(Subscriber) ->
-    NewTopics = remove_element(Topic, Subscriber, Topics),
-    {NewSubscribers, NewMonitors} = case remove_element(Subscriber, Topic,
-            Subscribers) of
-        Subscribers ->
-            {Subscribers, Monitors};
-        New ->
-            Subscriber ! {unsubscribed, self(), Topic},
-            {New, demonitor_subscriber(Subscriber, Monitors)}
-    end,
-    {reply, ok, State#state{topics=NewTopics, subscribers=NewSubscribers,
-        monitors=NewMonitors}};
-handle_call({subscribe_all, Subscriber}, _From,
-        State=#state{all=All, topics=Topics, subscribers=Subscribers,
-        monitors=Monitors}) ->
-    {SubscriptionTopics, NewSubscribers} = pop_all_values(
-        Subscriber, Subscribers),
-    NewTopics = case remove_element_by_list(Subscriber,
-            SubscriptionTopics, Topics) of
-        Topics ->
-            Topics;
-        New ->
-            % TODO: Maybe it's enough to send only {unsubscribed_all} message?
-            lists:foreach(fun (Topic) ->
-                Subscriber ! {unsubscribed, self(), Topic}
-                end, SubscriptionTopics),
-            New
-    end,
-    {NewAll, NewMonitors} = case ordsets:add_element(Subscriber, All) of
-        All ->
-            {All, Monitors};
-        New2 ->
-            Monitor = monitor(process, Subscriber),
-            Subscriber ! {subscribed_all, self()},
-            {New2, dict:store(Subscriber, Monitor, Monitors)}
-    end,
-    {reply, ok, State#state{topics=NewTopics, subscribers=NewSubscribers,
-        all=NewAll, monitors=NewMonitors}};
-handle_call({unsubscribe_all, Subscriber}, _From,
-        State=#state{all=All, topics=Topics, subscribers=Subscribers,
-        monitors=Monitors}) ->
-    {NewAll, NewMonitors} = case ordsets:del_element(Subscriber, All) of
-        All ->
-            {All, Monitors};
-        New ->
-            Subscriber ! {unsubscribed_all, self()},
-            {New, demonitor_subscriber(Subscriber, Monitors)}
-    end,
-    {SubscriptionTopics, NewSubscribers} = pop_all_values(
-        Subscriber, Subscribers),
-    NewTopics = case remove_element_by_list(Subscriber,
-            SubscriptionTopics, Topics) of
-        Topics ->
-            Topics;
-        New2 ->
-            lists:foreach(fun (Topic) ->
-                Subscriber ! {unsubscribed, self(), Topic}
-                end, SubscriptionTopics),
-            New2
-    end,
-    {reply, ok, State#state{topics=NewTopics, subscribers=NewSubscribers,
-        all=NewAll, monitors=NewMonitors}};
+    {reply, ok, do_subscribe(Subscriber, Topic, true, State)};
+handle_call({unsubscribe, Subscriber, Topic}, _From, State=#state{})
+        when ?IS_TOPIC(Topic) andalso is_pid(Subscriber) ->
+    {reply, ok, do_unsubscribe(Subscriber, Topic, true, State)};
+handle_call({subscribe_all, Subscriber}, _From, State=#state{})
+        when is_pid(Subscriber) ->
+    {reply, ok, do_subscribe_all(Subscriber, true, State)};
+handle_call({unsubscribe_all, Subscriber}, _From, State=#state{})
+        when is_pid(Subscriber) ->
+    {reply, ok, do_unsubscribe_all(Subscriber, true, State)};
 handle_call(get_topics, _From, State=#state{topics=Topics}) ->
     {reply, dict:fetch_keys(Topics), State};
 handle_call({get_topic_subscribers, Topic}, _From,
@@ -361,9 +281,8 @@ handle_call(Request, From, State) ->
 handle_cast({send, Payload, Topic, Sender=[_|_], Options},
         State=#state{topics=Topics, all=All}) when ?IS_TOPIC(Topic)
         andalso is_list(Options) ->
-    Message = #message{sender=Sender, destination=Topic, payload=Payload},
-    send_messages(Message, All),
-    send_messages(Topic, Message, Topics),
+    send_messages(All, Sender, Topic, Payload),
+    send_messages(Topic, Topics, Sender, Topic, Payload),
     {noreply, State};
 handle_cast(stop, State) ->
     {stop, normal, State};
@@ -371,26 +290,35 @@ handle_cast(_Request, State) ->
     {noreply, State}.
 
 
-handle_info(#message{destination=Destination, sender=Sender}=Message0,
+handle_info(#message{destination=Destination, sender=Sender, payload=Payload},
         State=#state{topics=Topics, all=All}) ->
     case Destination of
         [Self] when Self == self() ->
-            % Message Hub doesn't support message processing
-            ignore;
+            % Ignore. Message Hub doesn't support message processing
+            ok;
         [Next | Tail] ->
-            Message = Message0#message{sender=[self() | Sender],
-                destination=Tail},
-            Next ! Message;
+            do_send(Next, [self() | Sender], Tail, Payload);
         Topic when ?IS_TOPIC(Topic) ->
-            Message = Message0#message{sender=[self() | Sender]},
-            send_messages(Message, All),
-            send_messages(Topic, Message, Topics)
+            send_messages(All, [self() | Sender], Destination, Payload),
+            send_messages(Topic, Topics, [self() | Sender], Destination,
+                Payload)
     end,
     {noreply, State};
+handle_info(#subscribed{hub=Hub, topic=Topic}, State=#state{}) ->
+    % TODO: We don't need to unsubscribe in this case
+    {noreply, do_subscribe(Hub, Topic, false, State)};
+handle_info(#unsubscribed{hub=Hub, topic=Topic}, State=#state{}) ->
+    % TODO: We don't need to unsubscribe topics in this case
+    {noreply, do_unsubscribe(Hub, Topic, false, State)};
+handle_info(#subscribed_all{hub=Hub}, State=#state{}) ->
+    % TODO: We don't need to unsubscribe in this case
+    {noreply, do_subscribe_all(Hub, false, State)};
+handle_info(#unsubscribed_all{hub=Hub}, State=#state{}) ->
+    % TODO: We don't need to unsubscribe topics in this case
+    {noreply, do_unsubscribe_all(Hub, false, State)};
 handle_info({'DOWN', _Monitor, process, Pid, _Info},
         State=#state{topics=Topics, subscribers=Subscribers, all=All,
             monitors=Monitors}) ->
-    % TODO: Log error or just ignore?
     {SubscriptionTopics, NewSubscribers} = pop_all_values(Pid, Subscribers),
     NewTopics = remove_element_by_list(Pid, SubscriptionTopics, Topics),
     NewAll = ordsets:del_element(Pid, All),
@@ -411,6 +339,89 @@ code_change(_OldVsn, State, _Extra) ->
 %%%
 %%% Internal functions
 %%%
+
+do_subscribe(Subscriber, Topic, Notify, State=#state{topics=Topics, all=All,
+        subscribers=Subscribers, monitors=Monitors}) ->
+    NewTopics = add_element(Topic, Subscriber, Topics),
+    NewAll = case ordsets:del_element(Subscriber, All) of
+        All ->
+            All;
+        New ->
+            notify(Subscriber, #unsubscribed_all{hub=self()}, Notify),
+            New
+    end,
+    {NewSubscribers, NewMonitors} = case add_element(Subscriber, Topic,
+            Subscribers) of
+        Subscribers ->
+            {Subscribers, Monitors};
+        New2 ->
+            Monitor = monitor(process, Subscriber),
+            notify(Subscriber, #subscribed{hub=self(), topic=Topic}, Notify),
+            {New2, dict:store(Subscriber, Monitor, Monitors)}
+    end,
+    State#state{topics=NewTopics, all=NewAll,
+        subscribers=NewSubscribers, monitors=NewMonitors}.
+
+do_unsubscribe(Subscriber, Topic, Notify, State=#state{topics=Topics,
+        subscribers=Subscribers, monitors=Monitors}) ->
+    NewTopics = remove_element(Topic, Subscriber, Topics),
+    {NewSubscribers, NewMonitors} = case remove_element(Subscriber, Topic,
+            Subscribers) of
+        Subscribers ->
+            {Subscribers, Monitors};
+        New ->
+            notify(Subscriber, #unsubscribed{hub=self(), topic=Topic}, Notify),
+            {New, demonitor_subscriber(Subscriber, Monitors)}
+    end,
+    State#state{topics=NewTopics, subscribers=NewSubscribers,
+        monitors=NewMonitors}.
+
+do_subscribe_all(Subscriber, Notify, State=#state{all=All, topics=Topics,
+        subscribers=Subscribers, monitors=Monitors}) ->
+    {SubscriptionTopics, NewSubscribers} = pop_all_values(
+        Subscriber, Subscribers),
+    NewTopics = case remove_element_by_list(Subscriber,
+            SubscriptionTopics, Topics) of
+        Topics ->
+            Topics;
+        New ->
+            % TODO: Maybe it's enough to send only {unsubscribed_all} message?
+            notify_for_topics(Subscriber, SubscriptionTopics, Notify),
+            New
+    end,
+    {NewAll, NewMonitors} = case ordsets:add_element(Subscriber, All) of
+        All ->
+            {All, Monitors};
+        New2 ->
+            Monitor = monitor(process, Subscriber),
+            notify(Subscriber, #subscribed_all{hub=self()}, Notify),
+            {New2, dict:store(Subscriber, Monitor, Monitors)}
+    end,
+    State#state{topics=NewTopics, subscribers=NewSubscribers, all=NewAll,
+        monitors=NewMonitors}.
+
+do_unsubscribe_all(Subscriber, Notify, State=#state{all=All, topics=Topics,
+        subscribers=Subscribers, monitors=Monitors}) ->
+    {NewAll, NewMonitors} = case ordsets:del_element(Subscriber, All) of
+        All ->
+            {All, Monitors};
+        New ->
+            notify(Subscriber, #unsubscribed_all{hub=self()}, Notify),
+            {New, demonitor_subscriber(Subscriber, Monitors)}
+    end,
+    {SubscriptionTopics, NewSubscribers} = pop_all_values(
+        Subscriber, Subscribers),
+    NewTopics = case remove_element_by_list(Subscriber,
+            SubscriptionTopics, Topics) of
+        Topics ->
+            Topics;
+        New2 ->
+            % TODO: Maybe it's enough to send only {unsubscribed_all} message?
+            notify_for_topics(Subscriber, SubscriptionTopics, Notify),
+            New2
+    end,
+    State#state{topics=NewTopics, subscribers=NewSubscribers, all=NewAll,
+        monitors=NewMonitors}.
 
 remove_element(Key, Element, Dict) ->
     case dict:find(Key, Dict) of
@@ -461,17 +472,17 @@ remove_element_by_list(Element, List, Dict) ->
             remove_element(E, Element, D)
         end, Dict, List).
 
-send_messages(Topic, Message, Subscribers) ->
+send_messages(Topic, Subscribers, Sender, Destination, Payload) ->
     case dict:find(Topic, Subscribers) of
         {ok, TopicSubscribers} ->
-            send_messages(Message, TopicSubscribers);
+            send_messages(TopicSubscribers, Sender, Destination, Payload);
         error ->
             ok
     end.
 
-send_messages(Message, Subscribers) ->
-    lists:foreach(fun (Pid) ->
-            Pid ! Message
+send_messages(Subscribers, Sender, Destination, Payload) ->
+    lists:foreach(fun (Next) ->
+            do_send(Next, Sender, Destination, Payload)
         end, Subscribers).
 
 start(Function, ServerName) ->
@@ -490,3 +501,35 @@ demonitor_subscriber(Subscriber, Monitors) ->
         error ->
             Monitors
     end.
+
+notify_for_topics(Subscriber, Topics, true) ->
+    lists:foreach(fun (Topic) ->
+        Subscriber ! #unsubscribed{hub=self(), topic=Topic}
+        end, Topics);
+notify_for_topics(_Subscriber, _Topics, false) ->
+    ok.
+
+notify(Subscriber, Message, true) ->
+    Subscriber ! Message;
+notify(_Subscriber, _Message, false) ->
+    ok.
+
+do_send(Next, Sender, Destination, Payload) ->
+    case is_routing_loop(Next, Sender) of
+        false ->
+            Next ! #message{sender=Sender, destination=Destination,
+                payload=Payload};
+        true ->
+            % Ignore. Routing loop
+            ok
+    end.
+
+is_routing_loop(Next, [Next]) ->
+    % Sender can send messages to itself
+    false;
+is_routing_loop(Next, [Next | _]) ->
+    true;
+is_routing_loop(Next, [_ | Tail]) ->
+    is_routing_loop(Next, Tail);
+is_routing_loop(_, []) ->
+    false.

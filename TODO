@@ -1,3 +1,5 @@
+- Need add messagehub:reply functions
+
 - Maybe we need to return 'cast' function? But can it also be done with
   publish/subscribe framework?
 

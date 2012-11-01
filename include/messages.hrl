@@ -30,3 +30,21 @@
     destination :: [pid()] | atom(),
     payload :: term()
     }).
+
+-record(subscribed, {
+    hub :: pid(),
+    topic :: atom()
+    }).
+
+-record(unsubscribed, {
+    hub :: pid(),
+    topic :: atom()
+    }).
+
+-record(subscribed_all, {
+    hub :: pid()
+    }).
+
+-record(unsubscribed_all, {
+    hub :: pid()
+    }).

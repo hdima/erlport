@@ -32,13 +32,6 @@
 -include("messages.hrl").
 
 
-setup() ->
-    {ok, H} = messagehub:start_link(),
-    H.
-
-cleanup(H) ->
-    ok = messagehub:stop(H).
-
 start_stop_test_() -> [
     fun () ->
         {ok, H} = messagehub:start(),
@@ -273,6 +266,49 @@ send_message_test_() -> {foreach,
             end
         end
     ]}.
+
+message_routing_test_() -> {foreach,
+    fun setup_route/0,
+    fun cleanup_route/1, [
+        fun ({H1, H2}) ->
+            fun () ->
+                S = self(),
+                ?assertEqual(ok, messagehub:subscribe(H2, S, test)),
+                ?assertEqual([{subscribed, H2, test}], get_messages()),
+                ?assertEqual(ok, messagehub:subscribe(H1, H2, test)),
+                ?assertEqual(ok, messagehub:send(H1, "TEST", test)),
+                ?assertEqual([#message{sender=[H2, H1, S], destination=test,
+                    payload="TEST"}], get_messages(3000))
+            end
+        end,
+        fun ({H1, H2}) ->
+            fun () ->
+                S = self(),
+                ?assertEqual(ok, messagehub:subscribe(H2, S, test)),
+                ?assertEqual([{subscribed, H2, test}], get_messages()),
+                ?assertEqual(ok, messagehub:subscribe(H2, H1, test)),
+                ?assertEqual(ok, messagehub:send(H1, "TEST", test)),
+                ?assertEqual([#message{sender=[H2, H1, S], destination=test,
+                    payload="TEST"}], get_messages(3000))
+            end
+        end
+    ]}.
+
+setup() ->
+    {ok, H} = messagehub:start_link(),
+    H.
+
+cleanup(H) ->
+    ok = messagehub:stop(H).
+
+setup_route() ->
+    {ok, H1} = messagehub:start_link(),
+    {ok, H2} = messagehub:start_link(),
+    {H1, H2}.
+
+cleanup_route({H1, H2}) ->
+    ok = messagehub:stop(H1),
+    ok = messagehub:stop(H2).
 
 get_messages() ->
     get_messages(0).
