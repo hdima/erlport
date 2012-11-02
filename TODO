@@ -13,7 +13,8 @@
 - Support message handling in messagehub and erlport
 
 - How we should support external functions in sender and destination lists for
-  messages?
+  messages? Probably it should be {ErlporPid, ModuleFunctionString} tuples.
+  This way we can store anything as the second item.
 
 - Maybe we need to reduce/optimize number of messages sent as
   subscribe/unsubscribe events?
@@ -49,8 +50,12 @@
 
   However need to think about garbage collection of Pids.
 
+  It's better to use arbitrary keys on the Python side. And we can map the keys
+  to Pids at the Erlang side. If process will die we just return 'noproc' error
+  and raise it on the Python side.
+
 - Add options to erlang.call: [{pid, Pid (special working process)}, {timeout,
-  Timeout}]
+  Timeout}]. Better to use {key, aProcessKey} instead of {pid, Pid}.
 
 - Log some errors (for example if switch failed in async mode) and just
   continue. If port was closed and we have an error to report we can try to
