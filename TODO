@@ -1,3 +1,6 @@
+- Allow only unidirectional subscriptions by default and make bidirectional
+  subscriptions optional
+
 - Need add messagehub:reply functions
 
 - Maybe we need to return 'cast' function? But can it also be done with
