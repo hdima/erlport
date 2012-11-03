@@ -325,7 +325,7 @@ terminate(Reason, _StateName, #state{sent=Sent, queue=Queue}) ->
     queue_foreach(fun ({_Type, From, _Timer}) ->
         gen_fsm:reply(From, Error)
         end, Sent),
-    queue_foreach(fun ({_Type, From, _Data}) ->
+    queue_foreach(fun ({{_Type, From, _Timer}, _Data}) ->
         gen_fsm:reply(From, Error)
         end, Queue).
 
