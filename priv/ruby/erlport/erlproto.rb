@@ -91,7 +91,7 @@ module ErlProto
                 while data != ""
                     begin
                         n = @out.syswrite(data)
-                    rescue Errno::EPIPE
+                    rescue Errno::EPIPE, Errno::EINVAL
                         raise EOFError, "end of file reached"
                     end
                     raise EOFError, "end of file reached" if n == 0
@@ -119,7 +119,7 @@ module ErlProto
         def read_data
             begin
                 buf = @in.sysread(@buffer_size)
-            rescue Errno::EPIPE
+            rescue Errno::EPIPE, Errno::EINVAL
                 raise EOFError, "end of file reached"
             end
             raise EOFError, "end of file reached" if buf == nil or buf == ""

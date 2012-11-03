@@ -95,7 +95,7 @@ class PortTestCase < Test::Unit::TestCase
     def test_port_close
         client = TestPortClient.new
         client.port.close
-        assert_raise(Errno::EPIPE){client.write("data")}
+        assert_raise(Errno::EPIPE, Errno::EINVAL){client.write("data")}
         assert_raise(EOFError){client.read}
     end
 

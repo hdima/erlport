@@ -41,9 +41,11 @@
     timeout/1,
     update_port_options/3,
     join_path/1,
-    filter_invalid_paths/1
+    filter_invalid_paths/1,
+    get_version/1
     ]).
 
+-define(TIMEOUT, 15000).
 
 -type option() :: nouse_stdio
     | use_stdio
@@ -196,6 +198,16 @@ filter_invalid_paths(List) when is_list(List) ->
 filter_invalid_paths(_Paths) ->
     {error, not_list}.
 
+%%
+%% @doc Get version line for Cmd
+%%
+
+-spec get_version(Cmd::string()) -> Version::string().
+
+get_version(Cmd) ->
+    Port = open_port({spawn, Cmd}, [{line, 80}, stderr_to_stdout, hide]),
+    receive_version(Port).
+
 %%%
 %%% Internal functions
 %%%
@@ -231,3 +243,16 @@ filter_invalid_env(Env) when is_list(Env) ->
         end, Env);
 filter_invalid_env(_Env) ->
     not_list.
+
+receive_version(Port) ->
+    Out = receive
+        {Port, {data, {eol, Version}}} ->
+            Version;
+        _ ->
+            "ERROR"
+    after
+        ?TIMEOUT ->
+            "TIMEOUT"
+    end,
+    catch port_close(Port),
+    Out.

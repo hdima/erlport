@@ -170,9 +170,9 @@ ruby_option_test_() -> {setup,
                 true = os:putenv("PATH", Path)
             end
         end,
-        ?_assertEqual({error, {unsupported_ruby_version, "ruby 1.7.0 \n"}},
+        ?_assertEqual({error, {unsupported_ruby_version, "ruby 1.7.0 "}},
             ruby_options:parse([{ruby, UnsupportedRuby}])),
-        ?_assertEqual({error, {unsupported_ruby_version, "ruby 1.9.0 \n"}},
+        ?_assertEqual({error, {unsupported_ruby_version, "ruby 1.9.0 "}},
             ruby_options:parse([{ruby, UnsupportedRuby2}])),
         ?_assertEqual({error, {invalid_ruby, InvalidRuby}},
             ruby_options:parse([{ruby, InvalidRuby}]))

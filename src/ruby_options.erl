@@ -156,8 +156,8 @@ extract_ruby_lib([], Path, Env) ->
     {lists:append(lists:reverse(Path)), lists:reverse(Env)}.
 
 check_ruby_version(Ruby) ->
-    Out = os:cmd(Ruby ++ " -v"),
-    case re:run(Out, "^ruby ([0-9]+)\.([0-9]+)\.([0-9]+) ",
+    Out = erlport_options:get_version(Ruby ++ " -v"),
+    case re:run(Out, "^ruby ([0-9]+)\\.([0-9]+)\\.([0-9]+) ",
             [{capture, all_but_first, list}]) of
         {match, StrVersion} ->
             Version = list_to_tuple([list_to_integer(N) || N <- StrVersion]),

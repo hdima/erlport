@@ -20,7 +20,7 @@ PYTHON3=" \
     $SANDBOX/Python-3.2.3 \
     "
 
-for erlang in "erl"; do
+for erlang in $ERLANG; do
     for python in $PYTHON $PYTHON3; do
         echo
         echo "****************************************************************"

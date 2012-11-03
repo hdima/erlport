@@ -355,7 +355,7 @@ do_subscribe(Subscriber, Topic, Notify, State=#state{topics=Topics, all=All,
         Subscribers ->
             {Subscribers, Monitors};
         New2 ->
-            Monitor = monitor(process, Subscriber),
+            Monitor = erlang:monitor(process, Subscriber),
             notify(Subscriber, #subscribed{hub=self(), topic=Topic}, Notify),
             {New2, dict:store(Subscriber, Monitor, Monitors)}
     end,
@@ -393,7 +393,7 @@ do_subscribe_all(Subscriber, Notify, State=#state{all=All, topics=Topics,
         All ->
             {All, Monitors};
         New2 ->
-            Monitor = monitor(process, Subscriber),
+            Monitor = erlang:monitor(process, Subscriber),
             notify(Subscriber, #subscribed_all{hub=self()}, Notify),
             {New2, dict:store(Subscriber, Monitor, Monitors)}
     end,
@@ -496,7 +496,7 @@ start(Function, ServerName) ->
 demonitor_subscriber(Subscriber, Monitors) ->
     case dict:find(Subscriber, Monitors) of
         {ok, Monitor} ->
-            true = demonitor(Monitor),
+            true = erlang:demonitor(Monitor),
             dict:erase(Subscriber, Monitors);
         error ->
             Monitors

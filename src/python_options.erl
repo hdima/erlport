@@ -40,6 +40,7 @@
     parse/1
     ]).
 
+-define(TIMEOUT, 15000).
 
 -type option() :: {python, Python :: string()}
     | {python_path, Path :: string() | [Path :: string()]}
@@ -157,8 +158,8 @@ extract_python_path([], Path, Env) ->
     {lists:append(lists:reverse(Path)), lists:reverse(Env)}.
 
 check_python_version(Python) ->
-    Out = os:cmd(Python ++ " -V"),
-    case re:run(Out, "^Python ([0-9]+)\.([0-9]+)\.([0-9]+)$",
+    Out = erlport_options:get_version(Python ++ " -V"),
+    case re:run(Out, "^Python ([0-9]+)\\.([0-9]+)\\.([0-9]+)$",
             [{capture, all_but_first, list}]) of
         {match, StrVersion} ->
             Version = list_to_tuple([list_to_integer(N) || N <- StrVersion]),

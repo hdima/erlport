@@ -178,9 +178,9 @@ python_option_test_() -> {setup,
                 true = os:putenv("PATH", Path)
             end
         end,
-        ?_assertEqual({error, {unsupported_python_version, "Python 2.4.6\n"}},
+        ?_assertEqual({error, {unsupported_python_version, "Python 2.4.6"}},
             python_options:parse([{python, UnsupportedPython}])),
-        ?_assertEqual({error, {unsupported_python_version, "Python 4.0.0\n"}},
+        ?_assertEqual({error, {unsupported_python_version, "Python 4.0.0"}},
             python_options:parse([{python, UnsupportedPython2}])),
         ?_assertEqual({error, {invalid_python, InvalidPython}},
             python_options:parse([{python, InvalidPython}]))

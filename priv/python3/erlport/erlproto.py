@@ -78,7 +78,7 @@ class Port(object):
         try:
             buf = os.read(self.in_d, self.buffer_size)
         except OSError as why:
-            if why.errno == errno.EPIPE:
+            if why.errno in (errno.EPIPE, errno.EINVAL):
                 raise EOFError()
             raise
         if not buf:
@@ -112,7 +112,7 @@ class Port(object):
                 try:
                     n = os.write(self.out_d, data)
                 except OSError as why:
-                    if why.errno == errno.EPIPE:
+                    if why.errno in (errno.EPIPE, errno.EINVAL):
                         raise EOFError()
                     raise
                 if not n:
