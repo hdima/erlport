@@ -55,8 +55,8 @@ module ErlProto
                 @in_d, @out_d = 3, 4
             end
 
-            @in = IO.new(@in_d)
-            @out = IO.new(@out_d)
+            @in = IO.new(@in_d, "rb").binmode
+            @out = IO.new(@out_d, "wb").binmode
 
             @packet = packet
             @compressed = compressed

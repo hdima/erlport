@@ -116,10 +116,10 @@ update_python_path(Env0, PythonPath0, MajVersion) ->
             {error, {not_found, "erlport/priv"}};
         PrivDir ->
             PythonDir = lists:concat([python, MajVersion]),
-            ErlPortPath = filename:join(PrivDir, PythonDir),
+            ErlPortPath = erlport_options:joinpath(PrivDir, PythonDir),
             {PathFromEnv, Env2} = extract_python_path(Env0, "", []),
             case erlport_options:join_path([[ErlPortPath], PythonPath0,
-                    string:tokens(PathFromEnv, ":")]) of
+                    string:tokens(PathFromEnv, erlport_options:pathsep())]) of
                 {ok, PythonPath} ->
                     Env3 = [{"PYTHONPATH", PythonPath} | Env2],
                     {ok, PythonPath, Env3};
@@ -139,7 +139,7 @@ get_python(Python=[_|_]) ->
                     {error, {invalid_option, {python, Python}, not_found}}
             end;
         Filename ->
-            Fullname = filename:absname(Filename),
+            Fullname = erlport_options:absname(Filename),
             case check_python_version(Fullname) of
                 {ok, {MajVersion, _, _}} ->
                     {ok, Fullname ++ Options, MajVersion};
@@ -151,7 +151,7 @@ get_python(Python) ->
     {error, {invalid_option, {python, Python}}}.
 
 extract_python_path([{"PYTHONPATH", P} | Tail], Path, Env) ->
-    extract_python_path(Tail, [P, ":" | Path], Env);
+    extract_python_path(Tail, [P, erlport_options:pathsep() | Path], Env);
 extract_python_path([Item | Tail], Path, Env) ->
     extract_python_path(Tail, Path, [Item | Env]);
 extract_python_path([], Path, Env) ->

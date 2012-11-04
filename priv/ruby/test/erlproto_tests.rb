@@ -86,12 +86,6 @@ class PortTestCase < Test::Unit::TestCase
         assert_equal 1, port.out_d
     end
 
-    def test_nouse_stdio
-        port = Port.new(4, false)
-        assert_equal 3, port.in_d
-        assert_equal 4, port.out_d
-    end
-
     def test_port_close
         client = TestPortClient.new
         client.port.close

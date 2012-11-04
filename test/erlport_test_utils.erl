@@ -97,7 +97,7 @@ remove_object(DirName=[_|_]) ->
 tmp_name("") ->
     tmp_name("test");
 tmp_name(BaseName=[_|_]) ->
-    filename:join(get_tmp_dir(), BaseName ++ "." ++ random_name(8)).
+    filename:join(get_base_dir(), BaseName ++ "." ++ random_name(8)).
 
 random_name(0) ->
     [];
@@ -106,10 +106,6 @@ random_name(N) ->
     I = crypto:rand_uniform(1, tuple_size(Chars) + 1),
     [element(I, Chars) | random_name(N - 1)].
 
-get_tmp_dir() ->
-    case os:type() of
-        {win32, _} ->
-            "C://Temp";
-        _ ->
-            "/tmp"
-    end.
+get_base_dir() ->
+    {ok, Path} = file:get_cwd(),
+    Path.

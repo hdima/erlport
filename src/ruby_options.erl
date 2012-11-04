@@ -114,10 +114,10 @@ update_ruby_lib(Env0, RubyPath0) ->
         {error, bad_name} ->
             {error, {not_found, "erlport/priv"}};
         PrivDir ->
-            ErlPortPath = filename:join(PrivDir, "ruby"),
+            ErlPortPath = erlport_options:joinpath(PrivDir, "ruby"),
             {PathFromEnv, Env2} = extract_ruby_lib(Env0, "", []),
             case erlport_options:join_path([[ErlPortPath], RubyPath0,
-                    string:tokens(PathFromEnv, ":")]) of
+                    string:tokens(PathFromEnv, erlport_options:pathsep())]) of
                 {ok, RubyPath} ->
                     Env3 = [{"RUBYLIB", RubyPath} | Env2],
                     {ok, RubyPath, Env3};
@@ -137,7 +137,7 @@ get_ruby(Ruby=[_|_]) ->
                     {error, {invalid_option, {ruby, Ruby}, not_found}}
             end;
         Filename ->
-            Fullname = filename:absname(Filename),
+            Fullname = erlport_options:absname(Filename),
             case check_ruby_version(Fullname) of
                 {ok, _Version} ->
                     {ok, Fullname ++ Options};
@@ -149,7 +149,7 @@ get_ruby(Ruby) ->
     {error, {invalid_option, {ruby, Ruby}}}.
 
 extract_ruby_lib([{"RUBYLIB", P} | Tail], Path, Env) ->
-    extract_ruby_lib(Tail, [P, ":" | Path], Env);
+    extract_ruby_lib(Tail, [P, erlport_options:pathsep() | Path], Env);
 extract_ruby_lib([Item | Tail], Path, Env) ->
     extract_ruby_lib(Tail, Path, [Item | Env]);
 extract_ruby_lib([], Path, Env) ->

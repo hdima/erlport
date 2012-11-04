@@ -30,6 +30,8 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("python.hrl").
 
+-define(assertPattern(String, Pattern),
+    ?assertEqual(match, re:run(String, Pattern, [{capture, none}]))).
 
 parse_test_() ->
     fun () ->
@@ -37,9 +39,8 @@ parse_test_() ->
             call_timeout=infinity, packet=4, python_path=PythonPath,
             start_timeout=10000, compressed=0, env=Env,
             port_options=PortOptions}} = python_options:parse([]),
-        ?assertEqual(match, re:run(Python, "/python$", [{capture, none}])),
-        ?assertEqual(match, re:run(PythonPath, "/priv/python[23]$",
-            [{capture, none}])),
+        ?assertPattern(Python, "/python(\\.exe)?$"),
+        ?assertPattern(PythonPath, "/priv/python[23]$"),
         ?assertEqual([{"PYTHONPATH", PythonPath}], Env),
         ?assertEqual([{env, Env}, {packet, 4}, binary, hide, exit_status],
             PortOptions)
@@ -138,25 +139,24 @@ python_option_test_() -> {setup,
             UnsupportedPython2, InvalidPython}) -> [
         fun () ->
             {ok, #python_options{python=Python}} = python_options:parse([]),
-            ?assertEqual(match, re:run(Python, "/python$", [{capture, none}]))
+            ?assertPattern(Python, "/python(\\.exe)?$")
         end,
-        ?_assertMatch({ok, #python_options{python=GoodPython}},
-            python_options:parse([{python, GoodPython}])),
         fun () ->
-            {ok, #python_options{python=GoodPython, python_path=PythonPath}}
+            Expected = python(GoodPython),
+            {ok, #python_options{python=Expected, python_path=PythonPath}}
                 = python_options:parse([{python, GoodPython}]),
-            ?assertEqual(match, re:run(PythonPath, "/priv/python2$",
-                [{capture, none}]))
+            ?assertPattern(PythonPath, "/priv/python2$")
         end,
         fun () ->
-            {ok, #python_options{python=GoodPython3, python_path=PythonPath}}
+            Expected = python(GoodPython3),
+            {ok, #python_options{python=Expected, python_path=PythonPath}}
                 = python_options:parse([{python, GoodPython3}]),
-            ?assertEqual(match, re:run(PythonPath, "/priv/python3$",
-                [{capture, none}]))
+            ?assertPattern(PythonPath, "/priv/python3$")
         end,
         fun () ->
+            Expected = python(GoodPython) ++ " -S",
             CommandWithOption = GoodPython ++ " -S",
-            ?assertMatch({ok, #python_options{python=CommandWithOption}},
+            ?assertMatch({ok, #python_options{python=Expected}},
                 python_options:parse([{python, CommandWithOption}]))
         end,
         ?_assertEqual({error, {invalid_option, {python, BadName}, not_found}},
@@ -182,7 +182,7 @@ python_option_test_() -> {setup,
             python_options:parse([{python, UnsupportedPython}])),
         ?_assertEqual({error, {unsupported_python_version, "Python 4.0.0"}},
             python_options:parse([{python, UnsupportedPython2}])),
-        ?_assertEqual({error, {invalid_python, InvalidPython}},
+        ?_assertEqual({error, {invalid_python, python(InvalidPython)}},
             python_options:parse([{python, InvalidPython}]))
     ] end}.
 
@@ -226,33 +226,31 @@ python_path_option_test_() -> {setup,
             {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
                 port_options=[{env, Env} | _]}} = python_options:parse([]),
-            ?assertEqual(match, re:run(PythonPath, "/priv/python[23]$",
-                [{capture, none}]))
+            ?assertPattern(PythonPath, "/priv/python[23]$")
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
                 port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, [TestPath1]}]),
-            ?assertEqual(match, re:run(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ "$", [{capture, none}]))
+            ?assertPattern(PythonPath,
+                "/priv/python[23]:" ++ TestPath1 ++ "$")
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
                 port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, TestPath1}]),
-            ?assertEqual(match, re:run(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ "$", [{capture, none}]))
+            ?assertPattern(PythonPath,
+                "/priv/python[23]:" ++ TestPath1 ++ "$")
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
                 port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, TestPath1 ++ ":" ++ TestPath2}]),
-            ?assertEqual(match, re:run(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$",
-                [{capture, none}]))
+            ?assertPattern(PythonPath,
+                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$")
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
@@ -260,9 +258,8 @@ python_path_option_test_() -> {setup,
                 port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, [TestPath1]},
                     {env, [{"PYTHONPATH", TestPath2}]}]),
-            ?assertEqual(match, re:run(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$",
-                [{capture, none}]))
+            ?assertPattern(PythonPath,
+                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$")
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
@@ -270,9 +267,8 @@ python_path_option_test_() -> {setup,
                 port_options=[{env, Env} | _]}} = python_options:parse(
                     [{env, [{"PYTHONPATH", TestPath1},
                     {"PYTHONPATH", TestPath2}]}]),
-            ?assertEqual(match, re:run(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$",
-                [{capture, none}]))
+            ?assertPattern(PythonPath,
+                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$")
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
@@ -280,9 +276,8 @@ python_path_option_test_() -> {setup,
                 port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, [TestPath1, TestPath2, ""]},
                     {env, [{"PYTHONPATH", TestPath2 ++ ":" ++ TestPath1}]}]),
-            ?assertEqual(match, re:run(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$",
-                [{capture, none}]))
+            ?assertPattern(PythonPath,
+                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$")
         end,
         ?_assertEqual({error, {not_dir, UnknownPath}},
             python_options:parse([{python_path, [TestPath1, UnknownPath]}])),
@@ -313,10 +308,30 @@ unknown_option_test_() ->
     ?_assertEqual({error, {unknown_option, unknown}},
         python_options:parse([unknown])).
 
+%%
+%% Internal functions
+%%
+
 create_mock_python(Dir, Name, Version) ->
     Path = filename:join(Dir, Name),
+    write_file(Path, Version, os:type()),
+    Path.
+
+write_file(Path, Version, {win32, _}) ->
+    BatPath = Path ++ ".bat",
+    ok = file:write_file(BatPath,
+        <<"@echo Python ",
+        (list_to_binary(Version))/binary, "\n">>, [raw]);
+write_file(Path, Version, _) ->
     ok = file:write_file(Path,
         <<"#! /bin/sh\necho 'Python ",
         (list_to_binary(Version))/binary, "'\n">>, [raw]),
-    ok = file:change_mode(Path, 8#00755),
-    Path.
+    ok = file:change_mode(Path, 8#00755).
+
+python(Python) ->
+    case os:type() of
+        {win32, _} ->
+            Python ++ ".bat";
+        _ ->
+            Python
+    end.

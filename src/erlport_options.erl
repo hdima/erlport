@@ -42,7 +42,10 @@
     update_port_options/3,
     join_path/1,
     filter_invalid_paths/1,
-    get_version/1
+    get_version/1,
+    pathsep/0,
+    absname/1,
+    joinpath/2
     ]).
 
 -define(TIMEOUT, 15000).
@@ -163,14 +166,15 @@ update_port_options(PortOptions, Path, UseStdio) ->
     end.
 
 %%
-%% @doc Join paths to a ":" delimited string and remove duplicate parts
+%% @doc Join paths to a ":" (";" on Windows) delimited string and remove
+%% duplicate parts
 %%
 
 -spec join_path(Parts::[Path::string() | [Path::string()]]) ->
     {ok, Path::string()} | {error, term()}.
 
 join_path(Parts=[_|_]) ->
-    remove_duplicate_path(lists:append(Parts), [], sets:new()).
+    remove_duplicate_path(lists:append(Parts), [], ordsets:new()).
 
 %%
 %% @doc Filter invalid paths from list of paths
@@ -208,6 +212,38 @@ get_version(Cmd) ->
     Port = open_port({spawn, Cmd}, [{line, 80}, stderr_to_stdout, hide]),
     receive_version(Port).
 
+%%
+%% @doc Return PATH variable separator for the current platform
+%%
+
+-spec pathsep() -> PathSep::string().
+
+pathsep() ->
+    case os:type() of
+        {win32, _} ->
+            ";";
+        _ ->
+            ":"
+    end.
+
+%%
+%% @doc Return absolute name for Filename
+%%
+
+-spec absname(Filename::string()) -> Path::string().
+
+absname(Filename) ->
+    filename:nativename(filename:absname(Filename)).
+
+%%
+%% @doc Join directory and filename components
+%%
+
+-spec joinpath(Dir::string(), Filename::string()) -> Path::string().
+
+joinpath(Dir, Filename) ->
+    filename:nativename(filename:join(Dir, Filename)).
+
 %%%
 %%% Internal functions
 %%%
@@ -219,10 +255,10 @@ remove_duplicate_path([P | Tail], Paths, Seen) ->
         P ->
             case filelib:is_dir(P) of
                 true ->
-                    AP = filename:absname(P),
-                    case sets:is_element(AP, Seen) of
+                    AP = absname(P),
+                    case ordsets:is_element(AP, Seen) of
                         false ->
-                            Seen2 = sets:add_element(AP, Seen),
+                            Seen2 = ordsets:add_element(AP, Seen),
                             remove_duplicate_path(Tail, [AP | Paths], Seen2);
                         true ->
                             remove_duplicate_path(Tail, Paths, Seen)
@@ -232,7 +268,7 @@ remove_duplicate_path([P | Tail], Paths, Seen) ->
             end
     end;
 remove_duplicate_path([], Paths, _Seen) ->
-    {ok, string:join(lists:reverse(Paths), ":")}.
+    {ok, string:join(lists:reverse(Paths), pathsep())}.
 
 filter_invalid_env(Env) when is_list(Env) ->
     lists:filter(fun
