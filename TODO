@@ -4,7 +4,13 @@
 - Need add messagehub:reply functions
 
 - Maybe we need to return 'cast' function? But can it also be done with
-  publish/subscribe framework?
+  publish/subscribe framework? Cast can be especially useful for external
+  languages where we can use Erlang Pids to send messages to Erlang processes.
+
+- Can we configure buffer size and arbitrary file descriptors at the process
+  start?
+
+- Add xref checks?
 
 - erlport:server_name/0 and erlport:server_instances() types should be moved to
   some utils module? Maybe move types to a header file because -export_type
