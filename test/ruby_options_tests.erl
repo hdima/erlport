@@ -124,7 +124,7 @@ ruby_option_test_() -> {setup,
         UnknownName = filename:join(TmpDir, "unknown"),
         GoodRuby = create_mock_ruby(TmpDir, "ruby", "1.8.7"),
         UnsupportedRuby = create_mock_ruby(TmpDir, "unsupported", "1.7.0"),
-        UnsupportedRuby2 = create_mock_ruby(TmpDir, "unsupported2", "1.9.0"),
+        UnsupportedRuby2 = create_mock_ruby(TmpDir, "unsupported2", "2.0.0b1"),
         InvalidRuby = create_mock_ruby(TmpDir, "invalid", "INVALID"),
         {TmpDir, GoodRuby, BadName, UnknownName,
             UnsupportedRuby, UnsupportedRuby2, InvalidRuby}
@@ -170,9 +170,9 @@ ruby_option_test_() -> {setup,
                 true = os:putenv("PATH", Path)
             end
         end,
-        ?_assertEqual({error, {unsupported_ruby_version, "ruby 1.7.0 "}},
+        ?_assertEqual({error, {unsupported_ruby_version, "ruby 1.7.0"}},
             ruby_options:parse([{ruby, UnsupportedRuby}])),
-        ?_assertEqual({error, {unsupported_ruby_version, "ruby 1.9.0 "}},
+        ?_assertEqual({error, {unsupported_ruby_version, "ruby 2.0.0b1"}},
             ruby_options:parse([{ruby, UnsupportedRuby2}])),
         ?_assertEqual({error, {invalid_ruby, InvalidRuby}},
             ruby_options:parse([{ruby, InvalidRuby}]))
@@ -307,8 +307,16 @@ unknown_option_test_() ->
 
 create_mock_ruby(Dir, Name, Version) ->
     Path = filename:join(Dir, Name),
+    write_file(Path, Version, os:type()),
+    Path.
+
+write_file(Path, Version, {win32, _}) ->
+    BatPath = Path ++ ".bat",
+    ok = file:write_file(BatPath,
+        <<"@echo ruby ",
+        (list_to_binary(Version))/binary, "\n">>, [raw]);
+write_file(Path, Version, _) ->
     ok = file:write_file(Path,
         <<"#! /bin/sh\necho 'ruby ",
-        (list_to_binary(Version))/binary, " '\n">>, [raw]),
-    ok = file:change_mode(Path, 8#00755),
-    Path.
+        (list_to_binary(Version))/binary, "'\n">>, [raw]),
+    ok = file:change_mode(Path, 8#00755).

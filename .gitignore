@@ -3,3 +3,4 @@
 *.beam
 .eunit
 sandbox
+testall.log

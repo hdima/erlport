@@ -1,3 +1,5 @@
+- Respect PYTHONPATH and RUBYLIB values from the current environment
+
 - Allow only unidirectional subscriptions by default and make bidirectional
   subscriptions optional
 

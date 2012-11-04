@@ -157,12 +157,12 @@ extract_ruby_lib([], Path, Env) ->
 
 check_ruby_version(Ruby) ->
     Out = erlport_options:get_version(Ruby ++ " -v"),
-    case re:run(Out, "^ruby ([0-9]+)\\.([0-9]+)\\.([0-9]+) ",
+    case re:run(Out, "^ruby ([0-9]+)\\.([0-9]+)\\.([0-9]+)",
             [{capture, all_but_first, list}]) of
         {match, StrVersion} ->
             Version = list_to_tuple([list_to_integer(N) || N <- StrVersion]),
             if
-                Version >= {1, 8, 0} andalso Version < {1, 9, 0} ->
+                Version >= {1, 8, 6} andalso Version < {2, 0, 0} ->
                     {ok, Version};
                 true ->
                     {error, {unsupported_ruby_version, Out}}
