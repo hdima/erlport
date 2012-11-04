@@ -41,17 +41,6 @@ test_callback(PrevResult, N) ->
     log_event({test_callback, PrevResult, N}),
     N.
 
-setup() ->
-    {ok, P} = python:start_link([{cd, "test/python"}]),
-    P.
-
-setup3() ->
-    {ok, P} = python:start_link([{cd, "test/python"}, {python, "python3"}]),
-    P.
-
-cleanup(P) ->
-    ok = python:stop(P).
-
 start_stop_test_() -> [
     fun () ->
         {ok, P} = python:start(),
@@ -86,11 +75,40 @@ call_test_() -> [{setup,
         ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
     end} || Setup <- [fun setup/0, fun setup3/0]].
 
+nouse_stdio_test_() -> [{setup,
+    Setup,
+    fun cleanup/1,
+    fun (P) ->
+        ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
+    end} || Setup <- [setup_factory([nouse_stdio]),
+        setup3_factory([nouse_stdio])]].
+
+packet4_test_() -> [{setup,
+    Setup,
+    fun cleanup/1,
+    fun (P) ->
+        ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
+    end} || Setup <- [setup_factory([{packet, 4}]),
+        setup3_factory([{packet, 4}])]].
+
+packet2_test_() -> [{setup,
+    Setup,
+    fun cleanup/1,
+    fun (P) ->
+        ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
+    end} || Setup <- [setup_factory([{packet, 2}]),
+        setup3_factory([{packet, 2}])]].
+
+packet1_test_() -> [{setup,
+    Setup,
+    fun cleanup/1,
+    fun (P) ->
+        ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
+    end} || Setup <- [setup_factory([{packet, 1}]),
+        setup3_factory([{packet, 1}])]].
+
 compressed_test_() -> [{setup,
-    fun () ->
-        {ok, P} = python:start_link([{compressed, 9}, {python, Python}]),
-        P
-    end,
+    Setup,
     fun cleanup/1,
     fun (P) ->
         fun () ->
@@ -99,7 +117,8 @@ compressed_test_() -> [{setup,
             ?assertEqual(<<S1/binary, S2/binary>>,
                 python:call(P, operator, add, [S1, S2]))
         end
-    end} || Python <- ["python", "python3"]].
+    end} || Setup <- [setup_factory([{compressed, 9}]),
+        setup3_factory([{compressed, 9}])]].
 
 call_pipeline_test_() -> [{setup,
     Setup,
@@ -255,6 +274,24 @@ opaque_type_test_() -> [{setup,
 %%%
 %%% Utility functions
 %%%
+
+setup() ->
+    (setup_factory([]))().
+
+setup3() ->
+    (setup3_factory([]))().
+
+setup_factory(Options) ->
+    fun () ->
+        {ok, P} = python:start_link([{cd, "test/python"} | Options]),
+        P
+    end.
+
+setup3_factory(Options) ->
+    setup_factory([{python, "python3"} | Options]).
+
+cleanup(P) ->
+    ok = python:stop(P).
 
 log_event(Event) ->
     true = ets:insert(events, {events, Event}).

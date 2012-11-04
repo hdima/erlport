@@ -36,13 +36,6 @@ test_callback(PrevResult, N) ->
     log_event({test_callback, PrevResult, N}),
     N.
 
-setup() ->
-    {ok, P} = ruby:start_link([{cd, "test/ruby"}]),
-    P.
-
-cleanup(P) ->
-    ok = ruby:stop(P).
-
 start_stop_test_() -> [
     fun () ->
         {ok, P} = ruby:start(),
@@ -77,11 +70,36 @@ call_test_() -> {setup,
         ?_assertEqual(4, ruby:call(R, '', 'Kernel::eval', [<<"2 + 2">>]))
     end}.
 
+nouse_stdio_test_() -> {setup,
+    setup_factory([nouse_stdio]),
+    fun cleanup/1,
+    fun (R) ->
+        ?_assertEqual(4, ruby:call(R, '', 'Kernel::eval', [<<"2 + 2">>]))
+    end}.
+
+packet4_test_() -> {setup,
+    setup_factory([{packet, 4}]),
+    fun cleanup/1,
+    fun (R) ->
+        ?_assertEqual(4, ruby:call(R, '', 'Kernel::eval', [<<"2 + 2">>]))
+    end}.
+
+packet2_test_() -> {setup,
+    setup_factory([{packet, 2}]),
+    fun cleanup/1,
+    fun (R) ->
+        ?_assertEqual(4, ruby:call(R, '', 'Kernel::eval', [<<"2 + 2">>]))
+    end}.
+
+packet1_test_() -> {setup,
+    setup_factory([{packet, 1}]),
+    fun cleanup/1,
+    fun (R) ->
+        ?_assertEqual(4, ruby:call(R, '', 'Kernel::eval', [<<"2 + 2">>]))
+    end}.
+
 compressed_test_() -> {setup,
-    fun () ->
-        {ok, R} = ruby:start_link([{compressed, 9}, {cd, "test/ruby"}]),
-        R
-    end,
+    setup_factory([{compressed, 9}]),
     fun cleanup/1,
     fun (R) ->
         fun () ->
@@ -148,6 +166,18 @@ switch_test_() -> {setup,
 %%%
 %%% Utility functions
 %%%
+
+setup() ->
+    (setup_factory([]))().
+
+setup_factory(Options) ->
+    fun () ->
+        {ok, P} = ruby:start_link([{cd, "test/ruby"} | Options]),
+        P
+    end.
+
+cleanup(P) ->
+    ok = ruby:stop(P).
 
 log_event(Event) ->
     true = ets:insert(events, {events, Event}).
