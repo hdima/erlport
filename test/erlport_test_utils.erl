@@ -34,7 +34,9 @@
 -export([
     tmp_file/1,
     tmp_dir/1,
-    remove_object/1
+    remove_object/1,
+    script/1,
+    call_with_env/3
     ]).
 
 -define(CHARS, {$0, $1, $2, $3, $4, $5, $6, $7, $8, $9,
@@ -93,6 +95,31 @@ remove_object(DirName=[_|_]) ->
                 end, FileNames),
             ok = file:del_dir(DirName)
     end.
+
+script(Script) ->
+    case os:type() of
+        {win32, _} ->
+            Script ++ ".bat";
+        _ ->
+            Script
+    end.
+
+call_with_env(Fun, Key, Value) ->
+    OldValue = os:getenv(Key),
+    true = os:putenv(Key, Value),
+    try Fun()
+    after
+        case OldValue of
+            false ->
+                ok;
+            OldValue ->
+                true = os:putenv(Key, OldValue)
+        end
+    end.
+
+%%
+%% Internal functions
+%%
 
 tmp_name("") ->
     tmp_name("test");

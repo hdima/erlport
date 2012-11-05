@@ -40,7 +40,7 @@ parse_test_() ->
             start_timeout=10000, compressed=0, env=Env,
             port_options=PortOptions}} = python_options:parse([]),
         ?assertPattern(Python, "/python(\\.exe)?$"),
-        ?assertPattern(PythonPath, "/priv/python[23]$"),
+        ?assertPattern(PythonPath, "/priv/python[23]"),
         ?assertEqual([{"PYTHONPATH", PythonPath}], Env),
         ?assertEqual([{env, Env}, {packet, 4}, binary, hide, exit_status],
             PortOptions)
@@ -142,19 +142,19 @@ python_option_test_() -> {setup,
             ?assertPattern(Python, "/python(\\.exe)?$")
         end,
         fun () ->
-            Expected = python(GoodPython),
+            Expected = erlport_test_utils:script(GoodPython),
             {ok, #python_options{python=Expected, python_path=PythonPath}}
                 = python_options:parse([{python, GoodPython}]),
-            ?assertPattern(PythonPath, "/priv/python2$")
+            ?assertPattern(PythonPath, "/priv/python2")
         end,
         fun () ->
-            Expected = python(GoodPython3),
+            Expected = erlport_test_utils:script(GoodPython3),
             {ok, #python_options{python=Expected, python_path=PythonPath}}
                 = python_options:parse([{python, GoodPython3}]),
-            ?assertPattern(PythonPath, "/priv/python3$")
+            ?assertPattern(PythonPath, "/priv/python3")
         end,
         fun () ->
-            Expected = python(GoodPython) ++ " -S",
+            Expected = erlport_test_utils:script(GoodPython) ++ " -S",
             CommandWithOption = GoodPython ++ " -S",
             ?assertMatch({ok, #python_options{python=Expected}},
                 python_options:parse([{python, CommandWithOption}]))
@@ -170,19 +170,17 @@ python_option_test_() -> {setup,
         ?_assertEqual({error, {invalid_option, {python, not_string}}},
             python_options:parse([{python, not_string}])),
         fun () ->
-            Path = os:getenv("PATH"),
-            true = os:putenv("PATH", ""),
-            try ?assertEqual({error, python_not_found},
+            erlport_test_utils:call_with_env(fun () ->
+                ?assertEqual({error, python_not_found},
                     python_options:parse([]))
-            after
-                true = os:putenv("PATH", Path)
-            end
+                end, "PATH", "")
         end,
         ?_assertEqual({error, {unsupported_python_version, "Python 2.4.6"}},
             python_options:parse([{python, UnsupportedPython}])),
         ?_assertEqual({error, {unsupported_python_version, "Python 4.0.0"}},
             python_options:parse([{python, UnsupportedPython2}])),
-        ?_assertEqual({error, {invalid_python, python(InvalidPython)}},
+        ?_assertEqual({error, {invalid_python,
+                erlport_test_utils:script(InvalidPython)}},
             python_options:parse([{python, InvalidPython}]))
     ] end}.
 
@@ -226,7 +224,7 @@ python_path_option_test_() -> {setup,
             {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
                 port_options=[{env, Env} | _]}} = python_options:parse([]),
-            ?assertPattern(PythonPath, "/priv/python[23]$")
+            ?assertPattern(PythonPath, "/priv/python[23]")
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
@@ -234,7 +232,7 @@ python_path_option_test_() -> {setup,
                 port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, [TestPath1]}]),
             ?assertPattern(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ "$")
+                "/priv/python[23]:" ++ TestPath1)
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
@@ -242,7 +240,7 @@ python_path_option_test_() -> {setup,
                 port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, TestPath1}]),
             ?assertPattern(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ "$")
+                "/priv/python[23]:" ++ TestPath1)
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
@@ -250,7 +248,7 @@ python_path_option_test_() -> {setup,
                 port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, TestPath1 ++ ":" ++ TestPath2}]),
             ?assertPattern(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$")
+                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
@@ -259,7 +257,7 @@ python_path_option_test_() -> {setup,
                     [{python_path, [TestPath1]},
                     {env, [{"PYTHONPATH", TestPath2}]}]),
             ?assertPattern(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$")
+                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
@@ -268,7 +266,7 @@ python_path_option_test_() -> {setup,
                     [{env, [{"PYTHONPATH", TestPath1},
                     {"PYTHONPATH", TestPath2}]}]),
             ?assertPattern(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$")
+                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
@@ -277,7 +275,43 @@ python_path_option_test_() -> {setup,
                     [{python_path, [TestPath1, TestPath2, ""]},
                     {env, [{"PYTHONPATH", TestPath2 ++ ":" ++ TestPath1}]}]),
             ?assertPattern(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$")
+                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
+        end,
+        fun () ->
+            erlport_test_utils:call_with_env(fun () ->
+                {ok, #python_options{python_path=PythonPath,
+                    env=[{"PYTHONPATH", PythonPath}]=Env,
+                    port_options=[{env, Env} | _]}} = python_options:parse([]),
+                ?assertPattern(PythonPath, "/priv/python[23]")
+                end, "PYTHONPATH", "")
+        end,
+        fun () ->
+            erlport_test_utils:call_with_env(fun () ->
+                {ok, #python_options{python_path=PythonPath,
+                    env=[{"PYTHONPATH", PythonPath}]=Env,
+                    port_options=[{env, Env} | _]}} = python_options:parse([]),
+                ?assertPattern(PythonPath,
+                    "/priv/python[23]:" ++ TestPath1)
+                end, "PYTHONPATH", TestPath1)
+        end,
+        fun () ->
+            erlport_test_utils:call_with_env(fun () ->
+                {ok, #python_options{python_path=PythonPath,
+                    env=[{"PYTHONPATH", PythonPath}]=Env,
+                    port_options=[{env, Env} | _]}} = python_options:parse([]),
+                ?assertPattern(PythonPath,
+                    "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
+                end, "PYTHONPATH", TestPath1 ++ ":" ++ TestPath2)
+        end,
+        fun () ->
+            erlport_test_utils:call_with_env(fun () ->
+                {ok, #python_options{python_path=PythonPath,
+                    env=[{"PYTHONPATH", PythonPath}]=Env,
+                    port_options=[{env, Env} | _]}} = python_options:parse(
+                        [{python_path, TestPath1}]),
+                ?assertPattern(PythonPath,
+                    "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
+                end, "PYTHONPATH", TestPath2)
         end,
         ?_assertEqual({error, {not_dir, UnknownPath}},
             python_options:parse([{python_path, [TestPath1, UnknownPath]}])),
@@ -327,11 +361,3 @@ write_file(Path, Version, _) ->
         <<"#! /bin/sh\necho 'Python ",
         (list_to_binary(Version))/binary, "'\n">>, [raw]),
     ok = file:change_mode(Path, 8#00755).
-
-python(Python) ->
-    case os:type() of
-        {win32, _} ->
-            Python ++ ".bat";
-        _ ->
-            Python
-    end.

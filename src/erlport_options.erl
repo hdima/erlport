@@ -45,7 +45,9 @@
     get_version/1,
     pathsep/0,
     absname/1,
-    joinpath/2
+    joinpath/2,
+    getenv/1,
+    split_path/1
     ]).
 
 -define(TIMEOUT, 15000).
@@ -243,6 +245,29 @@ absname(Filename) ->
 
 joinpath(Dir, Filename) ->
     filename:nativename(filename:join(Dir, Filename)).
+
+%%
+%% @doc Return value of environment variable or empty string
+%%
+
+-spec getenv(Key::string()) -> Value::string().
+
+getenv(Key) ->
+    case os:getenv(Key) of
+        false ->
+            "";
+        Value ->
+            Value
+    end.
+
+%%
+%% @doc Split PATH-like environment variable value:w
+%%
+
+-spec split_path(Path::string()) -> [Part::string()].
+
+split_path(Path) ->
+    string:tokens(Path, pathsep()).
 
 %%%
 %%% Internal functions

@@ -1,4 +1,4 @@
-- Respect PYTHONPATH and RUBYLIB values from the current environment
+- Use assertPattern in ruby_options_tests
 
 - Allow only unidirectional subscriptions by default and make bidirectional
   subscriptions optional

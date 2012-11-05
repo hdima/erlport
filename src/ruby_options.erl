@@ -115,9 +115,11 @@ update_ruby_lib(Env0, RubyPath0) ->
             {error, {not_found, "erlport/priv"}};
         PrivDir ->
             ErlPortPath = erlport_options:joinpath(PrivDir, "ruby"),
-            {PathFromEnv, Env2} = extract_ruby_lib(Env0, "", []),
+            {PathFromSetEnv, Env2} = extract_ruby_lib(Env0, "", []),
+            PathFromEnv = erlport_options:getenv("RUBYLIB"),
             case erlport_options:join_path([[ErlPortPath], RubyPath0,
-                    string:tokens(PathFromEnv, erlport_options:pathsep())]) of
+                    erlport_options:split_path(PathFromSetEnv),
+                    erlport_options:split_path(PathFromEnv)]) of
                 {ok, RubyPath} ->
                     Env3 = [{"RUBYLIB", RubyPath} | Env2],
                     {ok, RubyPath, Env3};

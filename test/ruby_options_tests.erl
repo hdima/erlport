@@ -38,7 +38,7 @@ parse_test_() ->
             start_timeout=10000, compressed=0, env=Env,
             port_options=PortOptions}} = ruby_options:parse([]),
         ?assertEqual(match, re:run(Ruby, "/ruby$", [{capture, none}])),
-        ?assertEqual(match, re:run(RubyLib, "/priv/ruby$",
+        ?assertEqual(match, re:run(RubyLib, "/priv/ruby",
             [{capture, none}])),
         ?assertEqual([{"RUBYLIB", RubyLib}], Env),
         ?assertEqual([{env, Env}, {packet, 4}, binary, hide, exit_status],
@@ -143,7 +143,7 @@ ruby_option_test_() -> {setup,
         fun () ->
             {ok, #ruby_options{ruby=GoodRuby, ruby_lib=RubyPath}}
                 = ruby_options:parse([{ruby, GoodRuby}]),
-            ?assertEqual(match, re:run(RubyPath, "/priv/ruby$",
+            ?assertEqual(match, re:run(RubyPath, "/priv/ruby",
                 [{capture, none}]))
         end,
         fun () ->
@@ -218,7 +218,7 @@ ruby_lib_option_test_() -> {setup,
             {ok, #ruby_options{ruby_lib=RubyLib,
                 env=[{"RUBYLIB", RubyLib}]=Env,
                 port_options=[{env, Env} | _]}} = ruby_options:parse([]),
-            ?assertEqual(match, re:run(RubyLib, "/priv/ruby$",
+            ?assertEqual(match, re:run(RubyLib, "/priv/ruby",
                 [{capture, none}]))
         end,
         fun () ->
@@ -227,7 +227,7 @@ ruby_lib_option_test_() -> {setup,
                 port_options=[{env, Env} | _]}} = ruby_options:parse(
                     [{ruby_lib, [TestPath1]}]),
             ?assertEqual(match, re:run(RubyLib,
-                "/priv/ruby:" ++ TestPath1 ++ "$", [{capture, none}]))
+                "/priv/ruby:" ++ TestPath1, [{capture, none}]))
         end,
         fun () ->
             {ok, #ruby_options{ruby_lib=RubyLib,
@@ -235,7 +235,7 @@ ruby_lib_option_test_() -> {setup,
                 port_options=[{env, Env} | _]}} = ruby_options:parse(
                     [{ruby_lib, TestPath1}]),
             ?assertEqual(match, re:run(RubyLib,
-                "/priv/ruby:" ++ TestPath1 ++ "$", [{capture, none}]))
+                "/priv/ruby:" ++ TestPath1, [{capture, none}]))
         end,
         fun () ->
             {ok, #ruby_options{ruby_lib=RubyLib,
@@ -243,7 +243,7 @@ ruby_lib_option_test_() -> {setup,
                 port_options=[{env, Env} | _]}} = ruby_options:parse(
                     [{ruby_lib, TestPath1 ++ ":" ++ TestPath2}]),
             ?assertEqual(match, re:run(RubyLib,
-                "/priv/ruby:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$",
+                "/priv/ruby:" ++ TestPath1 ++ ":" ++ TestPath2,
                 [{capture, none}]))
         end,
         fun () ->
@@ -253,7 +253,7 @@ ruby_lib_option_test_() -> {setup,
                     [{ruby_lib, [TestPath1]},
                     {env, [{"RUBYLIB", TestPath2}]}]),
             ?assertEqual(match, re:run(RubyLib,
-                "/priv/ruby:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$",
+                "/priv/ruby:" ++ TestPath1 ++ ":" ++ TestPath2,
                 [{capture, none}]))
         end,
         fun () ->
@@ -263,7 +263,7 @@ ruby_lib_option_test_() -> {setup,
                     [{env, [{"RUBYLIB", TestPath1},
                     {"RUBYLIB", TestPath2}]}]),
             ?assertEqual(match, re:run(RubyLib,
-                "/priv/ruby:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$",
+                "/priv/ruby:" ++ TestPath1 ++ ":" ++ TestPath2,
                 [{capture, none}]))
         end,
         fun () ->
@@ -273,8 +273,47 @@ ruby_lib_option_test_() -> {setup,
                     [{ruby_lib, [TestPath1, TestPath2, ""]},
                     {env, [{"RUBYLIB", TestPath2 ++ ":" ++ TestPath1}]}]),
             ?assertEqual(match, re:run(RubyLib,
-                "/priv/ruby:" ++ TestPath1 ++ ":" ++ TestPath2 ++ "$",
+                "/priv/ruby:" ++ TestPath1 ++ ":" ++ TestPath2,
                 [{capture, none}]))
+        end,
+        fun () ->
+            erlport_test_utils:call_with_env(fun () ->
+                {ok, #ruby_options{ruby_lib=RubyLib,
+                    env=[{"RUBYLIB", RubyLib}]=Env,
+                    port_options=[{env, Env} | _]}} = ruby_options:parse([]),
+                ?assertEqual(match, re:run(RubyLib, "/priv/ruby",
+                    [{capture, none}]))
+                end, "RUBYLIB", "")
+        end,
+        fun () ->
+            erlport_test_utils:call_with_env(fun () ->
+                {ok, #ruby_options{ruby_lib=RubyLib,
+                    env=[{"RUBYLIB", RubyLib}]=Env,
+                    port_options=[{env, Env} | _]}} = ruby_options:parse([]),
+                ?assertEqual(match, re:run(RubyLib,
+                    "/priv/ruby:" ++ TestPath1, [{capture, none}]))
+                end, "RUBYLIB", TestPath1)
+        end,
+        fun () ->
+            erlport_test_utils:call_with_env(fun () ->
+                {ok, #ruby_options{ruby_lib=RubyLib,
+                    env=[{"RUBYLIB", RubyLib}]=Env,
+                    port_options=[{env, Env} | _]}} = ruby_options:parse([]),
+                ?assertEqual(match, re:run(RubyLib,
+                    "/priv/ruby:" ++ TestPath1 ++ ":" ++ TestPath2,
+                    [{capture, none}]))
+                end, "RUBYLIB", TestPath1 ++ ":" ++ TestPath2)
+        end,
+        fun () ->
+            erlport_test_utils:call_with_env(fun () ->
+                {ok, #ruby_options{ruby_lib=RubyLib,
+                    env=[{"RUBYLIB", RubyLib}]=Env,
+                    port_options=[{env, Env} | _]}} = ruby_options:parse(
+                        [{ruby_lib, TestPath1}]),
+                ?assertEqual(match, re:run(RubyLib,
+                    "/priv/ruby:" ++ TestPath1 ++ ":" ++ TestPath2,
+                    [{capture, none}]))
+                end, "RUBYLIB", TestPath2)
         end,
         ?_assertEqual({error, {not_dir, UnknownPath}},
             ruby_options:parse([{ruby_lib, [TestPath1, UnknownPath]}])),

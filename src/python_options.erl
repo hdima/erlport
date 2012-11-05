@@ -117,9 +117,11 @@ update_python_path(Env0, PythonPath0, MajVersion) ->
         PrivDir ->
             PythonDir = lists:concat([python, MajVersion]),
             ErlPortPath = erlport_options:joinpath(PrivDir, PythonDir),
-            {PathFromEnv, Env2} = extract_python_path(Env0, "", []),
+            {PathFromSetEnv, Env2} = extract_python_path(Env0, "", []),
+            PathFromEnv = erlport_options:getenv("PYTHONPATH"),
             case erlport_options:join_path([[ErlPortPath], PythonPath0,
-                    string:tokens(PathFromEnv, erlport_options:pathsep())]) of
+                    erlport_options:split_path(PathFromSetEnv),
+                    erlport_options:split_path(PathFromEnv)]) of
                 {ok, PythonPath} ->
                     Env3 = [{"PYTHONPATH", PythonPath} | Env2],
                     {ok, PythonPath, Env3};

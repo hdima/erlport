@@ -67,7 +67,8 @@ testruby()
             echo "***********************************************************"
             echo
             make clean || exit
-            (export PATH="$erlang:$ruby:$PATH" RUBYLIB="$ruby/lib"
+            (export PATH="$erlang:$ruby:$PATH" \
+                RUBYLIB="$ruby/lib:$ruby/.ext/x86_64-linux"
                 make test) || exit
         done
     done
