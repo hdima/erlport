@@ -1,3 +1,7 @@
+- Fix Python/Ruby path tests on Windows
+
+- Add support for Ruby 1.9+
+
 - Use assertPattern in ruby_options_tests
 
 - Allow only unidirectional subscriptions by default and make bidirectional
@@ -30,8 +34,6 @@
 - Add subscriber behaviour so we can abstract message hubs
 
 - (Ruby) Can EmptySymbol be subclassed from Symbol?
-
-- What about different Ruby versions?
 
 - Ruby Erlang::call method
 
@@ -88,9 +90,12 @@
 - Check default port options on Windows. Return error for 'nouse_stdio' option
   on Windows? It seems this option unsupported or have no effect on Windows?
 
-- Perl support. What about different Perl versions?
-
 - Comments for modules
+
+Later
+=====
+
+- Perl support. What about different Perl versions?
 
 - Maybe it's possible to create an ErlPort interface which loads dynamic
   libraries?
