@@ -50,22 +50,18 @@
   executable? But there's a problem with environment variables and options
   precedence.
 
-- Allow calls in selected processes in Erlang. For example we can add
-  erlang.create_call_processes(n=1) -> [pid()] function and select it like
-  this:
+- Should we use "modern" API on Python side? We can leave only Erlang.call()
+  function.
 
-  Erlang[Pid].module.function(args)
+- Allow calls in selected processes in Erlang. We can use arbitrary keys on
+  Python/Ruby side and control process creation/mapping/cleanup on Erlang side.
 
-  In low-level API it should be in options to erlang.call
+  API: Erlang[Pid].module.function(args)
 
-  However need to think about garbage collection of Pids.
+  Add options to erlang.call: [{key, aProcessKey}, {timeout, Timeout}].
 
-  It's better to use arbitrary keys on the Python side. And we can map the keys
-  to Pids at the Erlang side. If process will die we just return 'noproc' error
-  and raise it on the Python side.
-
-- Add options to erlang.call: [{pid, Pid (special working process)}, {timeout,
-  Timeout}]. Better to use {key, aProcessKey} instead of {pid, Pid}.
+  If process will die we just return 'noproc' error and raise it on the
+  Python/Ruby side.
 
 - Log some errors (for example if switch failed in async mode) and just
   continue. If port was closed and we have an error to report we can try to
