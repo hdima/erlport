@@ -38,7 +38,8 @@
     start_link/1,
     stop/1,
     send/3,
-    send/5,
+    reply/3,
+    reply/4,
     subscribe/3,
     unsubscribe/3,
     subscribe_all/2,
@@ -79,14 +80,13 @@
 % TODO: Need type spec for Python/Ruby subscribers (ErlPort Pid and
 % function path)
 -type payload() :: term().
-% TODO: How to represent external functions?
--type sender() :: [pid()].
 -type topic() :: atom().
 % TODO: How to represent external functions?
 -type destination() :: [pid()].
 -type subscriber() :: pid().
 -type hub() :: erlport:server_instance().
 -type send_options() :: [route_by_path].
+-type message() :: #message{}.
 
 -define(IS_TOPIC(T), is_atom(T)).
 
@@ -192,30 +192,23 @@ send(Hub, Payload, Topic) ->
     send(Hub, Payload, Topic, [Hub, self()], []).
 
 %%
-%% @doc Send message for topic or to selected destination with explicit sender
+%% @doc Reply to the message sender
 %%
 
--spec send(Hub::hub(), Payload::payload(), Topic::topic() | destination(),
-        Sender::sender(), Options::send_options()) ->
-    ok.
+-spec reply(Hub::hub(), Payload::term(), Message::message()) -> ok.
 
-send(Hub, Payload, Topic, Sender=[_|_], Options) when ?IS_TOPIC(Topic)
-        andalso is_list(Options) ->
-    gen_server:cast(Hub, {send, Payload, Topic, Sender, Options});
-send(Hub, Payload, Destination=[_|_], Sender=[_|_], Options)
-        when is_list(Options) ->
-    case Options of
-        [] ->
-            Dest = lists:last(Destination),
-            do_send(Dest, [Hub | Sender], [Dest], Payload);
-        [route_by_path] ->
-            case Destination of
-                [Next] ->
-                    do_send(Next, [Hub | Sender], [Next], Payload);
-                [Next | Tail] ->
-                    do_send(Next, [Hub | Sender], Tail, Payload)
-            end
-    end.
+reply(Hub, Payload, Message) ->
+    reply(Hub, Payload, Message, []).
+
+%%
+%% @doc Reply to the message sender with options
+%%
+
+-spec reply(Hub::hub(), Payload::term(), Message::message(),
+    Options::send_options()) -> ok.
+
+reply(Hub, Payload, #message{sender=Sender}, Options) when is_list(Options) ->
+    send(Hub, Payload, Sender, [Hub, self()], Options).
 
 %%
 %% @doc Return all registered topics
@@ -513,6 +506,24 @@ notify(Subscriber, Message, true) ->
     Subscriber ! Message;
 notify(_Subscriber, _Message, false) ->
     ok.
+
+send(Hub, Payload, Topic, Sender=[_|_], Options) when ?IS_TOPIC(Topic)
+        andalso is_list(Options) ->
+    gen_server:cast(Hub, {send, Payload, Topic, Sender, Options});
+send(Hub, Payload, Destination=[_|_], Sender=[_|_], Options)
+        when is_list(Options) ->
+    case Options of
+        [] ->
+            Dest = lists:last(Destination),
+            do_send(Dest, [Hub | Sender], [Dest], Payload);
+        [route_by_path] ->
+            case Destination of
+                [Next] ->
+                    do_send(Next, [Hub | Sender], [Next], Payload);
+                [Next | Tail] ->
+                    do_send(Next, [Hub | Sender], Tail, Payload)
+            end
+    end.
 
 do_send(Next, Sender, Destination, Payload) ->
     case is_routing_loop(Next, Sender) of
