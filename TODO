@@ -32,7 +32,8 @@
   This way we can store anything as the second item.
 
 - Maybe we need to reduce/optimize number of messages sent as
-  subscribe/unsubscribe events?
+  subscribe/unsubscribe events? Probably we can send only one
+  subscribed/unsubscribed message with list of topics.
 
 - Add subscriber behaviour so we can abstract message hubs
 
