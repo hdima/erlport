@@ -6,16 +6,16 @@
 
 - Add support for Ruby 1.9+
 
-- Use assertPattern in ruby_options_tests
-
 - Allow only unidirectional subscriptions by default and make bidirectional
-  subscriptions optional
+  subscriptions optional?
 
 - Need add messagehub:reply functions
 
 - Maybe we need to return 'cast' function? But can it also be done with
   publish/subscribe framework? Cast can be especially useful for external
   languages where we can use Erlang Pids to send messages to Erlang processes.
+  Maybe we can add 'cast'/'send' only on external language side where we can use
+  PIDs or registered names for the processes?
 
 - Can we configure buffer size and arbitrary file descriptors at the process
   start?

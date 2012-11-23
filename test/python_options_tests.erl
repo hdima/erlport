@@ -29,9 +29,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 -include("python.hrl").
+-include("erlport_test_utils.hrl").
 
--define(assertPattern(String, Pattern),
-    ?assertEqual(match, re:run(String, Pattern, [{capture, none}]))).
 
 parse_test_() ->
     fun () ->
@@ -246,7 +245,8 @@ python_path_option_test_() -> {setup,
             {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
                 port_options=[{env, Env} | _]}} = python_options:parse(
-                    [{python_path, TestPath1 ++ ":" ++ TestPath2}]),
+                    [{python_path, erlport_test_utils:local_path(
+                        TestPath1 ++ ":" ++ TestPath2)}]),
             ?assertPattern(PythonPath,
                 "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
         end,
@@ -273,7 +273,8 @@ python_path_option_test_() -> {setup,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
                 port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, [TestPath1, TestPath2, ""]},
-                    {env, [{"PYTHONPATH", TestPath2 ++ ":" ++ TestPath1}]}]),
+                    {env, [{"PYTHONPATH", erlport_test_utils:local_path(
+                        TestPath2 ++ ":" ++ TestPath1)}]}]),
             ?assertPattern(PythonPath,
                 "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
         end,
@@ -301,7 +302,8 @@ python_path_option_test_() -> {setup,
                     port_options=[{env, Env} | _]}} = python_options:parse([]),
                 ?assertPattern(PythonPath,
                     "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
-                end, "PYTHONPATH", TestPath1 ++ ":" ++ TestPath2)
+                end, "PYTHONPATH", erlport_test_utils:local_path(
+                    TestPath1 ++ ":" ++ TestPath2))
         end,
         fun () ->
             erlport_test_utils:call_with_env(fun () ->
@@ -330,7 +332,8 @@ python_path_option_test_() -> {setup,
         fun () ->
             Dir = code:lib_dir(erlport),
             true = code:del_path(erlport),
-            try ?assertEqual({error, {not_found, "erlport/priv"}},
+            try ?assertEqual({error, {not_found,
+                        erlport_test_utils:local_path("erlport/priv")}},
                     python_options:parse([]))
             after
                 true = code:add_patha(Dir)

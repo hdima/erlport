@@ -38,6 +38,8 @@ ERL = erl -noinput -pa ../erlport
  
  
 compile: $(BEAMS)
+
+compile-test: $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
  
 $(RELDIR)/%.beam: src/%.erl
 	$(ERLC) -o $(RELDIR) $<
@@ -58,10 +60,10 @@ test: python-test ruby-test erlang-test
 
 test-verbose: python-test-verbose ruby-test erlang-test-verbose
 
-erlang-test: $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
+erlang-test: compile-test
 	./runtest
 
-erlang-test-verbose: $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
+erlang-test-verbose: compile-test
 	./runtest verbose
 
 ruby-test:
