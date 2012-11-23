@@ -1,3 +1,7 @@
+- Check default port options on Windows. Return error for 'nouse_stdio' option
+  on Windows, this option unsupported on Windows. But maybe this option can be
+  emulated with {fd, In, Out} option?
+
 - Maybe split Python 2/3 tests to a distinct modules? And the same for Ruby
   1.8/1.9.
 
@@ -87,9 +91,6 @@
 - How to handle Python <-> Python exceptions? We can pass it inside some error
   term. Errors/exceptions should be like opaque types marked with the language
   but store some known structures as values
-
-- Check default port options on Windows. Return error for 'nouse_stdio' option
-  on Windows? It seems this option unsupported or have no effect on Windows?
 
 - Comments for modules
 
