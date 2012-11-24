@@ -200,7 +200,7 @@ filter_invalid_paths(Paths=[List | _]) when is_list(List) ->
 filter_invalid_paths(Path=[Integer | _]) when is_integer(Integer) ->
     case lists:filter(fun (I) -> not is_integer(I) end, Path) of
         "" ->
-            {ok, string:tokens(Path, ":")};
+            {ok, string:tokens(Path, pathsep())};
         Invalid ->
             {error, Invalid}
     end;

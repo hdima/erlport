@@ -101,7 +101,7 @@ remove_object(DirName=[_|_]) ->
 script(Script) ->
     case os:type() of
         {win32, _} ->
-            Script ++ ".bat";
+            local_path(Script) ++ ".bat";
         _ ->
             Script
     end.
@@ -120,7 +120,7 @@ call_with_env(Fun, Key, Value) ->
     end.
 
 match_path(Path, Pattern) ->
-    case re:run(Path, local_path(Pattern), [{capture, none}]) of
+    case re:run(Path, local_path(Pattern, "\\\\"), [{capture, none}]) of
         match ->
             match;
         _ ->
@@ -128,9 +128,20 @@ match_path(Path, Pattern) ->
     end.
 
 local_path(Path) ->
+    local_path(Path, "\\").
+
+local_path([Part | _]=Paths, WinPathSep) when is_list(Part) ->
+    Separator = case os:type() of
+        {win32, _} ->
+            ";";
+        _ ->
+            ":"
+    end,
+    string:join([local_path(P, WinPathSep) || P <- Paths], Separator);
+local_path(Path, WinPathSep) ->
     case os:type() of
         {win32, _} ->
-            str_replace(Path, [{$/, $\\}, {$:, $;}]);
+            str_replace(Path, $/, WinPathSep);
         _ ->
             Path
     end.
@@ -155,8 +166,13 @@ get_base_dir() ->
     {ok, Path} = file:get_cwd(),
     Path.
 
-str_replace(Str, FindReplace) ->
-    lists:map(fun
+str_replace(Str, Find, Replace) ->
+    lists:flatten(lists:map(fun
         (C) ->
-            proplists:get_value(C, FindReplace, C)
-        end, Str).
+            case C of
+                Find ->
+                    Replace;
+                C ->
+                    C
+            end
+        end, Str)).

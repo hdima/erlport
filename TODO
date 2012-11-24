@@ -1,9 +1,4 @@
-- Fix Windows path tests:
-
-  - '\' in regexp patterns should be doubled because it's used as escape
-    character
-  - We can't just replace ':' with ';' in path variables because ':' also used
-    to separate disk name and path
+- Extract (python|ruby)_options_tests:write_file() to erlport_test_utils
 
 - Maybe split Python 2/3 tests to a distinct modules? And the same for Ruby
   1.8/1.9.

@@ -236,25 +236,23 @@ python_path_option_test_() -> {setup,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
                 port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, [TestPath1]}]),
-            ?assertPattern(PythonPath,
-                "/priv/python[23]:" ++ TestPath1)
+            ?assertPattern(PythonPath, ["/priv/python[23]", TestPath1])
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
                 port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, TestPath1}]),
-            ?assertPattern(PythonPath,
-                "/priv/python[23]:" ++ TestPath1)
+            ?assertPattern(PythonPath, ["/priv/python[23]", TestPath1])
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
                 port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, erlport_test_utils:local_path(
-                        TestPath1 ++ ":" ++ TestPath2)}]),
+                        [TestPath1, TestPath2])}]),
             ?assertPattern(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
+                ["/priv/python[23]", TestPath1, TestPath2])
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
@@ -263,7 +261,7 @@ python_path_option_test_() -> {setup,
                     [{python_path, [TestPath1]},
                     {env, [{"PYTHONPATH", TestPath2}]}]),
             ?assertPattern(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
+                ["/priv/python[23]", TestPath1, TestPath2])
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
@@ -272,7 +270,7 @@ python_path_option_test_() -> {setup,
                     [{env, [{"PYTHONPATH", TestPath1},
                     {"PYTHONPATH", TestPath2}]}]),
             ?assertPattern(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
+                ["/priv/python[23]", TestPath1, TestPath2])
         end,
         fun () ->
             {ok, #python_options{python_path=PythonPath,
@@ -280,9 +278,9 @@ python_path_option_test_() -> {setup,
                 port_options=[{env, Env} | _]}} = python_options:parse(
                     [{python_path, [TestPath1, TestPath2, ""]},
                     {env, [{"PYTHONPATH", erlport_test_utils:local_path(
-                        TestPath2 ++ ":" ++ TestPath1)}]}]),
+                        [TestPath2, TestPath1])}]}]),
             ?assertPattern(PythonPath,
-                "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
+                ["/priv/python[23]", TestPath1, TestPath2])
         end,
         fun () ->
             erlport_test_utils:call_with_env(fun () ->
@@ -297,8 +295,7 @@ python_path_option_test_() -> {setup,
                 {ok, #python_options{python_path=PythonPath,
                     env=[{"PYTHONPATH", PythonPath}]=Env,
                     port_options=[{env, Env} | _]}} = python_options:parse([]),
-                ?assertPattern(PythonPath,
-                    "/priv/python[23]:" ++ TestPath1)
+                ?assertPattern(PythonPath, ["/priv/python[23]", TestPath1])
                 end, "PYTHONPATH", TestPath1)
         end,
         fun () ->
@@ -307,9 +304,9 @@ python_path_option_test_() -> {setup,
                     env=[{"PYTHONPATH", PythonPath}]=Env,
                     port_options=[{env, Env} | _]}} = python_options:parse([]),
                 ?assertPattern(PythonPath,
-                    "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
+                    ["/priv/python[23]", TestPath1, TestPath2])
                 end, "PYTHONPATH", erlport_test_utils:local_path(
-                    TestPath1 ++ ":" ++ TestPath2))
+                    [TestPath1, TestPath2]))
         end,
         fun () ->
             erlport_test_utils:call_with_env(fun () ->
@@ -318,7 +315,7 @@ python_path_option_test_() -> {setup,
                     port_options=[{env, Env} | _]}} = python_options:parse(
                         [{python_path, TestPath1}]),
                 ?assertPattern(PythonPath,
-                    "/priv/python[23]:" ++ TestPath1 ++ ":" ++ TestPath2)
+                    ["/priv/python[23]", TestPath1, TestPath2])
                 end, "PYTHONPATH", TestPath2)
         end,
         ?_assertEqual({error, {not_dir, UnknownPath}},
