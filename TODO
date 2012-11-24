@@ -1,6 +1,9 @@
-- Check default port options on Windows. Return error for 'nouse_stdio' option
-  on Windows, this option unsupported on Windows. But maybe this option can be
-  emulated with {fd, In, Out} option?
+- Fix Windows path tests:
+
+  - '\' in regexp patterns should be doubled because it's used as escape
+    character
+  - We can't just replace ':' with ';' in path variables because ':' also used
+    to separate disk name and path
 
 - Maybe split Python 2/3 tests to a distinct modules? And the same for Ruby
   1.8/1.9.
@@ -21,8 +24,7 @@
   Maybe we can add 'cast'/'send' only on external language side where we can use
   PIDs or registered names for the processes?
 
-- Can we configure buffer size and arbitrary file descriptors at the process
-  start?
+- Can we configure buffer size at the process start?
 
 - Add xref checks?
 

@@ -48,8 +48,14 @@ parse_test_() ->
 use_stdio_option_test_() -> [
     ?_assertMatch({ok, #ruby_options{use_stdio=use_stdio}},
         ruby_options:parse([])),
-    ?_assertMatch({ok, #ruby_options{use_stdio=nouse_stdio}},
-        ruby_options:parse([nouse_stdio])),
+    case os:type() of
+        {win32, _} ->
+            ?_assertEqual({error, {unsupported_on_this_platform, nouse_stdio}},
+                ruby_options:parse([nouse_stdio]));
+        _ ->
+            ?_assertMatch({ok, #ruby_options{use_stdio=nouse_stdio}},
+                ruby_options:parse([nouse_stdio]))
+    end,
     ?_assertMatch({ok, #ruby_options{use_stdio=use_stdio}},
         ruby_options:parse([use_stdio]))
     ].
@@ -323,8 +329,7 @@ ruby_lib_option_test_() -> {setup,
         fun () ->
             Dir = code:lib_dir(erlport),
             true = code:del_path(erlport),
-            try ?assertEqual({error, {not_found,
-                    erlport_test_utils:local_path("erlport/priv")}},
+            try ?assertEqual({error, {not_found, "erlport/priv"}},
                     ruby_options:parse([]))
             after
                 true = code:add_patha(Dir)

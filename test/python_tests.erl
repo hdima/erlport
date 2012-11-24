@@ -75,13 +75,19 @@ call_test_() -> [{setup,
         ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
     end} || Setup <- [fun setup/0, fun setup3/0]].
 
-nouse_stdio_test_() -> [{setup,
-    Setup,
-    fun cleanup/1,
-    fun (P) ->
-        ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
-    end} || Setup <- [setup_factory([nouse_stdio]),
-        setup3_factory([nouse_stdio])]].
+nouse_stdio_test_() ->
+    case os:type() of
+        {win32, _} ->
+            [];
+        _ ->
+            [{setup,
+                Setup,
+                fun cleanup/1,
+                fun (P) ->
+                    ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
+                end} || Setup <- [setup_factory([nouse_stdio]),
+                    setup3_factory([nouse_stdio])]]
+    end.
 
 packet4_test_() -> [{setup,
     Setup,

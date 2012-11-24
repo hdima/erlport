@@ -70,12 +70,19 @@ call_test_() -> {setup,
         ?_assertEqual(4, ruby:call(R, '', 'Kernel::eval', [<<"2 + 2">>]))
     end}.
 
-nouse_stdio_test_() -> {setup,
-    setup_factory([nouse_stdio]),
-    fun cleanup/1,
-    fun (R) ->
-        ?_assertEqual(4, ruby:call(R, '', 'Kernel::eval', [<<"2 + 2">>]))
-    end}.
+nouse_stdio_test_() ->
+    case os:type() of
+        {win32, _} ->
+            [];
+        _ ->
+            {setup,
+                setup_factory([nouse_stdio]),
+                fun cleanup/1,
+                fun (R) ->
+                    ?_assertEqual(4, ruby:call(R, '', 'Kernel::eval',
+                        [<<"2 + 2">>]))
+                end}
+    end.
 
 packet4_test_() -> {setup,
     setup_factory([{packet, 4}]),

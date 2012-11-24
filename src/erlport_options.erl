@@ -81,7 +81,12 @@
 parse(use_stdio=UseStdio) ->
     {ok, use_stdio, UseStdio};
 parse(nouse_stdio=UseStdio) ->
-    {ok, use_stdio, UseStdio};
+    case os:type() of
+        {win32, _} ->
+            {error, {unsupported_on_this_platform, UseStdio}};
+        _ ->
+            {ok, use_stdio, UseStdio}
+    end;
 parse({compressed, Level}=Value) ->
     if
         is_integer(Level) andalso Level >= 0 andalso Level =< 9 ->
