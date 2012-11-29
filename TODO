@@ -1,4 +1,4 @@
-- Extract (python|ruby)_options_tests:write_file() to erlport_test_utils
+- Add specs for erlport_test_utils functions
 
 - Maybe split Python 2/3 tests to a distinct modules? And the same for Ruby
   1.8/1.9.

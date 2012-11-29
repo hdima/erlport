@@ -128,12 +128,16 @@ python_option_test_() -> {setup,
         BadName = filename:join(TmpDir, "not_executable"),
         ok = file:write_file(BadName, <<>>, [raw]),
         UnknownName = filename:join(TmpDir, "unknown"),
-        GoodPython = create_mock_python(TmpDir, "python2", "2.5.0"),
-        GoodPython3 = create_mock_python(TmpDir, "python3", "3.0.0"),
-        UnsupportedPython = create_mock_python(TmpDir, "unsupported", "2.4.6"),
-        UnsupportedPython2 = create_mock_python(TmpDir, "unsupported2",
-            "4.0.0"),
-        InvalidPython = create_mock_python(TmpDir, "invalid", "INVALID"),
+        GoodPython = erlport_test_utils:create_mock_script(
+            "Python 2.5.0", TmpDir, "python2"),
+        GoodPython3 = erlport_test_utils:create_mock_script(
+            "Python 3.0.0", TmpDir, "python3"),
+        UnsupportedPython = erlport_test_utils:create_mock_script(
+            "Python 2.4.6", TmpDir, "unsupported"),
+        UnsupportedPython2 = erlport_test_utils:create_mock_script(
+            "Python 4.0.0", TmpDir, "unsupported2"),
+        InvalidPython = erlport_test_utils:create_mock_script(
+            "Python INVALID", TmpDir, "invalid"),
         {TmpDir, GoodPython, GoodPython3, BadName, UnknownName,
             UnsupportedPython, UnsupportedPython2, InvalidPython}
     end,
@@ -346,23 +350,3 @@ python_path_option_test_() -> {setup,
 unknown_option_test_() ->
     ?_assertEqual({error, {unknown_option, unknown}},
         python_options:parse([unknown])).
-
-%%
-%% Internal functions
-%%
-
-create_mock_python(Dir, Name, Version) ->
-    Path = filename:join(Dir, Name),
-    write_file(Path, Version, os:type()),
-    Path.
-
-write_file(Path, Version, {win32, _}) ->
-    BatPath = Path ++ ".bat",
-    ok = file:write_file(BatPath,
-        <<"@echo Python ",
-        (list_to_binary(Version))/binary, "\n">>, [raw]);
-write_file(Path, Version, _) ->
-    ok = file:write_file(Path,
-        <<"#! /bin/sh\necho 'Python ",
-        (list_to_binary(Version))/binary, "'\n">>, [raw]),
-    ok = file:change_mode(Path, 8#00755).

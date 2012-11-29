@@ -38,7 +38,8 @@
     script/1,
     call_with_env/3,
     match_path/2,
-    local_path/1
+    local_path/1,
+    create_mock_script/3
     ]).
 
 -define(CHARS, {$0, $1, $2, $3, $4, $5, $6, $7, $8, $9,
@@ -146,9 +147,24 @@ local_path(Path, WinPathSep) ->
             Path
     end.
 
+create_mock_script(Version, Dir, Name) ->
+    Path = filename:join(Dir, Name),
+    write_script_file(Path, Version, os:type()),
+    Path.
+
 %%
 %% Internal functions
 %%
+
+write_script_file(Path, Version, {win32, _}) ->
+    BatPath = Path ++ ".bat",
+    ok = file:write_file(BatPath,
+        <<"@echo ", (list_to_binary(Version))/binary, "\n">>, [raw]);
+write_script_file(Path, Version, _) ->
+    ok = file:write_file(Path,
+        <<"#! /bin/sh\n",
+            "echo '", (list_to_binary(Version))/binary, "'\n">>, [raw]),
+    ok = file:change_mode(Path, 8#00755).
 
 tmp_name("") ->
     tmp_name("test");
