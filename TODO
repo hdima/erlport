@@ -21,8 +21,6 @@
 
 - Can we configure buffer size at the process start?
 
-- Add xref checks?
-
 - erlport:server_name/0 and erlport:server_instances() types should be moved to
   some utils module? Maybe move types to a header file because -export_type
   seems doesn't work as expected in Erlang R13
@@ -33,9 +31,9 @@
   messages? Probably it should be {ErlporPid, ModuleFunctionString} tuples.
   This way we can store anything as the second item.
 
-- Maybe we need to reduce/optimize number of messages sent as
-  subscribe/unsubscribe events? Probably we can send only one
-  subscribed/unsubscribed message with list of topics.
+- We need to reduce/optimize number of messages sent as subscribe/unsubscribe
+  events. We can send only one subscribed/unsubscribed message with list of
+  topics.
 
 - Add subscriber behaviour so we can abstract message hubs
 
@@ -50,21 +48,24 @@
   Python/Ruby/... STDOUT to Erlang as messages. In other case just raise an
   error. STDIN should always raise an error.
 
-- Create some tools for debuggig external programs? Like logging to file etc.
+- Create some tools for debugging external programs? Like logging to file etc.
 
 - Can we support some environment variables? For example to control Python
   executable? But there's a problem with environment variables and options
   precedence.
 
 - Should we use "modern" API on Python side? We can leave only Erlang.call()
-  function.
+  function. Can ask the community?
 
 - Allow calls in selected processes in Erlang. We can use arbitrary keys on
   Python/Ruby side and control process creation/mapping/cleanup on Erlang side.
 
-  API: Erlang[Pid].module.function(args)
+  API: Erlang[Key].module.function(args)
 
-  Add options to erlang.call: [{key, aProcessKey}, {timeout, Timeout}].
+  Add options to erlang.call: [{key, Key}, {timeout, Timeout}].
+
+  Can we select timeouts with the modern API? For example to create the root
+  object with some timeout?
 
   If process will die we just return 'noproc' error and raise it on the
   Python/Ruby side.
@@ -74,12 +75,19 @@
   report it with logging module
 
 - Add 'threaded' mode for switch and run switch call in threads in Python. What
-  is the use case for this mode? Threads:
+  is the use case for this mode? And not only for switch mode:
 
-  - Receive thread
-  - Call Python thread
-  - Call Erlang threads. We can use round-robin to send messages through Erlang
-    call threads.
+  - We can always allow unordered responses. For example we can store requests
+    with IDs in a special queue with random access.
+  - The 'threads' option can set the number of threads in the external threads
+    pool (0 for not using threads).
+
+  Threads:
+
+  - Main receive thread
+  - Pool of Python/Ruby/etc threads
+
+  What about switch mode?
 
 - Add custom encode/decode handlers in Erlang
 
@@ -92,6 +100,11 @@
 - Comments for modules
 
 Later
+=====
+
+- Add xref checks?
+
+Ideas
 =====
 
 - Perl support. What about different Perl versions?
