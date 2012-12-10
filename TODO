@@ -1,3 +1,5 @@
+- Support STDOUT/STDIN redirection for all languages and add tests.
+
 - Maybe split Python 2/3 tests to a distinct modules? And the same for Ruby
   1.8/1.9.
 
@@ -37,11 +39,6 @@
 - Ruby Erlang::call method
 
 - Ruby encoder/decoder for arguments/results
-
-- Redefine STDOUT/STDIN in Python/Ruby and ignore/log output? We can add option
-  'redirect_stdout' (and maybe 'stderr_to_stdout') and in this case redirect
-  Python/Ruby/... STDOUT to Erlang as messages. In other case just raise an
-  error. STDIN should always raise an error.
 
 - Create some tools for debugging external programs? Like logging to file etc.
 
@@ -90,7 +87,8 @@
 
 - How to handle Python <-> Python exceptions? We can pass it inside some error
   term. Errors/exceptions should be like opaque types marked with the language
-  but store some known structures as values
+  but store some known structures as values. Probably we don't need to handle
+  exceptions in any special manner just tag it with the language.
 
 - Comments for modules
 

@@ -225,6 +225,9 @@ handle_info({Port, {data, Data}}, StateName=client, State=#state{port=Port}) ->
         {'e', Error} ->
             erlport_utils:handle_response(call, {error, Error}, State,
                 StateName);
+        {'P', StdoutData} ->
+            ok = io:put_chars(StdoutData),
+            {next_state, StateName, State};
         Response ->
             {stop, {invalid_response, Response}, State}
     catch
@@ -277,6 +280,9 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
                     % switch(_wait) should be the last request in the queue
                     {stop, {switch_failed, Error}, State}
             end;
+        {'P', StdoutData} ->
+            ok = io:put_chars(StdoutData),
+            {next_state, StateName, State};
         Request ->
             {stop, {invalid_request, Request}, State}
     catch
