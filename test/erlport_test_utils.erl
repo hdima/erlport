@@ -48,6 +48,11 @@
     $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R, $S,
     $T, $U, $V, $W, $X, $Y, $Z}).
 
+%%
+%% @doc Create temporary file and return the file name
+%%
+
+-spec tmp_file(BaseName::string()) -> FileName::string().
 
 tmp_file(BaseName) when is_list(BaseName) ->
     % Only needed for Erlang R13
@@ -66,6 +71,12 @@ tmp_file(BaseName, N) ->
         {error, Reason} ->
             erlang:error(Reason)
     end.
+
+%%
+%% @doc Create temporary directory and return the directory name
+%%
+
+-spec tmp_dir(BaseName::string()) -> DirName::string().
 
 tmp_dir(BaseName) when is_list(BaseName) ->
     % Only needed for Erlang R13
@@ -87,6 +98,12 @@ tmp_dir(BaseName, N) ->
             erlang:error(Reason)
     end.
 
+%%
+%% @doc Remove directory/file recursive
+%%
+
+-spec remove_object(DirName::string()) -> ok.
+
 remove_object(DirName=[_|_]) ->
     case filelib:is_regular(DirName) of
         true ->
@@ -99,6 +116,12 @@ remove_object(DirName=[_|_]) ->
             ok = file:del_dir(DirName)
     end.
 
+%%
+%% @doc Return script name depending on the current OS
+%%
+
+-spec script(Script::string()) -> ScriptName::string().
+
 script(Script) ->
     case os:type() of
         {win32, _} ->
@@ -106,6 +129,13 @@ script(Script) ->
         _ ->
             Script
     end.
+
+%%
+%% @doc Call the function with replaced environment variable value
+%%
+
+-spec call_with_env(Fun::fun(() -> term()), Key::string(), Value::string()) ->
+    ok.
 
 call_with_env(Fun, Key, Value) ->
     OldValue = os:getenv(Key),
@@ -116,9 +146,17 @@ call_with_env(Fun, Key, Value) ->
             false ->
                 ok;
             OldValue ->
-                true = os:putenv(Key, OldValue)
+                true = os:putenv(Key, OldValue),
+                ok
         end
     end.
+
+%%
+%% @doc Match the pattern against the path
+%%
+
+-spec match_path(Path::string(), Pattern::string() | [string()]) ->
+    match | {nomatch, Path::string()}.
 
 match_path(Path, Pattern) ->
     case re:run(Path, local_path(Pattern, "\\\\"), [{capture, none}]) of
@@ -127,6 +165,12 @@ match_path(Path, Pattern) ->
         _ ->
             {nomatch, Path}
     end.
+
+%%
+%% @doc Update the path depending on the current OS
+%%
+
+-spec local_path(Path::string() | [string()]) -> LocalPath::string().
 
 local_path(Path) ->
     local_path(Path, "\\").
@@ -146,6 +190,13 @@ local_path(Path, WinPathSep) ->
         _ ->
             Path
     end.
+
+%%
+%% @doc Create mock script which prints the Version string
+%%
+
+-spec create_mock_script(Version::string(), Dir::string(), Name::string()) ->
+    Path::string().
 
 create_mock_script(Version, Dir, Name) ->
     Path = filename:join(Dir, Name),

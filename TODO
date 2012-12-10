@@ -1,10 +1,5 @@
-- Add specs for erlport_test_utils functions
-
 - Maybe split Python 2/3 tests to a distinct modules? And the same for Ruby
   1.8/1.9.
-
-- Fix Python/Ruby path tests on Windows. We can add functions for testing
-  paths which work with lists of path parts.
 
 - Add support for Ruby 1.9+
 
