@@ -44,14 +44,14 @@ class UnknownMessage(Error):
 class InvalidMode(Error):
     """Invalid mode."""
 
-class ErlangError(Error):
-    """Erlang error()."""
+class CallError(Error):
+    """Call error."""
 
-    def __init__(self, type, value, stacktrace):
-        self.type = type
-        self.value = value
-        self.stacktrace = stacktrace
-        Error.__init__(self, (type, value, stacktrace))
+    def __init__(self, value):
+        if type(value) != tuple or len(value) != 4:
+            value = None, None, value, []
+        self.language, self.type, self.value, self.stacktrace = value
+        Error.__init__(self, value)
 
 
 class MessageHandler(object):
@@ -138,8 +138,7 @@ class MessageHandler(object):
 
         if mtype != b"r":
             if mtype == b"e":
-                # TODO: Raise error based on error value
-                raise Exception("error")
+                raise CallError(value)
             raise UnknownMessage(response)
         return self.decoder(value)
 
@@ -154,12 +153,11 @@ class MessageHandler(object):
                 f = getattr(f, o)
             result = Atom(b"r"), self.encoder(f(*map(self.decoder, args)))
         except:
-            # TODO: Update exception format
             t, val, tb = exc_info()
             exc = Atom(bytes("%s.%s" % (t.__module__, t.__name__), "utf-8"))
             exc_tb = extract_tb(tb)
             exc_tb.reverse()
-            result = Atom(b"e"), (exc, str(val), exc_tb)
+            result = Atom(b"e"), (Atom(b"python"), exc, str(val), exc_tb)
         return result
 
 class Function(object):

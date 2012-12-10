@@ -242,8 +242,9 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
             Pid = proc_lib:spawn_link(fun () ->
                 exit(try {ok, apply(Module, Function, Args)}
                     catch
-                        Class:Reason ->
-                            {error, {Class, Reason, erlang:get_stacktrace()}}
+                        Type:Reason ->
+                            Trace = erlang:get_stacktrace(),
+                            {error, {erlang, Type, Reason, Trace}}
                     end)
                 end),
             Info = {Pid, erlport_utils:start_timer(Timeout)},
@@ -295,10 +296,10 @@ handle_info({'EXIT', Pid, Result}, StateName=server, State=#state{port=Port,
     R = case Result of
         {ok, Response} ->
             {'r', erlport_utils:prepare_term(Response)};
-        {error, Response} ->
-            {'e', erlport_utils:prepare_term(Response)};
-        Response ->
-            {'e', {error, erlport_utils:prepare_term(Response), []}}
+        {error, Error} ->
+            {'e', erlport_utils:prepare_term(Error)};
+        Error ->
+            {'e', {erlang, undefined, erlport_utils:prepare_term(Error), []}}
     end,
     case erlport_utils:send_data(Port,
             erlport_utils:encode_term(R, Compressed)) of

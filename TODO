@@ -1,3 +1,6 @@
+- And tests for all CallError scenarios (especially calls between languages)
+  for all languages
+
 - Support STDOUT/STDIN redirection for all languages and add tests.
 
 - Maybe split Python 2/3 tests to a distinct modules? And the same for Ruby
@@ -84,11 +87,6 @@
 - Add custom encode/decode handlers in Erlang
 
 - Add worker_pool module with pluggable workers selection policies
-
-- How to handle Python <-> Python exceptions? We can pass it inside some error
-  term. Errors/exceptions should be like opaque types marked with the language
-  but store some known structures as values. Probably we don't need to handle
-  exceptions in any special manner just tag it with the language.
 
 - Comments for modules
 

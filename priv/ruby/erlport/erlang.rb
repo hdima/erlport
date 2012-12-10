@@ -41,6 +41,16 @@ end
 class UnknownMessage < ErlPortError
 end
 
+class CallError < ErlPortError
+    def initialize value
+        if not value.is_a? Tuple or value.length != 4
+            value = Tuple.new([nil, nil, value, []])
+        end
+        @language, @type, @value, @stacktrace = value
+        super "#{value}"
+    end
+end
+
 module Erlang
     module_function
     def start port
@@ -70,8 +80,7 @@ module Erlang
         mtype, value = response
 
         if mtype != :r
-            # TODO: Raise error based on error value
-            raise Exception, "error" if mtype == :e
+            raise CallError, value if mtype == :e
             raise UnknownMessage, response.to_s
         end
         value
@@ -120,10 +129,10 @@ module Erlang
             # TODO: Encode result
             Tuple.new([:r, r])
         rescue Exception => why
-            # TODO: Update exception format
             exc = why.inspect().to_sym
             exc_tb = why.backtrace().reverse()
-            Tuple.new([:e, [exc, why.message, exc_tb]])
+            value = Tuple.new([:ruby, exc, why.message, exc_tb])
+            Tuple.new([:e, value])
         end
     end
 end
