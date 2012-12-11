@@ -128,16 +128,36 @@ update_ruby_lib(Env0, RubyPath0) ->
             end
     end.
 
+get_ruby(default) ->
+    case erlport_options:getenv(?RUBY_VAR_NAME) of
+        "" ->
+            try find_ruby(?DEFAULT_RUBY)
+            catch
+                throw:not_found ->
+                    {error, ruby_not_found}
+            end;
+        Ruby ->
+            try find_ruby(Ruby)
+            catch
+                throw:not_found ->
+                    {error, {invalid_env_var, {?RUBY_VAR_NAME, Ruby},
+                        not_found}}
+            end
+    end;
 get_ruby(Ruby=[_|_]) ->
+    try find_ruby(Ruby)
+    catch
+        throw:not_found ->
+            {error, {invalid_option, {ruby, Ruby}, not_found}}
+    end;
+get_ruby(Ruby) ->
+    {error, {invalid_option, {ruby, Ruby}}}.
+
+find_ruby(Ruby) ->
     {RubyCommand, Options} = lists:splitwith(fun (C) -> C =/= $ end, Ruby),
     case os:find_executable(RubyCommand) of
         false ->
-            case Ruby of
-                ?DEFAULT_RUBY ->
-                    {error, ruby_not_found};
-                _ ->
-                    {error, {invalid_option, {ruby, Ruby}, not_found}}
-            end;
+            throw(not_found);
         Filename ->
             Fullname = erlport_options:absname(Filename),
             case check_ruby_version(Fullname) of
@@ -146,9 +166,7 @@ get_ruby(Ruby=[_|_]) ->
                 {error, _}=Error ->
                     Error
             end
-    end;
-get_ruby(Ruby) ->
-    {error, {invalid_option, {ruby, Ruby}}}.
+    end.
 
 extract_ruby_lib([{"RUBYLIB", P} | Tail], Path, Env) ->
     extract_ruby_lib(Tail, [P, erlport_options:pathsep() | Path], Env);

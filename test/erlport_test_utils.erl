@@ -142,13 +142,14 @@ call_with_env(Fun, Key, Value) ->
     true = os:putenv(Key, Value),
     try Fun()
     after
-        case OldValue of
+        V = case OldValue of
             false ->
-                ok;
+                "";
             OldValue ->
-                true = os:putenv(Key, OldValue),
-                ok
-        end
+                OldValue
+        end,
+        true = os:putenv(Key, V),
+        ok
     end.
 
 %%

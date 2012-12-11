@@ -31,9 +31,10 @@
 -include("erlport.hrl").
 
 -define(DEFAULT_PYTHON, "python").
+-define(PYTHON_VAR_NAME, "ERLPORT_PYTHON").
 
 -record(python_options, {
-    python = ?DEFAULT_PYTHON :: string(),
+    python = default :: string() | default,
     cd :: Path :: string(),
     use_stdio = use_stdio :: use_stdio | nouse_stdio,
     compressed = 0 :: 0..9,

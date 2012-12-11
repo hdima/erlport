@@ -176,13 +176,24 @@ ruby_option_test_() -> {setup,
         ?_assertEqual({error, {invalid_option, {ruby, not_string}}},
             ruby_options:parse([{ruby, not_string}])),
         fun () ->
-            Path = os:getenv("PATH"),
-            true = os:putenv("PATH", ""),
-            try ?assertEqual({error, ruby_not_found},
+            erlport_test_utils:call_with_env(fun () ->
+                ?assertEqual({error, ruby_not_found},
                     ruby_options:parse([]))
-            after
-                true = os:putenv("PATH", Path)
-            end
+            end, "PATH", "")
+        end,
+        fun () ->
+            erlport_test_utils:call_with_env(fun () ->
+                ?assertEqual({error, {invalid_env_var,
+                    {"ERLPORT_RUBY", "INVALID_ruby"}, not_found}},
+                    ruby_options:parse([]))
+                end, "ERLPORT_RUBY", "INVALID_ruby")
+        end,
+        fun () ->
+            Expected = erlport_test_utils:script(GoodRuby),
+            erlport_test_utils:call_with_env(fun () ->
+                ?assertMatch({ok, #ruby_options{ruby=Expected}},
+                    ruby_options:parse([]))
+                end, "ERLPORT_RUBY", GoodRuby)
         end,
         ?_assertEqual({error, {unsupported_ruby_version, "ruby 1.7.0"}},
             ruby_options:parse([{ruby, UnsupportedRuby}])),

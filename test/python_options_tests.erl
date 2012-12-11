@@ -184,6 +184,20 @@ python_option_test_() -> {setup,
                     python_options:parse([]))
                 end, "PATH", "")
         end,
+        fun () ->
+            erlport_test_utils:call_with_env(fun () ->
+                ?assertEqual({error, {invalid_env_var,
+                    {"ERLPORT_PYTHON", "INVALID_python"}, not_found}},
+                    python_options:parse([]))
+                end, "ERLPORT_PYTHON", "INVALID_python")
+        end,
+        fun () ->
+            Expected = erlport_test_utils:script(GoodPython),
+            erlport_test_utils:call_with_env(fun () ->
+                ?assertMatch({ok, #python_options{python=Expected}},
+                    python_options:parse([]))
+                end, "ERLPORT_PYTHON", GoodPython)
+        end,
         ?_assertEqual({error, {unsupported_python_version, "Python 2.4.6"}},
             python_options:parse([{python, UnsupportedPython}])),
         ?_assertEqual({error, {unsupported_python_version, "Python 4.0.0"}},

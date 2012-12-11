@@ -31,9 +31,10 @@
 -include("erlport.hrl").
 
 -define(DEFAULT_RUBY, "ruby").
+-define(RUBY_VAR_NAME, "ERLPORT_RUBY").
 
 -record(ruby_options, {
-    ruby = ?DEFAULT_RUBY :: string(),
+    ruby = default :: string() | default,
     cd :: Path :: string(),
     use_stdio = use_stdio :: use_stdio | nouse_stdio,
     compressed = 0 :: 0..9,

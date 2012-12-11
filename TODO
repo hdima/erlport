@@ -3,8 +3,6 @@
 
 - Support STDOUT/STDIN redirection for all languages and add tests.
 
-- We can support ERLPORT_PYTHON/ERLPORT_RUBY environment variables.
-
 - Ruby's Tuple class should not be just a marker class
 
 - Check all TODO/FIXME comments

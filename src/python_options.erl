@@ -130,16 +130,36 @@ update_python_path(Env0, PythonPath0, MajVersion) ->
             end
     end.
 
+get_python(default) ->
+    case erlport_options:getenv(?PYTHON_VAR_NAME) of
+        "" ->
+            try find_python(?DEFAULT_PYTHON)
+            catch
+                throw:not_found ->
+                    {error, python_not_found}
+            end;
+        Python ->
+            try find_python(Python)
+            catch
+                throw:not_found ->
+                    {error, {invalid_env_var, {?PYTHON_VAR_NAME, Python},
+                        not_found}}
+            end
+    end;
 get_python(Python=[_|_]) ->
+    try find_python(Python)
+    catch
+        throw:not_found ->
+            {error, {invalid_option, {python, Python}, not_found}}
+    end;
+get_python(Python) ->
+    {error, {invalid_option, {python, Python}}}.
+
+find_python(Python) ->
     {PythonCommand, Options} = lists:splitwith(fun (C) -> C =/= $ end, Python),
     case os:find_executable(PythonCommand) of
         false ->
-            case Python of
-                ?DEFAULT_PYTHON ->
-                    {error, python_not_found};
-                _ ->
-                    {error, {invalid_option, {python, Python}, not_found}}
-            end;
+            throw(not_found);
         Filename ->
             Fullname = erlport_options:absname(Filename),
             case check_python_version(Fullname) of
@@ -148,9 +168,7 @@ get_python(Python=[_|_]) ->
                 {error, _}=Error ->
                     Error
             end
-    end;
-get_python(Python) ->
-    {error, {invalid_option, {python, Python}}}.
+    end.
 
 extract_python_path([{"PYTHONPATH", P} | Tail], Path, Env) ->
     extract_python_path(Tail, [P, erlport_options:pathsep() | Path], Env);
