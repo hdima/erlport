@@ -3,8 +3,6 @@
 
 - Support STDOUT/STDIN redirection for all languages and add tests.
 
-- Ruby's Tuple class should not be just a marker class
-
 - Check all TODO/FIXME comments
 
 - Maybe split Python 2/3 tests to distinct modules? And the same for Ruby
@@ -90,6 +88,8 @@ Later
 =====
 
 - Add xref checks?
+
+- Add more methods for Ruby's Tuple class?
 
 Ideas
 =====

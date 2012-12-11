@@ -45,7 +45,26 @@ class TupleTestCase < Test::Unit::TestCase
     def test_tuple
         tuple = Tuple.new([1, 2, 3])
         assert_equal Tuple, tuple.class
-        assert_equal [1, 2, 3], tuple
+        assert_equal 3, tuple.length
+        assert_equal 1, tuple[0]
+        assert_equal 2, tuple[1]
+        assert_equal 3, tuple[2]
+        assert_equal [1, 2, 3], tuple.to_a
+    end
+
+    def test_multiple_assignment
+        tuple = Tuple.new([1, 2, 3])
+        a, b, c = tuple
+        assert_equal a, 1
+        assert_equal b, 2
+        assert_equal c, 3
+    end
+
+    def test_comparison
+        tuple = Tuple.new([1, 2, 3])
+        assert_equal tuple, tuple
+        assert_equal tuple, Tuple.new([1, 2, 3])
+        assert_not_equal tuple, Tuple.new([3, 2, 1])
     end
 end
 
@@ -219,10 +238,11 @@ class DecodeTestCase < Test::Unit::TestCase
         assert_raise(IncompleteData){decode("\x83i\0\0\0")}
         assert_raise(IncompleteData){decode("\x83i\0\0\0\1")}
         # Erlang use 'h' tag for small tuples
-        assert_equal [[], ""], decode("\x83i\0\0\0\0")
-        assert_equal [[], "tail"], decode("\x83i\0\0\0\0tail")
-        assert_equal [[[], []], ""], decode("\x83i\0\0\0\2jj")
-        assert_equal [[[], []], "tail"], decode("\x83i\0\0\0\2jjtail")
+        assert_equal [Tuple.new([]), ""], decode("\x83i\0\0\0\0")
+        assert_equal [Tuple.new([]), "tail"], decode("\x83i\0\0\0\0tail")
+        assert_equal [Tuple.new([[], []]), ""], decode("\x83i\0\0\0\2jj")
+        assert_equal [Tuple.new([[], []]), "tail"],
+            decode("\x83i\0\0\0\2jjtail")
     end
 
     def test_decode_opaque_object

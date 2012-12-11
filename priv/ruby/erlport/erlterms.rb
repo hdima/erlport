@@ -54,8 +54,43 @@ module ErlTerm
         end
     end
 
-    # TODO: Shouldn't be just a marker
-    class Tuple < Array
+    class Tuple
+        def initialize array
+            raise TypeError, "array expected" if not array.is_a? Array
+            @data = array
+        end
+
+        def == other
+            self.class == other.class and self.to_a == other.to_a
+        end
+
+        def === other
+            self == other
+        end
+
+        def eql? other
+            self == other
+        end
+
+        def hash
+            [self.class, self.to_a].hash
+        end
+
+        def to_a
+            @data
+        end
+
+        def to_ary
+            @data
+        end
+
+        def [] index
+            @data[index]
+        end
+
+        def length
+            @data.length
+        end
     end
 
     class ImproperList < Array
@@ -64,7 +99,7 @@ module ErlTerm
         def initialize array, tail
             raise ValueError, "empty list not allowed" if array.empty?
             raise TypeError, "non list object expected for tail" \
-                if tail.is_a? Array and not tail.is_a? Tuple
+                if tail.is_a? Array
             @tail = tail
             super array
         end
@@ -295,7 +330,7 @@ module ErlTerm
                 else
                     raise ValueError, "invalid tuple arity: #{arity}"
                 end
-                return header + term.map{|i| encode_term i}.join
+                return header + term.to_a.map{|i| encode_term i}.join
             # Should be before Array
             when ImproperList
                 length = term.length
