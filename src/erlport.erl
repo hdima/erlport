@@ -66,6 +66,12 @@
     | {global, GlobalName::term()}
     | {via, Module::atom(), ViaName::term()}.
 
+-type call_option() :: {timeout, pos_integer() | infinity}.
+-type call_options() :: [call_option()].
+-type switch_option() :: {timeout, pos_integer() | infinity}
+    | wait_for_result.
+-type switch_options() :: [switch_option()].
+
 -export_type([server_instance/0]).
 
 %%
@@ -82,30 +88,21 @@ stop(Pid) ->
 %%
 
 -spec call(Instance::server_instance(), Module::atom(), Function::atom(),
-        Args::list(),
-        Options::[{timeout, Timeout::pos_integer() | infinity}]) ->
-    Result::term().
+    Args::list(), Options::call_options()) -> Result::term().
 
 call(Pid, Module, Function, Args, Options) when is_atom(Module)
         andalso is_atom(Function) andalso is_list(Args)
         andalso is_list(Options) ->
     Request = {call, Module, Function, Args, Options},
-    case gen_fsm:sync_send_event(Pid, Request, infinity) of
-        {ok, Result} ->
-            Result;
-        {error, Error} ->
-            % TODO: Unpack Error if needed
-            erlang:error(Error)
-    end.
+    call(Pid, Request).
 
 %%
 %% @doc Pass control to remote side by calling the function with arguments
 %%
 
 -spec switch(Instance::server_instance(), Module::atom(), Function::atom(),
-        Args::list(), Options::[{timeout, Timeout::pos_integer() | infinity}
-            | wait_for_result]) ->
-    Result::ok | term() | {error, Reason::term()}.
+        Args::list(), Options::switch_options()) ->
+    Result::ok | term().
 
 switch(Pid, Module, Function, Args, Options) when is_atom(Module)
         andalso is_atom(Function) andalso is_list(Args)
@@ -115,13 +112,7 @@ switch(Pid, Module, Function, Args, Options) when is_atom(Module)
         false ->
             gen_fsm:sync_send_event(Pid, Request, infinity);
         _ ->
-            case gen_fsm:sync_send_event(Pid, Request, infinity) of
-                {ok, Result} ->
-                    Result;
-                {error, Error} ->
-                    % TODO: Unpack Error if needed
-                    erlang:error(Error)
-            end
+            call(Pid, Request)
     end.
 
 
@@ -226,8 +217,7 @@ handle_info({Port, {data, Data}}, StateName=client, State=#state{port=Port}) ->
             erlport_utils:handle_response(call, {error, Error}, State,
                 StateName);
         {'P', StdoutData} ->
-            ok = io:put_chars(StdoutData),
-            {next_state, StateName, State};
+            print(StdoutData, StateName, State);
         Response ->
             {stop, {invalid_response, Response}, State}
     catch
@@ -239,14 +229,7 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
     try binary_to_term(Data) of
         {'C', Module, Function, Args} when is_atom(Module), is_atom(Function),
                 is_list(Args) ->
-            Pid = proc_lib:spawn_link(fun () ->
-                exit(try {ok, apply(Module, Function, Args)}
-                    catch
-                        Type:Reason ->
-                            Trace = erlang:get_stacktrace(),
-                            {error, {erlang, Type, Reason, Trace}}
-                    end)
-                end),
+            Pid = spawn_call(Module, Function, Args),
             Info = {Pid, erlport_utils:start_timer(Timeout)},
             {next_state, StateName, State#state{call=Info}};
         's' ->
@@ -282,8 +265,7 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
                     {stop, {switch_failed, Error}, State}
             end;
         {'P', StdoutData} ->
-            ok = io:put_chars(StdoutData),
-            {next_state, StateName, State};
+            print(StdoutData, StateName, State);
         Request ->
             {stop, {invalid_request, Request}, State}
     catch
@@ -353,3 +335,25 @@ queue_foreach(Fun, Queue) ->
         {empty, Queue} ->
             ok
     end.
+
+call(Pid, Request) ->
+    case gen_fsm:sync_send_event(Pid, Request, infinity) of
+        {ok, Result} ->
+            Result;
+        {error, Error} ->
+            erlang:error(Error)
+    end.
+
+print(Data, StateName, State) ->
+    ok = io:put_chars(Data),
+    {next_state, StateName, State}.
+
+spawn_call(Module, Function, Args) ->
+    proc_lib:spawn_link(fun () ->
+        exit(try {ok, apply(Module, Function, Args)}
+            catch
+                Type:Reason ->
+                    Trace = erlang:get_stacktrace(),
+                    {error, {erlang, Type, Reason, Trace}}
+            end)
+        end).
