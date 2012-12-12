@@ -75,14 +75,17 @@ call_test_() -> [{setup,
         ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
     end} || Setup <- [fun setup/0, fun setup3/0]].
 
-print_test_() -> {setup,
+stdin_stdout_test_() -> {setup,
     fun setup/0,
     fun cleanup/1,
-    fun (P) ->
+    fun (P) -> [
         ?_test(erlport_test_utils:assert_output(<<"HELLO!\n">>,
             fun () -> undefined = python:call(P, '__builtin__', print,
-                [<<"HELLO!">>]) end, P))
-    end}.
+                [<<"HELLO!">>]) end, P)),
+        ?_assertError({python, 'exceptions.RuntimeError',
+            "STDIN is closed for ErlPort connected process", [_|_]},
+            python:call(P, '__builtin__', raw_input, []))
+    ] end}.
 
 nouse_stdio_test_() ->
     case os:type() of

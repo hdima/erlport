@@ -192,7 +192,7 @@ class RedirectedStdin(object):
         pass
 
     def __getattr__(self, name):
-        def closed(self, *args, **kwargs):
+        def closed(*args, **kwargs):
             raise RuntimeError("STDIN is closed for ErlPort connected process")
         if name in ("next", "read", "readline", "readlies", "seek", "tell",
                 "truncate", "write", "writelines"):
@@ -217,7 +217,7 @@ class RedirectedStdout(object):
         return self.__port.write((Atom("P"), "".join(lst)))
 
     def __getattr__(self, name):
-        def unsupported(self, *args, **kwargs):
+        def unsupported(*args, **kwargs):
             raise RuntimeError("unsupported STDOUT operation for ErlPort"
                 " connected process")
         if name in ("next", "read", "readline", "readlines", "seek", "tell",
