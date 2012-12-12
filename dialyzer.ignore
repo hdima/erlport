@@ -28,9 +28,9 @@ python_options_tests.erl:362: The created fun has no local return
 python_options_tests.erl:377: The created fun has no local return
 python_options_tests.erl:377: The created fun has no local return
 python_options_tests.erl:378: The call python_options:parse(['unknown',...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
-python_tests.erl:242: Cons will produce an improper list since its 2nd argument is 1
-python_tests.erl:243: Cons will produce an improper list since its 2nd argument is nonempty_improper_list(2 | 3,4)
-python_tests.erl:244: Cons will produce an improper list since its 2nd argument is 'tail'
+python_tests.erl:251: Cons will produce an improper list since its 2nd argument is 1
+python_tests.erl:252: Cons will produce an improper list since its 2nd argument is nonempty_improper_list(2 | 3,4)
+python_tests.erl:253: Cons will produce an improper list since its 2nd argument is 'tail'
 ruby_options_tests.erl:56: The created fun has no local return
 ruby_options_tests.erl:56: The created fun has no local return
 ruby_options_tests.erl:57: The call ruby_options:parse([{'buffer_size','invalid'},...]) breaks the contract (Options::options()) -> {'ok',#ruby_options{}} | {'error',Reason::term()}

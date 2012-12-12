@@ -39,14 +39,18 @@
     call_with_env/3,
     match_path/2,
     local_path/1,
-    create_mock_script/3
+    create_mock_script/3,
+    assert_output/3
     ]).
+
+-include_lib("eunit/include/eunit.hrl").
 
 -define(CHARS, {$0, $1, $2, $3, $4, $5, $6, $7, $8, $9,
     $a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m, $n, $o, $p, $q, $r, $s,
     $t, $u, $v, $w, $x, $y, $z,
     $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R, $S,
     $T, $U, $V, $W, $X, $Y, $Z}).
+-define(TIMEOUT, 5000).
 
 %%
 %% @doc Create temporary file and return the file name
@@ -205,6 +209,25 @@ create_mock_script(Version, Dir, Name) ->
     Path.
 
 %%
+%% @doc Assert function output
+%%
+
+-spec assert_output(Expected::binary(), Fun::fun(() -> term()),
+    Printer::pid()) -> ok.
+
+assert_output(Expected, Fun, Printer) when is_binary(Expected)
+        andalso is_function(Fun, 0) andalso is_pid(Printer) ->
+    OldLeader = group_leader(),
+    Client = self(),
+    Leader = spawn_link(fun () -> io_proxy(OldLeader, Printer, Client, []) end),
+    true = group_leader(Leader, Printer),
+    try Fun()
+    after
+        true = group_leader(OldLeader, Printer),
+        assert_expected_output(Expected, Leader)
+    end.
+
+%%
 %% Internal functions
 %%
 
@@ -244,3 +267,38 @@ str_replace(Str, Find, Replace) ->
                     C
             end
         end, Str)).
+
+assert_expected_output(Expected, Leader) ->
+    Leader ! stop,
+    receive
+        {output, Output} ->
+            ?assertEqual(Expected, Output)
+    after
+        ?TIMEOUT ->
+            erlang:error(timeout)
+    end.
+
+io_proxy(OldLeader, Printer, Client, Output) ->
+    receive
+        stop ->
+            Client ! {output, iolist_to_binary(lists:reverse(Output))};
+        Message ->
+            OldLeader ! Message,
+            io_proxy(OldLeader, Printer, Client,
+                update_output(Message, Printer, Output))
+    after
+        ?TIMEOUT ->
+            erlang:error(timeout)
+    end.
+
+update_output({io_request, Printer, _ReplyAs, Request}, Printer, Output) ->
+    case Request of
+        {put_chars, _Encoding, Chars} ->
+            [Chars | Output];
+        {put_chars, _Encoding, Module, Function, Args} ->
+           [apply(Module, Function, Args) | Output];
+        _ ->
+            Output
+    end;
+update_output(_, _Printer, Output) ->
+    Output.
