@@ -37,13 +37,25 @@ parse_test_() ->
         {ok, #ruby_options{ruby=Ruby, use_stdio=use_stdio,
             call_timeout=infinity, packet=4, ruby_lib=RubyLib,
             start_timeout=10000, compressed=0, env=Env,
-            port_options=PortOptions}} = ruby_options:parse([]),
+            port_options=PortOptions,
+            buffer_size=65536}} = ruby_options:parse([]),
         ?assertPattern(Ruby, "/ruby(\\.exe)?$"),
         ?assertPattern(RubyLib, "/priv/ruby"),
         ?assertEqual([{"RUBYLIB", RubyLib}], Env),
         ?assertEqual([{env, Env}, {packet, 4}, binary, hide, exit_status],
             PortOptions)
     end.
+
+buffer_size_test_() -> [
+    ?_assertMatch({ok, #ruby_options{buffer_size=65536}},
+        ruby_options:parse([])),
+    ?_assertMatch({ok, #ruby_options{buffer_size=5000}},
+        ruby_options:parse([{buffer_size, 5000}])),
+    ?_assertEqual({error, {invalid_option, {buffer_size, 0}}},
+        ruby_options:parse([{buffer_size, 0}])),
+    ?_assertEqual({error, {invalid_option, {buffer_size, invalid}}},
+        ruby_options:parse([{buffer_size, invalid}]))
+    ].
 
 use_stdio_option_test_() -> [
     ?_assertMatch({ok, #ruby_options{use_stdio=use_stdio}},

@@ -196,7 +196,7 @@ start(Function, Name, OptionsList) when is_list(OptionsList) ->
 
 init_factory(#python_options{python=Python,use_stdio=UseStdio, packet=Packet,
         compressed=Compressed, port_options=PortOptions,
-        call_timeout=Timeout}) ->
+        call_timeout=Timeout, buffer_size=BufferSize}) ->
     fun () ->
         Path = lists:concat([Python,
             % Binary STDIO
@@ -204,7 +204,8 @@ init_factory(#python_options{python=Python,use_stdio=UseStdio, packet=Packet,
             " -m erlport.cli",
             " --packet=", Packet,
             " --", UseStdio,
-            " --compressed=", Compressed]),
+            " --compressed=", Compressed,
+            " --buffer_size=", BufferSize]),
         try open_port({spawn, Path}, PortOptions) of
             Port ->
                 {ok, client, #state{port=Port, timeout=Timeout,

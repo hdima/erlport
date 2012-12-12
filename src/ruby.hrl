@@ -44,7 +44,8 @@
     port_options = [binary, hide, exit_status]
         :: [Option :: atom() | {Name :: atom(), Value :: term()}],
     start_timeout = ?DEFAULT_START_TIMEOUT :: pos_integer() | infinity,
-    call_timeout = ?DEFAULT_CALL_TIMEOUT :: pos_integer() | infinity
+    call_timeout = ?DEFAULT_CALL_TIMEOUT :: pos_integer() | infinity,
+    buffer_size = ?DEFAULT_BUFFER_SIZE :: pos_integer()
     }).
 
 -define(RUBY_FIELDS, (lists:zip(record_info(fields, ruby_options),

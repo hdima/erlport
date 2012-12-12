@@ -31,6 +31,8 @@
 -define(DEFAULT_START_TIMEOUT, 10000).
 -define(DEFAULT_CALL_TIMEOUT, infinity).
 
+-define(DEFAULT_BUFFER_SIZE, 65536).
+
 -record(state, {
     timeout :: pos_integer() | infinity,
     compressed = 0 :: 0..9,

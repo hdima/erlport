@@ -196,7 +196,7 @@ start(Function, Name, OptionsList) when is_list(OptionsList) ->
 
 init_factory(#ruby_options{ruby=Ruby,use_stdio=UseStdio, packet=Packet,
         compressed=Compressed, port_options=PortOptions,
-        call_timeout=Timeout}) ->
+        call_timeout=Timeout, buffer_size=BufferSize}) ->
     fun () ->
         Path = lists:concat([Ruby,
             " -e 'require \"erlport/cli\"'"
@@ -204,7 +204,8 @@ init_factory(#ruby_options{ruby=Ruby,use_stdio=UseStdio, packet=Packet,
             " --"
             " --packet=", Packet,
             " --", UseStdio,
-            " --compressed=", Compressed]),
+            " --compressed=", Compressed,
+            " --buffer_size=", BufferSize]),
         try open_port({spawn, Path}, PortOptions) of
             Port ->
                 {ok, client, #state{port=Port, timeout=Timeout,

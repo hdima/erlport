@@ -37,13 +37,25 @@ parse_test_() ->
         {ok, #python_options{python=Python, use_stdio=use_stdio,
             call_timeout=infinity, packet=4, python_path=PythonPath,
             start_timeout=10000, compressed=0, env=Env,
-            port_options=PortOptions}} = python_options:parse([]),
+            port_options=PortOptions,
+            buffer_size=65536}} = python_options:parse([]),
         ?assertPattern(Python, "/python(\\.exe)?$"),
         ?assertPattern(PythonPath, "/priv/python[23]"),
         ?assertEqual([{"PYTHONPATH", PythonPath}], Env),
         ?assertEqual([{env, Env}, {packet, 4}, binary, hide, exit_status],
             PortOptions)
     end.
+
+buffer_size_test_() -> [
+    ?_assertMatch({ok, #python_options{buffer_size=65536}},
+        python_options:parse([])),
+    ?_assertMatch({ok, #python_options{buffer_size=5000}},
+        python_options:parse([{buffer_size, 5000}])),
+    ?_assertEqual({error, {invalid_option, {buffer_size, 0}}},
+        python_options:parse([{buffer_size, 0}])),
+    ?_assertEqual({error, {invalid_option, {buffer_size, invalid}}},
+        python_options:parse([{buffer_size, invalid}]))
+    ].
 
 use_stdio_option_test_() -> [
     ?_assertMatch({ok, #python_options{use_stdio=use_stdio}},

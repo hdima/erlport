@@ -59,14 +59,16 @@
     | {packet, 1 | 2 | 4}
     | {start_timeout, pos_integer() | infinity}
     | {call_timeout, pos_integer() | infinity}
-    | {env, [{Name :: string(), Value :: string() | false}]}.
+    | {env, [{Name :: string(), Value :: string() | false}]}
+    | {buffer_size, Size::pos_integer()}.
 -type option_name() :: use_stdio
     | cd
     | compressed
     | packet
     | env
     | start_timeout
-    | call_timeout.
+    | call_timeout
+    | buffer_size.
 
 -export_type([option/0]).
 
@@ -127,6 +129,13 @@ parse({call_timeout, Timeout}=Value) ->
         {ok, T} ->
             {ok, call_timeout, T};
         error ->
+            {error, {invalid_option, Value}}
+    end;
+parse({buffer_size, Size}=Value) ->
+    case is_integer(Size) andalso Size > 0 of
+        true ->
+            {ok, buffer_size, Size};
+        false ->
             {error, {invalid_option, Value}}
     end;
 parse(UnknownOption) ->

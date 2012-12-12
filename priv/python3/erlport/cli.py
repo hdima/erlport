@@ -42,6 +42,11 @@ def get_option_parser():
             raise OptionValueError("Valid values for --compressed are 0..9")
         setattr(parser.values, option.dest, value)
 
+    def buffer_size(option, opt_str, value, parser):
+        if not value > 0:
+            raise OptionValueError("Buffer size value should be greater than 0")
+        setattr(parser.values, option.dest, value)
+
     parser = OptionParser(description="ErlPort - Erlang port protocol")
     parser.add_option("--packet", action="callback", type="int",
         help="Message length sent in N bytes. Valid values are 1, 2, or 4",
@@ -54,6 +59,9 @@ def get_option_parser():
         help="Use file descriptors 0 and 1 for communication with Erlang")
     parser.add_option("--compressed", action="callback", type="int", default=0,
         help="Compression level", metavar="LEVEL", callback=compress_level)
+    parser.add_option("--buffer_size", action="callback", type="int",
+        default=65536, help="Receive buffer size", metavar="SIZE",
+        callback=buffer_size)
     return parser
 
 
@@ -61,7 +69,7 @@ def main(argv=None):
     parser = get_option_parser()
     options, args = parser.parse_args(argv)
     port = Port(use_stdio=options.stdio, packet=options.packet,
-        compressed=options.compressed)
+        compressed=options.compressed, buffer_size=options.buffer_size)
     erlang.setup(port)
 
 

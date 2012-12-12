@@ -36,7 +36,7 @@ class CommandLine
     def self.main
         options = parse
         port = ErlProto::Port.new(options.packet, options.stdio,
-            options.compressed)
+            options.compressed, nil, options.buffer_size)
         Erlang.start port
     end
 
@@ -71,6 +71,12 @@ class CommandLine
                     "Valid values for --compressed are 0..9" \
                     if level < 0 or level > 9
                 options.compressed = level
+                }
+            parser.on("--buffer_size S", Integer, "Receive buffer size") {|size|
+                raise OptionParser::InvalidArgument, \
+                    "Buffer size value should be greater than 0" \
+                    if not size > 0
+                options.buffer_size = size
                 }
         end
         begin

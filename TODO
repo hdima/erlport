@@ -1,4 +1,4 @@
-- And tests for all CallError scenarios (especially calls between languages)
+- Add tests for all CallError scenarios (especially calls between languages)
   for all languages
 
 - Support STDOUT/STDIN redirection for all languages and add tests.
@@ -20,8 +20,6 @@
   languages where we can use Erlang Pids to send messages to Erlang processes.
   Maybe we can add 'cast'/'send' only on external language side where we can use
   PIDs or registered names for the processes?
-
-- Can we configure buffer size at the process start?
 
 - erlport:server_name/0 and erlport:server_instances() types should be moved to
   some utils module? Maybe move types to a header file because -export_type
@@ -80,7 +78,7 @@
 
 - Add custom encode/decode handlers in Erlang
 
-- Add worker_pool module with pluggable workers selection policies
+- Add workers_pool module with pluggable workers selection policies
 
 - Comments for modules
 
