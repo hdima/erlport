@@ -70,6 +70,18 @@ call_test_() -> {setup,
         ?_assertEqual(4, ruby:call(R, '', 'Kernel::eval', [<<"2 + 2">>]))
     end}.
 
+stdin_stdout_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (R) -> [
+        ?_test(erlport_test_utils:assert_output(<<"HELLO!\n">>,
+            fun () -> undefined = ruby:call(R, '', 'ARGF::puts',
+                [<<"HELLO!">>]) end, R)),
+        ?_assertError({ruby, 'IOError',
+            <<"STDIN is closed for ErlPort connected process">>, [_|_]},
+            ruby:call(R, '', 'ARGF::read', []))
+    ] end}.
+
 nouse_stdio_test_() ->
     case os:type() of
         {win32, _} ->

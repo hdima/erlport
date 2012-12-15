@@ -1,7 +1,7 @@
 - Add tests for all CallError scenarios (especially calls between languages)
   for all languages
 
-- Support STDOUT/STDIN redirection for all languages and add tests.
+- Tests for STDOUT/STDIN redirection classes for every language
 
 - erlport:server_name/0 and erlport:server_instances() types should be moved to
   some utils module? Maybe move types to a header file because -export_type
@@ -35,7 +35,7 @@
 
 - Add subscriber behaviour so we can abstract message hubs
 
-- Ruby Erlang::call method
+- Ruby Erlang::call method (call lock)
 
 - Ruby encoder/decoder for arguments/results
 

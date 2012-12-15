@@ -56,6 +56,8 @@ module Erlang
     def start port
         @@port = port
         @@client = false
+        $stdin = RedirectedStdin.new
+        $stdout = RedirectedStdout.new port
         begin
             self.loop
         rescue EOFError
@@ -87,6 +89,27 @@ module Erlang
     end
 
     private
+
+    class RedirectedStdin
+        def method_missing name, *args
+            raise IOError, "STDIN is closed for ErlPort connected process"
+        end
+    end
+
+    class RedirectedStdout
+        def initialize port
+            @port = port
+        end
+
+        def write string
+            @port.write(Tuple.new([:P, string]))
+        end
+
+        def method_missing name, *args
+            raise IOError, "unsupported STDOUT operation for ErlPort"
+                " connected process"
+        end
+    end
 
     module_function
     def loop
@@ -129,8 +152,8 @@ module Erlang
             # TODO: Encode result
             Tuple.new([:r, r])
         rescue Exception => why
-            exc = why.inspect().to_sym
-            exc_tb = why.backtrace().reverse()
+            exc = why.class.to_s.to_sym
+            exc_tb = why.backtrace.reverse
             value = Tuple.new([:ruby, exc, why.message, exc_tb])
             Tuple.new([:e, value])
         end
