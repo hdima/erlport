@@ -3,9 +3,6 @@
 
 - Support STDOUT/STDIN redirection for all languages and add tests.
 
-- If port was closed and we have an error to report we can try to report it
-  with logging module
-
 - erlport:server_name/0 and erlport:server_instances() types should be moved to
   some utils module? Maybe move types to a header file because -export_type
   seems doesn't work as expected in Erlang R13
