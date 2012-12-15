@@ -186,12 +186,70 @@ class Erlang(object):
 
 Erlang = Erlang()
 
+class RedirectedStdin(object):
 
-def setup(port):
-    global MessageHandler, setup, call, set_encoder, set_decoder
-    handler = MessageHandler(port)
+    def close(self):
+        pass
+
+    def flush(self):
+        pass
+
+    def __getattr__(self, name):
+        def closed(*args, **kwargs):
+            raise RuntimeError("STDIN is closed for ErlPort connected process")
+        if name in ("next", "read", "readline", "readlies", "seek", "tell",
+                "truncate", "write", "writelines"):
+            return closed
+        raise AttributeError("STDIN object has no attribute %r" % (name,))
+
+class RedirectedStdout(object):
+
+    def __init__(self, port):
+        self.__port = port
+
+    def close(self):
+        pass
+
+    def flush(self):
+        pass
+
+    def write(self, data):
+        if not isinstance(data, str):
+            raise TypeError("must be str, not %s" % data.__class__.__name__)
+        return self.__port.write((Atom(b"P"), data))
+
+    def writelines(self, lst):
+        for data in lst:
+            if not isinstance(data, str):
+                raise TypeError("must be str, not %s" % data.__class__.__name__)
+        return self.__port.write((Atom(b"P"), "".join(lst)))
+
+    def __getattr__(self, name):
+        def unsupported(*args, **kwargs):
+            raise RuntimeError("unsupported STDOUT operation for ErlPort"
+                " connected process")
+        if name in ("next", "read", "readline", "readlines", "seek", "tell",
+                "truncate"):
+            return unsupported
+        raise AttributeError("STDOUT object has no attribute %r" % (name,))
+
+
+def setup_stdin_stdout(port):
+    global RedirectedStdin, RedirectedStdout
+    sys.stdin = RedirectedStdin()
+    sys.stdout = RedirectedStdout(port)
+    del RedirectedStdin, RedirectedStdout
+
+def setup_api_functions(handler):
+    global call, set_encoder, set_decoder
     call = handler.call
     set_encoder = handler.set_encoder
     set_decoder = handler.set_decoder
+
+def setup(port):
+    global MessageHandler, setup
+    handler = MessageHandler(port)
+    setup_api_functions(handler)
+    setup_stdin_stdout(port)
     del MessageHandler, setup
     handler.start()

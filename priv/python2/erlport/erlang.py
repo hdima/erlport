@@ -211,9 +211,14 @@ class RedirectedStdout(object):
         pass
 
     def write(self, data):
+        if not isinstance(data, (str, unicode, buffer)):
+            raise TypeError("expected a characer buffer object")
         return self.__port.write((Atom("P"), data))
 
     def writelines(self, lst):
+        for data in lst:
+            if not isinstance(data, (str, unicode, buffer)):
+                raise TypeError("expected a character buffer object")
         return self.__port.write((Atom("P"), "".join(lst)))
 
     def __getattr__(self, name):
