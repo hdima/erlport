@@ -1,7 +1,6 @@
 - Add tests for all CallError scenarios (especially calls between languages)
-  for all languages
-
-- Tests for STDOUT/STDIN redirection classes for every language
+  for all languages. Probably we need to unpack errors on Erlang side and we
+  don't need to always create Erlang errors?
 
 - erlport:server_name/0 and erlport:server_instances() types should be moved to
   some utils module? Maybe move types to a header file because -export_type

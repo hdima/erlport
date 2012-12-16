@@ -25,43 +25,43 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import os
-import doctest
 import unittest
 
-try:
-    import coverage
-except ImportError:
-    coverage = None
-
-import erlterms_tests
-import erlproto_tests
-import erlang_tests
+from erlport import Atom
+from erlport.erlang import RedirectedStdin, RedirectedStdout
 
 
-def test_suite():
+class TestPort(object):
+
+    def write(self, data):
+        return data
+
+class RedirectedStdinTestCase(unittest.TestCase):
+
+    def test_read(self):
+        stdin = RedirectedStdin()
+        self.assertRaises(RuntimeError, stdin.read)
+
+class RedirectedStdoutTestCase(unittest.TestCase):
+
+    def test_write(self):
+        stdout = RedirectedStdout(TestPort())
+        self.assertEqual((Atom("P"), "data"), stdout.write("data"))
+        self.assertRaises(TypeError, stdout.write, 1234)
+
+    def test_writelines(self):
+        stdout = RedirectedStdout(TestPort())
+        self.assertEqual((Atom("P"), "data"), stdout.writelines(["da", "ta"]))
+        self.assertRaises(TypeError, stdout.writelines, ["da", 1234])
+
+    def test_unsupported_methods(self):
+        stdout = RedirectedStdout(TestPort())
+        self.assertRaises(RuntimeError, stdout.read)
+
+
+def get_suite():
+    load = unittest.TestLoader().loadTestsFromTestCase
     suite = unittest.TestSuite()
-    suite.addTests(erlterms_tests.get_suite())
-    suite.addTests(erlproto_tests.get_suite())
-    suite.addTests(erlang_tests.get_suite())
+    suite.addTests(load(RedirectedStdinTestCase))
+    suite.addTests(load(RedirectedStdoutTestCase))
     return suite
-
-def test_cover(fun, *args, **kwargs):
-    cov = coverage.coverage()
-    cov.start()
-    try:
-        fun(*args, **kwargs)
-    finally:
-        cov.stop()
-        modules = [os.path.join("erlport", n) for n in os.listdir("erlport")
-            if n.endswith(".py")]
-        cov.report(morfs=modules, show_missing=False)
-        cov.html_report(morfs=modules, directory=".cover")
-
-
-def main():
-    if coverage:
-        test_cover(unittest.main, module="erlport.tests",
-            defaultTest="test_suite")
-    else:
-        unittest.main(module="erlport.tests", defaultTest="test_suite")

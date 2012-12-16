@@ -36,12 +36,14 @@ except ImportError:
 
 from . import erlterms_tests
 from . import erlproto_tests
+from . import erlang_tests
 
 
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTests(erlterms_tests.get_suite())
     suite.addTests(erlproto_tests.get_suite())
+    suite.addTests(erlang_tests.get_suite())
     return suite
 
 def test_cover(fun, *args, **kwargs):

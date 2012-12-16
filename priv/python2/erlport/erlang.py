@@ -185,30 +185,15 @@ Erlang = Erlang()
 
 class RedirectedStdin(object):
 
-    def close(self):
-        pass
-
-    def flush(self):
-        pass
-
     def __getattr__(self, name):
         def closed(*args, **kwargs):
             raise RuntimeError("STDIN is closed for ErlPort connected process")
-        if name in ("next", "read", "readline", "readlies", "seek", "tell",
-                "truncate", "write", "writelines"):
-            return closed
-        raise AttributeError("STDIN object has no attribute %r" % (name,))
+        return closed
 
 class RedirectedStdout(object):
 
     def __init__(self, port):
         self.__port = port
-
-    def close(self):
-        pass
-
-    def flush(self):
-        pass
 
     def write(self, data):
         if not isinstance(data, (str, unicode, buffer)):
@@ -219,16 +204,13 @@ class RedirectedStdout(object):
         for data in lst:
             if not isinstance(data, (str, unicode, buffer)):
                 raise TypeError("expected a character buffer object")
-        return self.__port.write((Atom("P"), "".join(lst)))
+        return self.write("".join(lst))
 
     def __getattr__(self, name):
         def unsupported(*args, **kwargs):
             raise RuntimeError("unsupported STDOUT operation for ErlPort"
                 " connected process")
-        if name in ("next", "read", "readline", "readlines", "seek", "tell",
-                "truncate"):
-            return unsupported
-        raise AttributeError("STDOUT object has no attribute %r" % (name,))
+        return unsupported
 
 
 def setup_stdin_stdout(port):
