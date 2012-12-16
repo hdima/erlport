@@ -1,6 +1,9 @@
-- Add tests for all CallError scenarios (especially calls between languages)
-  for all languages. Probably we need to unpack errors on Erlang side and we
-  don't need to always create Erlang errors?
+- We need more robust error identification in erlport:spawn_call?
+
+- Check all call/switch options and raise error for unknown options
+
+- Wait for result by default for switch? And replace switch's wait_for_result
+  option with inverted ignore_result (fail_on_error?)?
 
 - erlport:server_name/0 and erlport:server_instances() types should be moved to
   some utils module? Maybe move types to a header file because -export_type
@@ -19,8 +22,8 @@
 - Maybe we need to return 'cast' function? But can it also be done with
   publish/subscribe framework? Cast can be especially useful for external
   languages where we can use Erlang Pids to send messages to Erlang processes.
-  Maybe we can add 'cast'/'send' only on external language side where we can use
-  PIDs or registered names for the processes?
+  Maybe we can add 'cast'/'send' only on external language side where we can
+  use PIDs or registered names for the processes?
 
 - Support message handling in messagehub and erlport
 
@@ -62,21 +65,16 @@
 
 - Check all TODO/FIXME comments
 
-Later
+Ideas
 =====
 
 - Add xref checks?
-
-Ideas
-=====
 
 - More methods for Ruby's Tuple class?
 
 - Add 'threaded' mode for switch (and call with a thread pool?)?
 
-- Perl support. What about different Perl versions?
-
-- Support for other languages
+- Support for other languages (Perl, Lua, ?).
 
 - Maybe it's possible to create an ErlPort interface which loads dynamic
   libraries?

@@ -75,6 +75,74 @@ call_test_() -> [{setup,
         ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
     end} || Setup <- [fun setup/0, fun setup3/0]].
 
+call_back_test_() -> [{setup,
+    Setup,
+    fun cleanup/1,
+    fun (P) -> [
+        ?_assertError({python, 'erlport.erlang.InvalidMode',
+                "call() is unsupported in server mode", [_|_]},
+            python:call(P, 'erlport.erlang', call,
+                [erlang, length, [[1, 2, 3]]])),
+        ?_assertEqual(3, python:switch(P, 'erlport.erlang', call,
+            [erlang, length, [[1, 2, 3]]], [wait_for_result]))
+    ] end} || Setup <- [fun setup/0, fun setup3/0]].
+
+error_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (P) -> [
+        ?_assertError({python, 'exceptions.ImportError',
+                "No module named unknown", [_|_]},
+            python:call(P, unknown, unknown, [])),
+        ?_assertError({python, 'erlport.erlang.CallError',
+                "(Atom('erlang'), Atom('error'), Atom('undef'), "
+                "List([(Atom('unknown'), Atom('unknown'), List([]))," ++ _,
+                [_|_]},
+            python:switch(P, 'erlport.erlang', call,
+                [unknown, unknown, []], [wait_for_result])),
+        fun () ->
+            P2 = setup(),
+            try
+                ?assertError({python, 'erlport.erlang.CallError',
+                        "(Atom('python'), Atom('exceptions.ImportError'), "
+                        ++ _, [_|_]},
+                    python:switch(P, 'erlport.erlang', call,
+                        [python, call, [P2, unknown, unknown, []]],
+                        [wait_for_result]))
+            after
+                cleanup(P2)
+            end
+        end
+    ] end}.
+
+error3_test_() -> {setup,
+    fun setup3/0,
+    fun cleanup/1,
+    fun (P) -> [
+        ?_assertError({python, 'builtins.ImportError',
+                "No module named unknown", [_|_]},
+            python:call(P, unknown, unknown, [])),
+        ?_assertError({python, 'erlport.erlang.CallError',
+                "(Atom(b'erlang'), Atom(b'error'), Atom(b'undef'), "
+                "List([(Atom(b'unknown'), Atom(b'unknown'), List([]))," ++ _,
+                [_|_]},
+            python:switch(P, 'erlport.erlang', call,
+                [unknown, unknown, []], [wait_for_result])),
+        fun () ->
+            P2 = setup3(),
+            try
+                ?assertError({python, 'erlport.erlang.CallError',
+                        "(Atom(b'python'), Atom(b'builtins.ImportError'), "
+                        ++ _, [_|_]},
+                    python:switch(P, 'erlport.erlang', call,
+                        [python, call, [P2, unknown, unknown, []]],
+                        [wait_for_result]))
+            after
+                cleanup(P2)
+            end
+        end
+    ] end}.
+
 stdin_stdout_test_() -> {setup,
     fun setup/0,
     fun cleanup/1,

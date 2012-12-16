@@ -66,8 +66,8 @@ module Erlang
 
     module_function
     def call mod, function, args
-        raise InvalidMode, "you need call Erlang.start(port) function first" \
-            if @@port == nil
+        raise InvalidMode, "call() is unsupported in server mode" \
+            if not @@client
 
         raise ValueError, mod.to_s \
             if not (mod.is_a? Symbol or mod.is_a? EmptySymbol)

@@ -76,6 +76,14 @@ module ErlTerm
             [self.class, self.to_a].hash
         end
 
+        def to_s
+            self.inspect
+        end
+
+        def inspect
+            "Tuple(#{@data.inspect})"
+        end
+
         def to_a
             @data
         end

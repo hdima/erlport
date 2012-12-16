@@ -352,6 +352,10 @@ spawn_call(Module, Function, Args) ->
     proc_lib:spawn_link(fun () ->
         exit(try {ok, apply(Module, Function, Args)}
             catch
+                error:{Language, Type, _Val, Trace}=Error
+                        when is_atom(Language) andalso is_atom(Type)
+                        andalso is_list(Trace) ->
+                    {error, Error};
                 Type:Reason ->
                     Trace = erlang:get_stacktrace(),
                     {error, {erlang, Type, Reason, Trace}}

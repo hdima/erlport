@@ -70,6 +70,46 @@ call_test_() -> {setup,
         ?_assertEqual(4, ruby:call(R, '', 'Kernel::eval', [<<"2 + 2">>]))
     end}.
 
+call_back_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (R) -> [
+        ?_assertError({ruby, 'InvalidMode',
+                <<"call() is unsupported in server mode">>, [_|_]},
+            ruby:call(R, 'erlport/erlang', 'Erlang::call',
+                [erlang, length, [[1, 2, 3]]])),
+        ?_assertEqual(3, ruby:switch(R, 'erlport/erlang', 'Erlang::call',
+            [erlang, length, [[1, 2, 3]]], [wait_for_result]))
+    ] end}.
+
+error_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (R) -> [
+        ?_assertError({ruby, 'LoadError',
+                <<"no such file to load -- unknown">>, [_|_]},
+            ruby:call(R, unknown, unknown, [])),
+        ?_assertError({ruby, 'CallError',
+                <<"Tuple([:erlang, :error, :undef, "
+                "[Tuple([:unknown, :unknown, []]), ", _/binary>>, [_|_]},
+            ruby:switch(R, 'erlport/erlang', 'Erlang::call',
+                [unknown, unknown, []], [wait_for_result])),
+        fun () ->
+            R2 = setup(),
+            try
+                ?assertError({ruby, 'CallError',
+                        <<"Tuple([:ruby, :LoadError, "
+                        "\"no such file to load -- unknown\", ",
+                        _/binary>>, [_|_]},
+                    ruby:switch(R, 'erlport/erlang', 'Erlang::call',
+                        [ruby, call, [R2, unknown, unknown, []]],
+                        [wait_for_result]))
+            after
+                cleanup(R2)
+            end
+        end
+    ] end}.
+
 stdin_stdout_test_() -> {setup,
     fun setup/0,
     fun cleanup/1,
