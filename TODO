@@ -1,3 +1,5 @@
+- Can we remove Erlang::start function after start?
+
 - We need more robust error identification in erlport:spawn_call?
 
 - Check all call/switch options and raise error for unknown options
@@ -40,9 +42,6 @@
 - Ruby Erlang::call method (call lock)
 
 - Ruby encoder/decoder for arguments/results
-
-- Should we use "modern" API on Python side? We can leave only Erlang.call()
-  function.
 
 - Allow calls in selected processes in Erlang. We can use arbitrary keys on
   Python/Ruby side and control process creation/mapping/cleanup on Erlang side.

@@ -158,30 +158,24 @@ class MessageHandler(object):
             result = Atom("e"), (Atom("python"), exc, unicode(val), exc_tb)
         return result
 
-class Function(object):
-
-    __slots__ = ()
-
-    def __new__(cls, name, module):
-        cls.__call__ = lambda s, *args: call(module, name, list(args))
-        return super(Function, cls).__new__(cls)
-
 class Module(object):
 
     __slots__ = ()
 
     def __new__(cls, name):
-        cls.__getattribute__ = lambda s, fname: Function(Atom(fname), name)
+        def function(fname):
+            return lambda *args: call(name, fname, list(args))
+        cls.__getattribute__ = lambda s, fname: function(Atom(fname))
         return super(Module, cls).__new__(cls)
 
-class Erlang(object):
+class Modules(object):
 
     __slots__ = ()
 
     def __getattribute__(self, module):
         return Module(Atom(module))
 
-Erlang = Erlang()
+Modules = Modules()
 
 class RedirectedStdin(object):
 

@@ -52,15 +52,19 @@ class CallError < ErlPortError
 end
 
 module Erlang
-    module_function
-    def start port
-        @@port = port
-        @@client = false
-        $stdin = RedirectedStdin.new
-        $stdout = RedirectedStdout.new port
-        begin
-            self.loop
-        rescue EOFError
+    module Modules
+        def self.method_missing name
+            Module.new name.to_sym
+        end
+
+        class Module
+            def initialize name
+                @name = name
+            end
+
+            def method_missing name, *args
+                Erlang.call @name, name.to_sym, args
+            end
         end
     end
 
@@ -86,6 +90,18 @@ module Erlang
             raise UnknownMessage, response.to_s
         end
         value
+    end
+
+    module_function
+    def start port
+        @@port = port
+        @@client = false
+        $stdin = RedirectedStdin.new
+        $stdout = RedirectedStdout.new port
+        begin
+            self.loop
+        rescue EOFError
+        end
     end
 
     private

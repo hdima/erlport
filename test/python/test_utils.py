@@ -1,9 +1,10 @@
-from erlport import Atom, Erlang
+from erlport import Atom
+from erlport.erlang import Modules
 
 def switch(n):
     result = 0
     for i in range(n):
-        result = Erlang.python_tests.test_callback(result, i)
+        result = Modules.python_tests.test_callback(result, i)
     return n
 
 def identity(v):
