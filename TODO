@@ -1,13 +1,11 @@
-- We need more robust error identification in erlport:spawn_call?
-
-- Check all call/switch options and raise error for unknown options
-
 - Wait for result by default for switch? And replace switch's wait_for_result
   option with inverted ignore_result (fail_on_error?)?
 
-- erlport:server_name/0 and erlport:server_instances() types should be moved to
-  some utils module? Maybe move types to a header file because -export_type
-  seems doesn't work as expected in Erlang R13
+- Ruby Erlang::call method (call lock)
+
+- Ruby encoder/decoder for arguments/results
+
+- Add custom encode/decode handlers in Erlang
 
 - Maybe split Python 2/3 tests to distinct modules? And the same for Ruby
   1.8/1.9.
@@ -37,10 +35,6 @@
 
 - Add subscriber behaviour so we can abstract message hubs
 
-- Ruby Erlang::call method (call lock)
-
-- Ruby encoder/decoder for arguments/results
-
 - Allow calls in selected processes in Erlang. We can use arbitrary keys on
   Python/Ruby side and control process creation/mapping/cleanup on Erlang side.
 
@@ -54,13 +48,17 @@
   If process will die we just return 'noproc' error and raise it on the
   Python/Ruby side.
 
-- Add custom encode/decode handlers in Erlang
-
 - Add workers_pool module with pluggable workers selection policies
 
 - Comments for modules
 
 - Check all TODO/FIXME comments
+
+- We need more robust error identification in erlport:spawn_call?
+
+- erlport:server_name/0 and erlport:server_instances() types should be moved to
+  some utils module? Maybe move types to a header file because -export_type
+  seems doesn't work as expected in Erlang R13
 
 Ideas
 =====

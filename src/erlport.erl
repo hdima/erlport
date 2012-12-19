@@ -93,6 +93,7 @@ stop(Pid) ->
 call(Pid, Module, Function, Args, Options) when is_atom(Module)
         andalso is_atom(Function) andalso is_list(Args)
         andalso is_list(Options) ->
+    ok = check_call_options(Options),
     Request = {call, Module, Function, Args, Options},
     call(Pid, Request).
 
@@ -107,6 +108,7 @@ call(Pid, Module, Function, Args, Options) when is_atom(Module)
 switch(Pid, Module, Function, Args, Options) when is_atom(Module)
         andalso is_atom(Function) andalso is_list(Args)
         andalso is_list(Options) ->
+    ok = check_switch_options(Options),
     Request = {switch, Module, Function, Args, Options},
     case proplists:get_value(wait_for_result, Options, false) of
         false ->
@@ -361,3 +363,29 @@ spawn_call(Module, Function, Args) ->
                     {error, {erlang, Type, Reason, Trace}}
             end)
         end).
+
+check_call_options([{timeout, Timeout}=Value | Tail]) ->
+    case erlport_options:timeout(Timeout) of
+        {ok, _} ->
+            check_call_options(Tail);
+        error ->
+            erlang:error({erlport_option_error, Value})
+    end;
+check_call_options([Invalid | _]) ->
+    erlang:error({erlport_invalid_option, Invalid});
+check_call_options([]) ->
+    ok.
+
+check_switch_options([{timeout, Timeout}=Value | Tail]) ->
+    case erlport_options:timeout(Timeout) of
+        {ok, _} ->
+            check_switch_options(Tail);
+        error ->
+            erlang:error({erlport_option_error, Value})
+    end;
+check_switch_options([wait_for_result | Tail]) ->
+    check_switch_options(Tail);
+check_switch_options([Invalid | _]) ->
+    erlang:error({erlport_invalid_option, Invalid});
+check_switch_options([]) ->
+    ok.
