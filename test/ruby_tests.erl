@@ -79,7 +79,7 @@ call_back_test_() -> {setup,
             ruby:call(R, 'erlport/erlang', 'Erlang::call',
                 [erlang, length, [[1, 2, 3]]])),
         ?_assertEqual(3, ruby:switch(R, 'erlport/erlang', 'Erlang::call',
-            [erlang, length, [[1, 2, 3]]], [wait_for_result]))
+            [erlang, length, [[1, 2, 3]]]))
     ] end}.
 
 error_test_() -> {setup,
@@ -93,7 +93,7 @@ error_test_() -> {setup,
                 <<"Tuple([:erlang, :error, :undef, "
                 "[Tuple([:unknown, :unknown, []]), ", _/binary>>, [_|_]},
             ruby:switch(R, 'erlport/erlang', 'Erlang::call',
-                [unknown, unknown, []], [wait_for_result])),
+                [unknown, unknown, []])),
         fun () ->
             R2 = setup(),
             try
@@ -102,8 +102,7 @@ error_test_() -> {setup,
                         "\"no such file to load -- unknown\", ",
                         _/binary>>, [_|_]},
                     ruby:switch(R, 'erlport/erlang', 'Erlang::call',
-                        [ruby, call, [R2, unknown, unknown, []]],
-                        [wait_for_result]))
+                        [ruby, call, [R2, unknown, unknown, []]]))
             after
                 cleanup(R2)
             end
@@ -199,7 +198,7 @@ switch_test_() -> {setup,
     end,
     fun (P) -> [
         fun () ->
-            ?assertEqual(ok, ruby:switch(P, test_utils, switch, [5])),
+            ?assertEqual(ok, ruby:switch(P, test_utils, switch, [5], [async])),
             timer:sleep(500),
             ?assertEqual([
                 {test_callback, 0, 0},
@@ -210,8 +209,7 @@ switch_test_() -> {setup,
                 ], get_events())
         end,
         fun () ->
-            ?assertEqual(5, ruby:switch(P, test_utils, switch, [5],
-                [wait_for_result])),
+            ?assertEqual(5, ruby:switch(P, test_utils, switch, [5])),
             ?assertEqual([
                 {test_callback, 0, 0},
                 {test_callback, 0, 1},

@@ -1,6 +1,3 @@
-- Wait for result by default for switch? And replace switch's wait_for_result
-  option with inverted ignore_result (fail_on_error?)?
-
 - Ruby Erlang::call method (call lock)
 
 - Ruby encoder/decoder for arguments/results

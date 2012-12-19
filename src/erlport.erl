@@ -69,10 +69,10 @@
 -type call_option() :: {timeout, pos_integer() | infinity}.
 -type call_options() :: [call_option()].
 -type switch_option() :: {timeout, pos_integer() | infinity}
-    | wait_for_result.
+    | async.
 -type switch_options() :: [switch_option()].
 
--export_type([server_instance/0]).
+-export_type([server_instance/0, call_options/0, switch_options/0]).
 
 %%
 %% @doc Stop port protocol
@@ -110,11 +110,11 @@ switch(Pid, Module, Function, Args, Options) when is_atom(Module)
         andalso is_list(Options) ->
     ok = check_switch_options(Options),
     Request = {switch, Module, Function, Args, Options},
-    case proplists:get_value(wait_for_result, Options, false) of
+    case proplists:get_value(async, Options, false) of
         false ->
-            gen_fsm:sync_send_event(Pid, Request, infinity);
+            call(Pid, Request);
         _ ->
-            call(Pid, Request)
+            gen_fsm:sync_send_event(Pid, Request, infinity)
     end.
 
 
@@ -158,12 +158,12 @@ client({switch, Module, Function, Args, Options}, From, State=#state{
         {ok, Timeout} ->
             Data = erlport_utils:encode_term({'S', Module, Function,
                 erlport_utils:prepare_list(Args)}, Compressed),
-            case proplists:get_value(wait_for_result, Options, false) of
+            case proplists:get_value(async, Options, false) of
                 false ->
-                    erlport_utils:try_send_request(switch, From, Data,
+                    erlport_utils:try_send_request(switch_wait, From, Data,
                         server, State, Timeout);
                 _ ->
-                    erlport_utils:try_send_request(switch_wait, From, Data,
+                    erlport_utils:try_send_request(switch, From, Data,
                         server, State, Timeout)
             end;
         error ->
@@ -383,7 +383,7 @@ check_switch_options([{timeout, Timeout}=Value | Tail]) ->
         error ->
             erlang:error({erlport_option_error, Value})
     end;
-check_switch_options([wait_for_result | Tail]) ->
+check_switch_options([async | Tail]) ->
     check_switch_options(Tail);
 check_switch_options([Invalid | _]) ->
     erlang:error({erlport_invalid_option, Invalid});

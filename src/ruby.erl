@@ -146,7 +146,7 @@ call(Instance, Module, Function, Args) ->
 
 -spec call(Instance::erlport:server_instance(), Module::atom(),
         Function::atom(), Args::list(),
-        Options::[{timeout, Timeout::pos_integer() | infinity}]) ->
+        Options::erlport:call_options()) ->
     Result::term().
 
 call(Pid, Module, Function, Args, Options) ->
@@ -169,8 +169,7 @@ switch(Instance, Module, Function, Args) ->
 
 -spec switch(Instance::erlport:server_instance(), Module::atom(),
         Function::atom(), Args::list(),
-        Options::[{timeout, Timeout::pos_integer() | infinity}
-            | wait_for_result]) ->
+        Options::erlport:switch_options()) ->
     Result::ok | term() | {error, Reason::term()}.
 
 switch(Pid, Module, Function, Args, Options) ->

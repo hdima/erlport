@@ -84,7 +84,7 @@ call_back_test_() -> [{setup,
             python:call(P, 'erlport.erlang', call,
                 [erlang, length, [[1, 2, 3]]])),
         ?_assertEqual(3, python:switch(P, 'erlport.erlang', call,
-            [erlang, length, [[1, 2, 3]]], [wait_for_result]))
+            [erlang, length, [[1, 2, 3]]]))
     ] end} || Setup <- [fun setup/0, fun setup3/0]].
 
 error_test_() -> {setup,
@@ -98,8 +98,7 @@ error_test_() -> {setup,
                 "(Atom('erlang'), Atom('error'), Atom('undef'), "
                 "List([(Atom('unknown'), Atom('unknown'), List([]))," ++ _,
                 [_|_]},
-            python:switch(P, 'erlport.erlang', call,
-                [unknown, unknown, []], [wait_for_result])),
+            python:switch(P, 'erlport.erlang', call, [unknown, unknown, []])),
         fun () ->
             P2 = setup(),
             try
@@ -107,8 +106,7 @@ error_test_() -> {setup,
                         "(Atom('python'), Atom('exceptions.ImportError'), "
                         ++ _, [_|_]},
                     python:switch(P, 'erlport.erlang', call,
-                        [python, call, [P2, unknown, unknown, []]],
-                        [wait_for_result]))
+                        [python, call, [P2, unknown, unknown, []]]))
             after
                 cleanup(P2)
             end
@@ -126,8 +124,7 @@ error3_test_() -> {setup,
                 "(Atom(b'erlang'), Atom(b'error'), Atom(b'undef'), "
                 "List([(Atom(b'unknown'), Atom(b'unknown'), List([]))," ++ _,
                 [_|_]},
-            python:switch(P, 'erlport.erlang', call,
-                [unknown, unknown, []], [wait_for_result])),
+            python:switch(P, 'erlport.erlang', call, [unknown, unknown, []])),
         fun () ->
             P2 = setup3(),
             try
@@ -135,8 +132,7 @@ error3_test_() -> {setup,
                         "(Atom(b'python'), Atom(b'builtins.ImportError'), "
                         ++ _, [_|_]},
                     python:switch(P, 'erlport.erlang', call,
-                        [python, call, [P2, unknown, unknown, []]],
-                        [wait_for_result]))
+                        [python, call, [P2, unknown, unknown, []]]))
             after
                 cleanup(P2)
             end
@@ -237,7 +233,7 @@ queue_test_() -> [{setup,
             || _ <- lists:seq(1, 50)]}
     end} || Setup <- [fun setup/0, fun setup3/0]].
 
-switch_test_() -> [{setup,
+witch_test_() -> [{setup,
     fun () ->
         setup_event_logger(),
         Setup()
@@ -248,7 +244,8 @@ switch_test_() -> [{setup,
     end,
     fun (P) -> [
         fun () ->
-            ?assertEqual(ok, python:switch(P, test_utils, switch, [5])),
+            ?assertEqual(ok, python:switch(P, test_utils, switch, [5],
+                [async])),
             timer:sleep(500),
             ?assertEqual([
                 {test_callback, 0, 0},
@@ -259,8 +256,7 @@ switch_test_() -> [{setup,
                 ], get_events())
         end,
         fun () ->
-            ?assertEqual(5, python:switch(P, test_utils, switch, [5],
-                [wait_for_result])),
+            ?assertEqual(5, python:switch(P, test_utils, switch, [5])),
             ?assertEqual([
                 {test_callback, 0, 0},
                 {test_callback, 0, 1},
