@@ -98,6 +98,7 @@ module Erlang
         @@client = false
         $stdin = RedirectedStdin.new
         $stdout = RedirectedStdout.new port
+        Erlang.instance_eval {undef :start}
         begin
             self.loop
         rescue EOFError

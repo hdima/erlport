@@ -1,5 +1,3 @@
-- Can we remove Erlang::start function after start?
-
 - We need more robust error identification in erlport:spawn_call?
 
 - Check all call/switch options and raise error for unknown options
