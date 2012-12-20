@@ -1,11 +1,13 @@
 - Ruby encoder/decoder for arguments/results
 
-- Add custom encode/decode handlers in Erlang
+- Add custom encode/decode handlers in Erlang? Should it be a callback module?
 
 - Maybe split Python 2/3 tests to distinct modules? And the same for Ruby
   1.8/1.9.
 
 - Add support for Ruby 1.9+
+
+- Rename messagehub to msgrouter?
 
 - Allow only unidirectional subscriptions by default and make bidirectional
   subscriptions optional?
