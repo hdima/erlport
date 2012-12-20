@@ -25,6 +25,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+require "thread"
+
 require "erlport/erlterms"
 
 include ErlTerm
@@ -47,7 +49,7 @@ class CallError < ErlPortError
             value = Tuple.new([nil, nil, value, []])
         end
         @language, @type, @value, @stacktrace = value
-        super "#{value}"
+        super value
     end
 end
 
@@ -73,21 +75,23 @@ module Erlang
         raise InvalidMode, "call() is unsupported in server mode" \
             if not @@client
 
-        raise ValueError, mod.to_s \
+        raise ValueError, mod \
             if not (mod.is_a? Symbol or mod.is_a? EmptySymbol)
-        raise ValueError, function.to_s \
+        raise ValueError, function \
             if not (function.is_a? Symbol or function.is_a? EmptySymbol)
-        raise ValueError, args.to_s if not args.is_a? Array
+        raise ValueError, args if not args.is_a? Array
 
-        # TODO: Call lock
-        @@port.write(Tuple.new([:C, mod, function, args]))
-        response = @@port.read
-        raise InvalidMessage, response.to_s if response.length != 2
+        response = @@call_lock.synchronize {
+            @@port.write(Tuple.new([:C, mod, function, args]))
+            @@port.read
+        }
+        raise InvalidMessage, response if not response.is_a? Tuple \
+            or response.length != 2
         mtype, value = response
 
         if mtype != :r
             raise CallError, value if mtype == :e
-            raise UnknownMessage, response.to_s
+            raise UnknownMessage, response
         end
         value
     end
@@ -96,6 +100,7 @@ module Erlang
     def start port
         @@port = port
         @@client = false
+        @@call_lock = Mutex.new
         $stdin = RedirectedStdin.new
         $stdout = RedirectedStdout.new port
         Erlang.instance_eval {undef :start}
@@ -133,8 +138,8 @@ module Erlang
         switch_ack = :s
         while true
             message = @@port.read
-            raise InvalidMessage, "invalid message: #{message}" \
-                if message.length != 4
+            raise InvalidMessage, message \
+                if not message.is_a? Tuple or message.length != 4
             mtype, mod, function, args = message
             case mtype
                 when :C
@@ -147,7 +152,7 @@ module Erlang
                         self.call_with_error_handler(mod, function, args))
                     @@client = false
                 else
-                    raise UnknownMessage, "unknown message: #{message}"
+                    raise UnknownMessage, message
             end
         end
     end

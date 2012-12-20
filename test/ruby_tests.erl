@@ -90,17 +90,16 @@ error_test_() -> {setup,
                 <<"no such file to load -- unknown">>, [_|_]},
             ruby:call(R, unknown, unknown, [])),
         ?_assertError({ruby, 'CallError',
-                <<"Tuple([:erlang, :error, :undef, "
-                "[Tuple([:unknown, :unknown, []]), ", _/binary>>, [_|_]},
+                {erlang, error, undef, [{unknown, unknown, []}|_]}, [_|_]},
             ruby:switch(R, 'erlport/erlang', 'Erlang::call',
                 [unknown, unknown, []])),
         fun () ->
             R2 = setup(),
             try
                 ?assertError({ruby, 'CallError',
-                        <<"Tuple([:ruby, :LoadError, "
-                        "\"no such file to load -- unknown\", ",
-                        _/binary>>, [_|_]},
+                        {ruby, 'LoadError',
+                        <<"no such file to load -- unknown">>,
+                        [_|_]}, [_|_]},
                     ruby:switch(R, 'erlport/erlang', 'Erlang::call',
                         [ruby, call, [R2, unknown, unknown, []]]))
             after
