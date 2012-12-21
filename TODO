@@ -9,6 +9,16 @@
 
 - Rename messagehub to msgrouter?
 
+- Rules for pub/sub messages handling:
+
+  - We should drop pub/sub messages if erlport in server mode;
+  - Messages should be delivered as 'switch' calls so external language can
+    send a possible response call
+  - It's better to use Erlang subscribers and call them with an API from
+    external languages. For example request/response can be handled easily in
+    this case just as a function call.
+  - Possible threaded mode can be used for full duplex messaging?
+
 - Allow only unidirectional subscriptions by default and make bidirectional
   subscriptions optional?
 
