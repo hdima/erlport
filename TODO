@@ -19,6 +19,9 @@
   - It's better to use Erlang subscribers and call them with an API from
     external languages. For example request/response can be handled easily in
     this case just as a function call.
+  - Probably request/response can be handled by switching ErlPort to server
+    mode with some external subscriber which handles timeouts. But for this to
+    work external subscriber should monitor all the messages even private ones.
   - Possible threaded mode can be used for full duplex messaging?
 
 - Allow only unidirectional subscriptions by default and make bidirectional
