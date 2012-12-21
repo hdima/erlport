@@ -9,6 +9,8 @@
 
 - Rename messagehub to msgrouter?
 
+- Maybe pub/sub should be allowed only for Erlang?
+
 - Rules for pub/sub messages handling:
 
   - We should drop pub/sub messages if erlport in server mode;
