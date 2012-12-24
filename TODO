@@ -1,3 +1,6 @@
+- Maybe we don't need two modes? We can just leave only erlport:call and warn
+  users about possible deadlock problems?
+
 - Ruby encoder/decoder for arguments/results
 
 - Add custom encode/decode handlers in Erlang? Should it be a callback module?
@@ -28,12 +31,6 @@
   subscriptions optional?
 
 - Need add messagehub:reply functions
-
-- Maybe we need to return 'cast' function? But can it also be done with
-  publish/subscribe framework? Cast can be especially useful for external
-  languages where we can use Erlang Pids to send messages to Erlang processes.
-  Maybe we can add 'cast'/'send' only on external language side where we can
-  use PIDs or registered names for the processes?
 
 - Support message handling in messagehub and erlport
 

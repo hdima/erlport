@@ -31,6 +31,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-define(TIMEOUT, 5000).
+
 
 test_callback(PrevResult, N) ->
     log_event({test_callback, PrevResult, N}),
@@ -69,6 +71,38 @@ call_test_() -> {setup,
     fun (R) ->
         ?_assertEqual(4, ruby:call(R, '', 'Kernel::eval', [<<"2 + 2">>]))
     end}.
+
+cast_test_() -> {setup,
+    fun setup/0,
+    fun cleanup/1,
+    fun (R) -> [
+        fun () ->
+            Pid = self(),
+            Message = test_message,
+            ?assertEqual(undefined, ruby:call(R, 'erlport/erlang',
+                'Erlang::cast', [Pid, Message])),
+            ?assertEqual(ok, receive
+                    Message ->
+                        ok
+                after
+                    ?TIMEOUT ->
+                        timeout
+                end)
+        end,
+        fun () ->
+            Pid = self(),
+            Message = test_message,
+            ?assertEqual(undefined, ruby:switch(R, 'erlport/erlang',
+                'Erlang::cast', [Pid, Message])),
+            ?assertEqual(ok, receive
+                    Message ->
+                        ok
+                after
+                    ?TIMEOUT ->
+                        timeout
+                end)
+        end
+    ] end}.
 
 call_back_test_() -> {setup,
     fun setup/0,

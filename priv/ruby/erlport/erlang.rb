@@ -71,6 +71,12 @@ module Erlang
     end
 
     module_function
+    def cast pid, message
+        @@port.write(Tuple.new([:M, pid, message]))
+        nil
+    end
+
+    module_function
     def call mod, function, args
         raise InvalidMode, "call() is unsupported in server mode" \
             if not @@client

@@ -36,6 +36,8 @@
 -define(assertIdentity(P, V), ?assertEqual((V),
     python:call(P, test_utils, identity, [(V)]))).
 
+-define(TIMEOUT, 5000).
+
 
 test_callback(PrevResult, N) ->
     log_event({test_callback, PrevResult, N}),
@@ -74,6 +76,38 @@ call_test_() -> [{setup,
     fun (P) ->
         ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
     end} || Setup <- [fun setup/0, fun setup3/0]].
+
+cast_test_() -> [{setup,
+    Setup,
+    fun cleanup/1,
+    fun (P) -> [
+        fun () ->
+            Pid = self(),
+            Message = test_message,
+            ?assertEqual(undefined, python:call(P, 'erlport.erlang', cast,
+                [Pid, Message])),
+            ?assertEqual(ok, receive
+                    Message ->
+                        ok
+                after
+                    ?TIMEOUT ->
+                        timeout
+                end)
+        end,
+        fun () ->
+            Pid = self(),
+            Message = test_message,
+            ?assertEqual(undefined, python:switch(P, 'erlport.erlang', cast,
+                [Pid, Message])),
+            ?assertEqual(ok, receive
+                    Message ->
+                        ok
+                after
+                    ?TIMEOUT ->
+                        timeout
+                end)
+        end
+    ] end} || Setup <- [fun setup/0, fun setup3/0]].
 
 call_back_test_() -> [{setup,
     Setup,

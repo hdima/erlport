@@ -112,6 +112,9 @@ class MessageHandler(object):
             else:
                 raise UnknownMessage(message)
 
+    def cast(self, pid, message):
+        self.port.write((Atom(b'M'), pid, message))
+
     def call(self, module, function, args):
         if not self.client:
             raise InvalidMode("call() is unsupported in server mode")
@@ -216,8 +219,9 @@ def setup_stdin_stdout(port):
     del RedirectedStdin, RedirectedStdout
 
 def setup_api_functions(handler):
-    global call, set_encoder, set_decoder
+    global call, cast, set_encoder, set_decoder
     call = handler.call
+    cast = handler.cast
     set_encoder = handler.set_encoder
     set_decoder = handler.set_decoder
 

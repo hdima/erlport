@@ -218,6 +218,8 @@ handle_info({Port, {data, Data}}, StateName=client, State=#state{port=Port}) ->
         {'e', Error} ->
             erlport_utils:handle_response(call, {error, Error}, State,
                 StateName);
+        {'M', Pid, Message} ->
+            send(Pid, Message, StateName, State);
         {'P', StdoutData} ->
             print(StdoutData, StateName, State);
         Response ->
@@ -266,6 +268,8 @@ handle_info({Port, {data, Data}}, StateName=server, State=#state{port=Port,
                     % switch(_wait) should be the last request in the queue
                     {stop, {switch_failed, Error}, State}
             end;
+        {'M', Pid, Message} ->
+            send(Pid, Message, StateName, State);
         {'P', StdoutData} ->
             print(StdoutData, StateName, State);
         Request ->
@@ -389,3 +393,8 @@ check_switch_options([Invalid | _]) ->
     erlang:error({erlport_invalid_option, Invalid});
 check_switch_options([]) ->
     ok.
+
+send(Pid, Message, StateName, State) ->
+    % Ignore errors
+    catch Pid ! Message,
+    {next_state, StateName, State}.
