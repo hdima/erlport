@@ -113,6 +113,8 @@ class MessageHandler(object):
                 raise UnknownMessage(message)
 
     def cast(self, pid, message):
+        # It safe to call it from multiple threads because port.write will be
+        # locked
         self.port.write((Atom('M'), pid, message))
 
     def call(self, module, function, args):

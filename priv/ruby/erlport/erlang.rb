@@ -72,6 +72,8 @@ module Erlang
 
     module_function
     def cast pid, message
+        # It safe to call it from multiple threads because port.write will be
+        # locked
         @@port.write(Tuple.new([:M, pid, message]))
         nil
     end
