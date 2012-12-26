@@ -1,3 +1,8 @@
+- call should support 'stop_on_error' (async?) option from both sides
+
+- Threaded mode with numbered requests. We can use distinct callback module
+  in this case.
+
 - Maybe we don't need two modes? We can just leave only erlport:call and warn
   users about possible deadlock problems?
 
