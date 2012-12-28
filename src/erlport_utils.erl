@@ -44,8 +44,8 @@
     prepare_list/1,
     start_timer/1,
     stop_timer/1,
-    try_send_request/6,
-    handle_response/4
+    try_send_request/5,
+    handle_response/3
     ]).
 
 -type timer() :: undefined | reference().
@@ -139,7 +139,7 @@ prepare_list(ImproperTail) ->
 start_timer(infinity) ->
     undefined;
 start_timer(Timeout) when is_integer(Timeout) andalso Timeout > 0 ->
-    gen_fsm:send_event_after(Timeout, timeout).
+    erlang:send_after(Timeout, self(), timeout).
 
 %%
 %% @doc Stop timer if needed
@@ -150,26 +150,27 @@ start_timer(Timeout) when is_integer(Timeout) andalso Timeout > 0 ->
 stop_timer(undefined) ->
     false;
 stop_timer(Timer) ->
-    gen_fsm:cancel_timer(Timer).
+    % TODO: Should we flush old messages as in gen_fsm?
+    erlang:cancel_timer(Timer).
 
 %%
 %% @doc Try to send request
 %%
 
-try_send_request(Type, From, Data, StateName, State=#state{port=Port,
-        queue=Queue, sent=Sent}, Timeout) ->
+try_send_request(Type, From, Data, State=#state{port=Port, queue=Queue,
+        sent=Sent}, Timeout) ->
     Info = {Type, From, erlport_utils:start_timer(Timeout)},
     case queue:is_empty(Sent) of
         true ->
-            send_request(Info, Data, Queue, StateName, State);
+            send_request(Info, Data, Queue, State);
         false ->
             case erlport_utils:try_send_data(Port, Data) of
                 ok ->
                     Sent2 = queue:in(Info, Sent),
-                    {next_state, StateName, State#state{sent=Sent2}};
+                    {noreply, State#state{sent=Sent2}};
                 wait ->
                     Queue2 = queue:in({Info, Data}, Queue),
-                    {next_state, StateName, State#state{queue=Queue2}};
+                    {noreply, State#state{queue=Queue2}};
                 error ->
                     {stop, port_closed, State}
             end
@@ -179,12 +180,23 @@ try_send_request(Type, From, Data, StateName, State=#state{port=Port,
 %% @doc Handle response
 %%
 
-handle_response(ExpectedType, Response, State=#state{sent=Sent}, StateName) ->
+handle_response(ExpectedType, Response, State=#state{sent=Sent}) ->
     case queue:out(Sent) of
         {{value, {ExpectedType, From, Timer}}, Sent2} ->
             erlport_utils:stop_timer(Timer),
-            gen_fsm:reply(From, Response),
-            process_queue(StateName, State#state{sent=Sent2});
+            % TODO: Cleanup this code
+            case From of
+                unknown ->
+                    case Response of
+                        {error, _} ->
+                            {stop, Response, State};
+                        _ ->
+                            process_queue(State#state{sent=Sent2})
+                    end;
+                _ ->
+                    gen_server:reply(From, Response),
+                    process_queue(State#state{sent=Sent2})
+            end;
         {empty, Sent} ->
             {stop, orphan_response, State};
         _ ->
@@ -195,37 +207,34 @@ handle_response(ExpectedType, Response, State=#state{sent=Sent}, StateName) ->
 %% Utility functions
 %%=============================================================================
 
-send_request(Info, Data, Queue, StateName, State=#state{port=Port,
-        sent=Sent}) ->
-    case erlport_utils:send_data(Port, Data) of
+send_request(Info, Data, Queue, State=#state{port=Port, sent=Sent}) ->
+    case send_data(Port, Data) of
         ok ->
             Sent2 = queue:in(Info, Sent),
-            {next_state, StateName, State#state{sent=Sent2, queue=Queue}};
+            {noreply, State#state{sent=Sent2, queue=Queue}};
         error ->
             {stop, port_closed, State}
     end.
 
-process_queue(StateName=client, State=#state{queue=Queue}) ->
+process_queue(State=#state{queue=Queue}) ->
     case queue:out(Queue) of
         {empty, Queue} ->
-            {next_state, StateName, State};
+            {noreply, State};
         {{value, Queued}, Queue2} ->
-            send_from_queue(Queued, Queue2, StateName, State)
+            send_from_queue(Queued, Queue2, State)
     end.
 
-send_from_queue({Info, Data}, Queue, StateName, State=#state{port=Port,
-        sent=Sent}) ->
+send_from_queue({Info, Data}, Queue, State=#state{port=Port, sent=Sent}) ->
     case queue:is_empty(Sent) of
         true ->
-            send_request(Info, Data, Queue, StateName, State);
+            send_request(Info, Data, Queue, State);
         false ->
             case erlport_utils:try_send_data(Port, Data) of
                 ok ->
                     Sent2 = queue:in(Info, Sent),
-                    {next_state, StateName, State#state{sent=Sent2,
-                        queue=Queue}};
+                    {noreply, State#state{sent=Sent2, queue=Queue}};
                 wait ->
-                    {next_state, StateName, State};
+                    {noreply, State};
                 error ->
                     {stop, port_closed, State}
             end

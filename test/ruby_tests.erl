@@ -75,7 +75,7 @@ call_test_() -> {setup,
 cast_test_() -> {setup,
     fun setup/0,
     fun cleanup/1,
-    fun (R) -> [
+    fun (R) ->
         fun () ->
             Pid = self(),
             Message = test_message,
@@ -88,33 +88,16 @@ cast_test_() -> {setup,
                     ?TIMEOUT ->
                         timeout
                 end)
-        end,
-        fun () ->
-            Pid = self(),
-            Message = test_message,
-            ?assertEqual(undefined, ruby:switch(R, 'erlport/erlang',
-                'Erlang::cast', [Pid, Message])),
-            ?assertEqual(ok, receive
-                    Message ->
-                        ok
-                after
-                    ?TIMEOUT ->
-                        timeout
-                end)
         end
-    ] end}.
+    end}.
 
 call_back_test_() -> {setup,
     fun setup/0,
     fun cleanup/1,
-    fun (R) -> [
-        ?_assertError({ruby, 'InvalidMode',
-                <<"call() is unsupported in server mode">>, [_|_]},
-            ruby:call(R, 'erlport/erlang', 'Erlang::call',
-                [erlang, length, [[1, 2, 3]]])),
-        ?_assertEqual(3, ruby:switch(R, 'erlport/erlang', 'Erlang::call',
+    fun (R) ->
+        ?_assertEqual(3, ruby:call(R, 'erlport/erlang', 'Erlang::call',
             [erlang, length, [[1, 2, 3]]]))
-    ] end}.
+    end}.
 
 error_test_() -> {setup,
     fun setup/0,
@@ -125,7 +108,7 @@ error_test_() -> {setup,
             ruby:call(R, unknown, unknown, [])),
         ?_assertError({ruby, 'CallError',
                 {erlang, error, undef, [{unknown, unknown, []}|_]}, [_|_]},
-            ruby:switch(R, 'erlport/erlang', 'Erlang::call',
+            ruby:call(R, 'erlport/erlang', 'Erlang::call',
                 [unknown, unknown, []])),
         fun () ->
             R2 = setup(),
@@ -134,7 +117,7 @@ error_test_() -> {setup,
                         {ruby, 'LoadError',
                         <<"no such file to load -- unknown">>,
                         [_|_]}, [_|_]},
-                    ruby:switch(R, 'erlport/erlang', 'Erlang::call',
+                    ruby:call(R, 'erlport/erlang', 'Erlang::call',
                         [ruby, call, [R2, unknown, unknown, []]]))
             after
                 cleanup(R2)
@@ -220,7 +203,7 @@ queue_test_() -> {setup,
             || _ <- lists:seq(1, 50)]}
     end}.
 
-switch_test_() -> {setup,
+multiple_call_back_test_() -> {setup,
     fun () ->
         setup_event_logger(),
         setup()
@@ -231,7 +214,7 @@ switch_test_() -> {setup,
     end,
     fun (P) -> [
         fun () ->
-            ?assertEqual(ok, ruby:switch(P, test_utils, switch, [5], [async])),
+            ?assertEqual(ok, ruby:call(P, test_utils, switch, [5], [async])),
             timer:sleep(500),
             ?assertEqual([
                 {test_callback, 0, 0},
@@ -242,7 +225,7 @@ switch_test_() -> {setup,
                 ], get_events())
         end,
         fun () ->
-            ?assertEqual(5, ruby:switch(P, test_utils, switch, [5])),
+            ?assertEqual(5, ruby:call(P, test_utils, switch, [5])),
             ?assertEqual([
                 {test_callback, 0, 0},
                 {test_callback, 0, 1},

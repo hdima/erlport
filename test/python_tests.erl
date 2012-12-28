@@ -80,7 +80,7 @@ call_test_() -> [{setup,
 cast_test_() -> [{setup,
     Setup,
     fun cleanup/1,
-    fun (P) -> [
+    fun (P) ->
         fun () ->
             Pid = self(),
             Message = test_message,
@@ -93,33 +93,16 @@ cast_test_() -> [{setup,
                     ?TIMEOUT ->
                         timeout
                 end)
-        end,
-        fun () ->
-            Pid = self(),
-            Message = test_message,
-            ?assertEqual(undefined, python:switch(P, 'erlport.erlang', cast,
-                [Pid, Message])),
-            ?assertEqual(ok, receive
-                    Message ->
-                        ok
-                after
-                    ?TIMEOUT ->
-                        timeout
-                end)
         end
-    ] end} || Setup <- [fun setup/0, fun setup3/0]].
+    end} || Setup <- [fun setup/0, fun setup3/0]].
 
 call_back_test_() -> [{setup,
     Setup,
     fun cleanup/1,
-    fun (P) -> [
-        ?_assertError({python, 'erlport.erlang.InvalidMode',
-                "call() is unsupported in server mode", [_|_]},
-            python:call(P, 'erlport.erlang', call,
-                [erlang, length, [[1, 2, 3]]])),
-        ?_assertEqual(3, python:switch(P, 'erlport.erlang', call,
+    fun (P) ->
+        ?_assertEqual(3, python:call(P, 'erlport.erlang', call,
             [erlang, length, [[1, 2, 3]]]))
-    ] end} || Setup <- [fun setup/0, fun setup3/0]].
+    end} || Setup <- [fun setup/0, fun setup3/0]].
 
 error_test_() -> {setup,
     fun setup/0,
@@ -132,14 +115,14 @@ error_test_() -> {setup,
                 "(Atom('erlang'), Atom('error'), Atom('undef'), "
                 "List([(Atom('unknown'), Atom('unknown'), List([]))," ++ _,
                 [_|_]},
-            python:switch(P, 'erlport.erlang', call, [unknown, unknown, []])),
+            python:call(P, 'erlport.erlang', call, [unknown, unknown, []])),
         fun () ->
             P2 = setup(),
             try
                 ?assertError({python, 'erlport.erlang.CallError',
                         "(Atom('python'), Atom('exceptions.ImportError'), "
                         ++ _, [_|_]},
-                    python:switch(P, 'erlport.erlang', call,
+                    python:call(P, 'erlport.erlang', call,
                         [python, call, [P2, unknown, unknown, []]]))
             after
                 cleanup(P2)
@@ -158,14 +141,14 @@ error3_test_() -> {setup,
                 "(Atom(b'erlang'), Atom(b'error'), Atom(b'undef'), "
                 "List([(Atom(b'unknown'), Atom(b'unknown'), List([]))," ++ _,
                 [_|_]},
-            python:switch(P, 'erlport.erlang', call, [unknown, unknown, []])),
+            python:call(P, 'erlport.erlang', call, [unknown, unknown, []])),
         fun () ->
             P2 = setup3(),
             try
                 ?assertError({python, 'erlport.erlang.CallError',
                         "(Atom(b'python'), Atom(b'builtins.ImportError'), "
                         ++ _, [_|_]},
-                    python:switch(P, 'erlport.erlang', call,
+                    python:call(P, 'erlport.erlang', call,
                         [python, call, [P2, unknown, unknown, []]]))
             after
                 cleanup(P2)
@@ -267,7 +250,7 @@ queue_test_() -> [{setup,
             || _ <- lists:seq(1, 50)]}
     end} || Setup <- [fun setup/0, fun setup3/0]].
 
-witch_test_() -> [{setup,
+multiple_call_back_test_() -> [{setup,
     fun () ->
         setup_event_logger(),
         Setup()
@@ -278,8 +261,7 @@ witch_test_() -> [{setup,
     end,
     fun (P) -> [
         fun () ->
-            ?assertEqual(ok, python:switch(P, test_utils, switch, [5],
-                [async])),
+            ?assertEqual(ok, python:call(P, test_utils, switch, [5], [async])),
             timer:sleep(500),
             ?assertEqual([
                 {test_callback, 0, 0},
@@ -290,7 +272,7 @@ witch_test_() -> [{setup,
                 ], get_events())
         end,
         fun () ->
-            ?assertEqual(5, python:switch(P, test_utils, switch, [5])),
+            ?assertEqual(5, python:call(P, test_utils, switch, [5])),
             ?assertEqual([
                 {test_callback, 0, 0},
                 {test_callback, 0, 1},

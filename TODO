@@ -1,5 +1,20 @@
 - call should support 'stop_on_error' (async?) option from both sides
 
+- Add modules hierarchy for Ruby, for example: ErlPort::ErlTerms
+
+- Split CallError into subclasses: ErlangError, PythonError, RubyError
+
+- Add more API for middleware scenario. For example modules for every language,
+  like: python.start(). The API of the returned object can be inspired by
+  Thread/multiprocess API? RPC can reraise the right exceptions with this API.
+  Should we allow only RPC or proxy objects also can be allowed? And
+  python.start() can also start Python on other nodes. And also we can allow
+  creation of load balansers and messages routers through external language
+  API?
+
+- In the erlang module we can create a current() function instead of Modules
+  object?
+
 - Threaded mode with numbered requests. We can use distinct callback module
   in this case.
 

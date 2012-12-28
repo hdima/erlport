@@ -44,9 +44,7 @@
     start_link/2,
     stop/1,
     call/4,
-    call/5,
-    switch/4,
-    switch/5
+    call/5
     ]).
 
 -include("python.hrl").
@@ -152,29 +150,6 @@ call(Instance, Module, Function, Args) ->
 call(Pid, Module, Function, Args, Options) ->
     erlport:call(Pid, Module, Function, Args, Options).
 
-%%
-%% @equiv switch(Instance, Module, Function, Args, [])
-%%
-
--spec switch(Instance::erlport:server_instance(), Module::atom(),
-        Function::atom(), Args::list()) ->
-    Result::term().
-
-switch(Instance, Module, Function, Args) ->
-    switch(Instance, Module, Function, Args, []).
-
-%%
-%% @doc Pass control to Python by calling the function with arguments
-%%
-
--spec switch(Instance::erlport:server_instance(), Module::atom(),
-        Function::atom(), Args::list(),
-        Options::erlport:switch_options()) ->
-    Result::ok | term() | {error, Reason::term()}.
-
-switch(Pid, Module, Function, Args, Options) ->
-    erlport:switch(Pid, Module, Function, Args, Options).
-
 %%%============================================================================
 %%% Utility functions
 %%%============================================================================
@@ -185,9 +160,10 @@ start(Function, Name, OptionsList) when is_list(OptionsList) ->
             Init = init_factory(Options),
             case Name of
                 pid ->
-                    gen_fsm:Function(erlport, Init, [{timeout, Timeout}]);
+                    gen_server:Function(erlport, Init, [{timeout, Timeout}]);
                 Name ->
-                    gen_fsm:Function(Name, erlport, Init, [{timeout, Timeout}])
+                    gen_server:Function(Name, erlport, Init,
+                        [{timeout, Timeout}])
             end;
         Error={error, _} ->
             Error
@@ -207,8 +183,7 @@ init_factory(#python_options{python=Python,use_stdio=UseStdio, packet=Packet,
             " --buffer_size=", BufferSize]),
         try open_port({spawn, Path}, PortOptions) of
             Port ->
-                {ok, client, #state{port=Port, timeout=Timeout,
-                    compressed=Compressed}}
+                {ok, #state{port=Port, timeout=Timeout, compressed=Compressed}}
         catch
             error:Error ->
                 {stop, {open_port_error, Error}}

@@ -34,9 +34,6 @@ include ErlTerm
 class ErlPortError < Exception
 end
 
-class InvalidMode < ErlPortError
-end
-
 class InvalidMessage < ErlPortError
 end
 
@@ -80,9 +77,6 @@ module Erlang
 
     module_function
     def call mod, function, args
-        raise InvalidMode, "call() is unsupported in server mode" \
-            if not @@client
-
         raise ValueError, mod \
             if not (mod.is_a? Symbol or mod.is_a? EmptySymbol)
         raise ValueError, function \
@@ -107,7 +101,6 @@ module Erlang
     module_function
     def start port
         @@port = port
-        @@client = false
         @@call_lock = Mutex.new
         $stdin = RedirectedStdin.new
         $stdout = RedirectedStdout.new port
@@ -143,25 +136,15 @@ module Erlang
 
     module_function
     def loop
-        switch_ack = :s
         while true
             message = @@port.read
             raise InvalidMessage, message \
                 if not message.is_a? Tuple or message.length != 4
             mtype, mod, function, args = message
-            case mtype
-                when :C
-                    @@port.write(
-                        self.call_with_error_handler(mod, function, args))
-                when :S
-                    @@port.write(switch_ack)
-                    @@client = true
-                    @@port.write(
-                        self.call_with_error_handler(mod, function, args))
-                    @@client = false
-                else
-                    raise UnknownMessage, message
-            end
+
+            raise UnknownMessage, message if mtype != :C
+
+            @@port.write(self.call_with_error_handler(mod, function, args))
         end
     end
 

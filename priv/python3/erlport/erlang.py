@@ -41,9 +41,6 @@ class InvalidMessage(Error):
 class UnknownMessage(Error):
     """Unknown message."""
 
-class InvalidMode(Error):
-    """Invalid mode."""
-
 class CallError(Error):
     """Call error."""
 
@@ -58,7 +55,6 @@ class MessageHandler(object):
 
     def __init__(self, port):
         self.port = port
-        self.client = False
         self.set_encoder(None)
         self.set_decoder(None)
         call_lock = Lock()
@@ -94,7 +90,6 @@ class MessageHandler(object):
             pass
 
     def loop(self, read, write, call):
-        switch_ack = Atom(b"s")
         while True:
             message = read()
             try:
@@ -102,15 +97,10 @@ class MessageHandler(object):
             except ValueError:
                 raise InvalidMessage(message)
 
-            if mtype == b"C":
-                write(call(module, function, args))
-            elif mtype == b"S":
-                write(switch_ack)
-                self.client = True
-                write(call(module, function, args))
-                self.client = False
-            else:
+            if mtype != b"C":
                 raise UnknownMessage(message)
+
+            write(call(module, function, args))
 
     def cast(self, pid, message):
         # It safe to call it from multiple threads because port.write will be
@@ -118,9 +108,6 @@ class MessageHandler(object):
         self.port.write((Atom(b'M'), pid, message))
 
     def call(self, module, function, args):
-        if not self.client:
-            raise InvalidMode("call() is unsupported in server mode")
-
         if not isinstance(module, Atom):
             raise ValueError(module)
         if not isinstance(function, Atom):
