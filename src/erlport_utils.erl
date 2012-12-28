@@ -42,7 +42,7 @@
     encode_term/2,
     prepare_term/1,
     prepare_list/1,
-    start_timer/1,
+    start_timer/2,
     stop_timer/1,
     try_send_request/5,
     handle_response/3
@@ -134,12 +134,13 @@ prepare_list(ImproperTail) ->
 %% @doc Start timer if needed
 %%
 
--spec start_timer(Timeout::pos_integer() | infinity) -> Timer::timer().
+-spec start_timer(Timeout::pos_integer() | infinity, Message::term()) ->
+    Timer::timer().
 
-start_timer(infinity) ->
+start_timer(infinity, _Message) ->
     undefined;
-start_timer(Timeout) when is_integer(Timeout) andalso Timeout > 0 ->
-    erlang:send_after(Timeout, self(), timeout).
+start_timer(Timeout, Message) when is_integer(Timeout) andalso Timeout > 0 ->
+    erlang:send_after(Timeout, self(), Message).
 
 %%
 %% @doc Stop timer if needed
@@ -159,12 +160,12 @@ stop_timer(Timer) ->
 
 try_send_request(Type, From, Data, State=#state{port=Port, queue=Queue,
         sent=Sent}, Timeout) ->
-    Info = {Type, From, erlport_utils:start_timer(Timeout)},
+    Info = {Type, From, start_timer(Timeout, timeout)},
     case queue:is_empty(Sent) of
         true ->
             send_request(Info, Data, Queue, State);
         false ->
-            case erlport_utils:try_send_data(Port, Data) of
+            case try_send_data(Port, Data) of
                 ok ->
                     Sent2 = queue:in(Info, Sent),
                     {noreply, State#state{sent=Sent2}};
@@ -183,7 +184,7 @@ try_send_request(Type, From, Data, State=#state{port=Port, queue=Queue,
 handle_response(ExpectedType, Response, State=#state{sent=Sent}) ->
     case queue:out(Sent) of
         {{value, {ExpectedType, From, Timer}}, Sent2} ->
-            erlport_utils:stop_timer(Timer),
+            stop_timer(Timer),
             % TODO: Cleanup this code
             case From of
                 unknown ->
@@ -229,7 +230,7 @@ send_from_queue({Info, Data}, Queue, State=#state{port=Port, sent=Sent}) ->
         true ->
             send_request(Info, Data, Queue, State);
         false ->
-            case erlport_utils:try_send_data(Port, Data) of
+            case try_send_data(Port, Data) of
                 ok ->
                     Sent2 = queue:in(Info, Sent),
                     {noreply, State#state{sent=Sent2, queue=Queue}};

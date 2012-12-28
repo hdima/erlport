@@ -1,5 +1,8 @@
 - call should support 'stop_on_error' (async?) option from both sides
 
+- Probably erlang.cast and print can be implemented with call(..., [async])
+  without any special messages?
+
 - Add modules hierarchy for Ruby, for example: ErlPort::ErlTerms
 
 - Split CallError into subclasses: ErlangError, PythonError, RubyError
@@ -17,9 +20,6 @@
 
 - Threaded mode with numbered requests. We can use distinct callback module
   in this case.
-
-- Maybe we don't need two modes? We can just leave only erlport:call and warn
-  users about possible deadlock problems?
 
 - Ruby encoder/decoder for arguments/results
 

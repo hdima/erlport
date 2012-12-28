@@ -148,12 +148,6 @@ handle_cast({call, Module, Function, Args, Options}, State=#state{
             Error = {error, {invalid_option, {timeout, Timeout}}},
             {stop, Error, State}
     end;
-% TODO: Need to check timeout handlers here
-handle_cast(Error=timeout, State=#state{call={Pid, _Timer}}) ->
-    true = exit(Pid, Error),
-    {noreply, State};
-handle_cast(Error=timeout, State) ->
-    {stop, Error, State};
 handle_cast(stop, State) ->
     {stop, normal, State};
 handle_cast(_Event, State) ->
@@ -163,45 +157,16 @@ handle_cast(_Event, State) ->
 %% @doc Messages handler
 %% @hidden
 %%
-handle_info({Port, {data, Data}}, State=#state{port=Port, timeout=Timeout}) ->
-    try binary_to_term(Data) of
-        {'C', Module, Function, Args} when is_atom(Module), is_atom(Function),
-                is_list(Args) ->
-            Pid = spawn_call(Module, Function, Args),
-            Info = {Pid, erlport_utils:start_timer(Timeout)},
-            {noreply, State#state{call=Info}};
-        {'r', Result} ->
-            erlport_utils:handle_response(call, {ok, Result}, State);
-        {'e', Error} ->
-            erlport_utils:handle_response(call, {error, Error}, State);
-        {'M', Pid, Message} ->
-            send(Pid, Message, State);
-        {'P', StdoutData} ->
-            print(StdoutData, State);
-        Request ->
-            {stop, {invalid_protocol_message, Request}, State}
-    catch
-        error:badarg ->
-            {stop, {invalid_protocol_data, Data}, State}
-    end;
-handle_info({'EXIT', Pid, Result}, State=#state{port=Port, call={Pid, Timer},
-        compressed=Compressed}) ->
-    erlport_utils:stop_timer(Timer),
-    R = case Result of
-        {ok, Response} ->
-            {'r', erlport_utils:prepare_term(Response)};
-        {error, Error} ->
-            {'e', erlport_utils:prepare_term(Error)};
-        Error ->
-            {'e', {erlang, undefined, erlport_utils:prepare_term(Error), []}}
-    end,
-    case erlport_utils:send_data(Port,
-            erlport_utils:encode_term(R, Compressed)) of
-        ok ->
-            {noreply, State#state{call=undefined}};
-        error ->
-            {stop, port_closed, State#state{call=undefined}}
-    end;
+handle_info({Port, {data, Data}}, State=#state{port=Port}) ->
+    handle_port_data(Data, State);
+handle_info({'EXIT', Pid, Result}, State=#state{call={Pid, _Timer}}) ->
+    handle_call_result(Result, State);
+handle_info({timeout, Pid}, State=#state{call={Pid, _Timer}}) ->
+    % FIXME: Is it works?
+    true = exit(Pid, timeout),
+    {noreply, State};
+handle_info(timeout, State) ->
+    {stop, timeout, State};
 handle_info({Port, closed}, State=#state{port=Port}) ->
     {stop, port_closed, State};
 handle_info({'EXIT', Port, Reason}, State=#state{port=Port}) ->
@@ -214,28 +179,9 @@ handle_info(_Info, State) ->
 %% @hidden
 %%
 terminate(Reason, #state{sent=Sent, queue=Queue}) ->
-    Error = case Reason of
-        normal ->
-            {error, stopped};
-        Reason ->
-            {error, Reason}
-    end,
-    queue_foreach(fun ({_Type, From, _Timer}) ->
-        case From of
-            unknown ->
-                ok;
-            _ ->
-                gen_server:reply(From, Error)
-        end
-        end, Sent),
-    queue_foreach(fun ({{_Type, From, _Timer}, _Data}) ->
-        case From of
-            unknown ->
-                ok;
-            _ ->
-                gen_server:reply(From, Error)
-        end
-        end, Queue).
+    Error = get_termination_error(Reason),
+    queue_foreach(send_error_factory(Error), Sent),
+    queue_foreach(send_error_factory(Error), Queue).
 
 %%
 %% @doc Code change handler
@@ -247,6 +193,19 @@ code_change(_OldVsn, State, _Extra) ->
 %%%
 %%% Internal functions
 %%%
+
+get_termination_error(normal) ->
+    {error, stopped};
+get_termination_error(Reason) ->
+    {error, Reason}.
+
+send_error_factory(Error) ->
+    fun
+        ({_Type, unknown, _Timer}) ->
+            ok;
+        ({_Type, From, _Timer}) ->
+            gen_server:reply(From, Error)
+    end.
 
 queue_foreach(Fun, Queue) ->
     case queue:out(Queue) of
@@ -298,6 +257,53 @@ check_call_options([]) ->
     ok.
 
 send(Pid, Message, State) ->
-    % Ignore errors
-    catch Pid ! Message,
-    {noreply, State}.
+    try Pid ! Message of
+        _ ->
+            {noreply, State}
+    catch
+        ErrType:Error ->
+            {stop, {send_error, {ErrType, Error}}, State}
+    end.
+
+handle_port_data(Data, State) ->
+    try binary_to_term(Data) of
+        Message ->
+            handle_message(Message, State)
+    catch
+        error:badarg ->
+            {stop, {invalid_protocol_data, Data}, State}
+    end.
+
+handle_message({'C', Module, Function, Args}, State=#state{timeout=Timeout})
+        when is_atom(Module), is_atom(Function), is_list(Args) ->
+    Pid = spawn_call(Module, Function, Args),
+    Info = {Pid, erlport_utils:start_timer(Timeout, {timeout, Pid})},
+    {noreply, State#state{call=Info}};
+handle_message({'r', Result}, State) ->
+    erlport_utils:handle_response(call, {ok, Result}, State);
+handle_message({'e', Error}, State) ->
+    erlport_utils:handle_response(call, {error, Error}, State);
+handle_message({'M', Pid, Message}, State) ->
+    send(Pid, Message, State);
+handle_message({'P', StdoutData}, State) ->
+    print(StdoutData, State);
+handle_message(Request, State) ->
+    {stop, {invalid_protocol_message, Request}, State}.
+
+handle_call_result(Result, State=#state{port=Port, call={_Pid, Timer},
+        compressed=Compressed}) ->
+    erlport_utils:stop_timer(Timer),
+    Data = erlport_utils:encode_term(format_call_result(Result), Compressed),
+    case erlport_utils:send_data(Port, Data) of
+        ok ->
+            {noreply, State#state{call=undefined}};
+        error ->
+            {stop, port_closed, State#state{call=undefined}}
+    end.
+
+format_call_result({ok, Response}) ->
+    {'r', erlport_utils:prepare_term(Response)};
+format_call_result({error, Error}) ->
+    {'e', erlport_utils:prepare_term(Error)};
+format_call_result(Error) ->
+    {'e', {erlang, undefined, erlport_utils:prepare_term(Error), []}}.
