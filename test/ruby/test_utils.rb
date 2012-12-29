@@ -8,6 +8,10 @@ def switch n
     n
 end
 
+def identity v
+    v
+end
+
 module Test
     module_function
     def add a, b

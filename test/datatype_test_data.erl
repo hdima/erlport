@@ -25,13 +25,48 @@
 %%% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %%% POSSIBILITY OF SUCH DAMAGE.
 
--module(python_tests).
+-module(datatype_test_data).
 
--include_lib("eunit/include/eunit.hrl").
+-export([get_test_data/0]).
 
 
-python2_test() ->
-    python2_tests:test().
+get_test_data() ->
+    lists:append([
+        integer_types(),
+        big_integer_types(),
+        float_types(),
+        atom_types(),
+        list_types(),
+        improper_list_types(),
+        tuple_types(),
+        binary_types(),
+        opaque_types()
+        ]).
 
-python3_test() ->
-    python3_tests:test().
+integer_types() ->
+    [0, 1, -1, 100000, -100000].
+
+big_integer_types() ->
+    [1000000000000, -1000000000000, 2 bsl 2040, -2 bsl 2040].
+
+float_types() ->
+    [0.0, 0.5, -0.5, 3.1415926, -3.1415926].
+
+atom_types() ->
+    ['', test, 'TEST', true, false, undefined].
+
+list_types() ->
+    [[], [0], [1, 2, 3], [[]], [[], [], []], lists:seq(1, 10000)].
+
+improper_list_types() ->
+    [[0 | 1], [1, 2, 3 | 4], [head | tail]].
+
+tuple_types() ->
+    [{}, {0}, {1, 2, 3}, {{}}, {{}, {}}, list_to_tuple(lists:seq(1, 10000))].
+
+binary_types() ->
+    [<<>>, <<"test">>, <<0, 1, 2, 3, 4, 5>>].
+
+opaque_types() ->
+    [self(), [{pid, self()}], <<1:2>>, make_ref(), fun erlang:is_atom/1,
+        fun () -> true end].

@@ -31,26 +31,27 @@ require "erlport/erlterms"
 
 include ErlTerm
 
-class ErlPortError < Exception
-end
-
-class InvalidMessage < ErlPortError
-end
-
-class UnknownMessage < ErlPortError
-end
-
-class CallError < ErlPortError
-    def initialize value
-        if not value.is_a? Tuple or value.length != 4
-            value = Tuple.new([nil, nil, value, []])
-        end
-        @language, @type, @value, @stacktrace = value
-        super value
-    end
-end
-
 module Erlang
+
+    class ErlPortError < Exception
+    end
+
+    class InvalidMessage < ErlPortError
+    end
+
+    class UnknownMessage < ErlPortError
+    end
+
+    class CallError < ErlPortError
+        def initialize value
+            if not value.is_a? Tuple or value.length != 4
+                value = Tuple.new([nil, nil, value, []])
+            end
+            @language, @type, @value, @stacktrace = value
+            super value
+        end
+    end
+
     module Modules
         def self.method_missing name
             Module.new name.to_sym
