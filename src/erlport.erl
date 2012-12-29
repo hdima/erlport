@@ -113,19 +113,8 @@ init(Fun) when is_function(Fun, 0) ->
 %% @doc Synchronous event handler
 %% @hidden
 %%
-handle_call({call, Module, Function, Args, Options}, From, State=#state{
-        timeout=DefaultTimeout, compressed=Compressed}) when is_atom(Module),
-        is_atom(Function), is_list(Args), is_list(Options) ->
-    Timeout = proplists:get_value(timeout, Options, DefaultTimeout),
-    case erlport_options:timeout(Timeout) of
-        {ok, Timeout} ->
-            Data = erlport_utils:encode_term({'C', Module, Function,
-                erlport_utils:prepare_list(Args)}, Compressed),
-            erlport_utils:try_send_request(call, From, Data, State, Timeout);
-        error ->
-            Error = {error, {invalid_option, {timeout, Timeout}}},
-            {reply, Error, State}
-    end;
+handle_call(Call={call, _M, _F, _A, _O}, From, State=#state{}) ->
+    send_call_request(Call, From, State);
 handle_call(Request, From, State) ->
     Error = {unknown_call, ?MODULE, Request, From},
     {reply, Error, State}.
@@ -134,20 +123,8 @@ handle_call(Request, From, State) ->
 %% @doc Asynchronous event handler
 %% @hidden
 %%
-handle_cast({call, Module, Function, Args, Options}, State=#state{
-        timeout=DefaultTimeout, compressed=Compressed}) when is_atom(Module),
-        is_atom(Function), is_list(Args), is_list(Options) ->
-    % TODO: Duplicate code with handle_call()
-    Timeout = proplists:get_value(timeout, Options, DefaultTimeout),
-    case erlport_options:timeout(Timeout) of
-        {ok, Timeout} ->
-            Data = erlport_utils:encode_term({'C', Module, Function,
-                erlport_utils:prepare_list(Args)}, Compressed),
-            erlport_utils:try_send_request(call, unknown, Data, State, Timeout);
-        error ->
-            Error = {error, {invalid_option, {timeout, Timeout}}},
-            {stop, Error, State}
-    end;
+handle_cast(Call={call, _M, _F, _A, _O}, State=#state{}) ->
+    send_call_request(Call, unknown, State);
 handle_cast(stop, State) ->
     {stop, normal, State};
 handle_cast(_Event, State) ->
@@ -161,11 +138,13 @@ handle_info({Port, {data, Data}}, State=#state{port=Port}) ->
     handle_port_data(Data, State);
 handle_info({'EXIT', Pid, Result}, State=#state{call={Pid, _Timer}}) ->
     handle_call_result(Result, State);
-handle_info({timeout, Pid}, State=#state{call={Pid, _Timer}}) ->
-    % FIXME: Is it works?
+handle_info({in_timeout, Pid}, State=#state{call={Pid, _Timer}}) ->
     true = exit(Pid, timeout),
     {noreply, State};
-handle_info(timeout, State) ->
+handle_info({out_timeout, From}, State) ->
+    gen_server:reply(From, {error, timeout}),
+    {noreply, State};
+handle_info(out_timeout, State) ->
     {stop, timeout, State};
 handle_info({Port, closed}, State=#state{port=Port}) ->
     {stop, port_closed, State};
@@ -194,11 +173,17 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%
 
+%%
+%% @doc Return error to send to all connected clients on the server termination
+%%
 get_termination_error(normal) ->
     {error, stopped};
 get_termination_error(Reason) ->
     {error, Reason}.
 
+%%
+%% @doc Return factory to send error response to the client if possible
+%%
 send_error_factory(Error) ->
     fun
         ({_Type, unknown, _Timer}) ->
@@ -207,6 +192,9 @@ send_error_factory(Error) ->
             gen_server:reply(From, Error)
     end.
 
+%%
+%% @doc Call Fun for each item in the Queue
+%%
 queue_foreach(Fun, Queue) ->
     case queue:out(Queue) of
         {{value, Item}, Queue2} ->
@@ -216,6 +204,9 @@ queue_foreach(Fun, Queue) ->
             ok
     end.
 
+%%
+%% @doc Call the server and return call result
+%%
 call(Pid, Request, Timeout) ->
     case gen_server:call(Pid, Request, Timeout) of
         {ok, Result} ->
@@ -224,10 +215,16 @@ call(Pid, Request, Timeout) ->
             erlang:error(Error)
     end.
 
+%%
+%% @doc Handle incoming 'print' request
+%%
 print(Data, State) ->
     ok = io:put_chars(Data),
     {noreply, State}.
 
+%%
+%% @doc Spawn a process to handle incoming call request
+%%
 spawn_call(Module, Function, Args) ->
     proc_lib:spawn_link(fun () ->
         exit(try {ok, apply(Module, Function, Args)}
@@ -242,6 +239,9 @@ spawn_call(Module, Function, Args) ->
             end)
         end).
 
+%%
+%% @doc Check options for the call request
+%%
 check_call_options([{timeout, Timeout}=Value | Tail]) ->
     case erlport_options:timeout(Timeout) of
         {ok, _} ->
@@ -256,6 +256,9 @@ check_call_options([Invalid | _]) ->
 check_call_options([]) ->
     ok.
 
+%%
+%% @doc Handle incoming 'cast' request
+%%
 send(Pid, Message, State) ->
     try Pid ! Message of
         _ ->
@@ -265,6 +268,9 @@ send(Pid, Message, State) ->
             {stop, {send_error, {ErrType, Error}}, State}
     end.
 
+%%
+%% @doc Handle incoming data
+%%
 handle_port_data(Data, State) ->
     try binary_to_term(Data) of
         Message ->
@@ -274,10 +280,13 @@ handle_port_data(Data, State) ->
             {stop, {invalid_protocol_data, Data}, State}
     end.
 
+%%
+%% @doc Handle incoming message
+%%
 handle_message({'C', Module, Function, Args}, State=#state{timeout=Timeout})
         when is_atom(Module), is_atom(Function), is_list(Args) ->
     Pid = spawn_call(Module, Function, Args),
-    Info = {Pid, erlport_utils:start_timer(Timeout, {timeout, Pid})},
+    Info = {Pid, erlport_utils:start_timer(Timeout, {in_timeout, Pid})},
     {noreply, State#state{call=Info}};
 handle_message({'r', Result}, State) ->
     erlport_utils:handle_response(call, {ok, Result}, State);
@@ -290,6 +299,9 @@ handle_message({'P', StdoutData}, State) ->
 handle_message(Request, State) ->
     {stop, {invalid_protocol_message, Request}, State}.
 
+%%
+%% @doc Handle incoming call result
+%%
 handle_call_result(Result, State=#state{port=Port, call={_Pid, Timer},
         compressed=Compressed}) ->
     erlport_utils:stop_timer(Timer),
@@ -301,9 +313,35 @@ handle_call_result(Result, State=#state{port=Port, call={_Pid, Timer},
             {stop, port_closed, State#state{call=undefined}}
     end.
 
+%%
+%% @doc Format incoming call result
+%%
 format_call_result({ok, Response}) ->
     {'r', erlport_utils:prepare_term(Response)};
 format_call_result({error, Error}) ->
     {'e', erlport_utils:prepare_term(Error)};
 format_call_result(Error) ->
     {'e', {erlang, undefined, erlport_utils:prepare_term(Error), []}}.
+
+%%
+%% @doc Send or queue outgoing call request
+%%
+send_call_request({call, Module, Function, Args, Options}, From, State=#state{
+        timeout=DefaultTimeout, compressed=Compressed})
+        when is_atom(Module) andalso is_atom(Function) andalso is_list(Args)
+        andalso is_list(Options) ->
+    Timeout = proplists:get_value(timeout, Options, DefaultTimeout),
+    case erlport_options:timeout(Timeout) of
+        {ok, Timeout} ->
+            Data = erlport_utils:encode_term({'C', Module, Function,
+                erlport_utils:prepare_list(Args)}, Compressed),
+            erlport_utils:try_send_request(call, From, Data, State, Timeout);
+        error ->
+            Error = {error, {invalid_option, {timeout, Timeout}}},
+            case From of
+                unknown ->
+                    {stop, Error, State};
+                _ ->
+                    {reply, Error, State}
+            end
+    end.

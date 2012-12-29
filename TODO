@@ -1,5 +1,8 @@
 - call should support 'stop_on_error' (async?) option from both sides
 
+- Allow not only atoms in call() functions, convert strings, unicode(?) to
+  atoms. Test functions with Unicode names.
+
 - It seems 'print' messages doesn't work with Unicode characters right now?
 
 - It seems we need to remove all 'modern' interfaces to keep the consistensy

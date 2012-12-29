@@ -160,7 +160,13 @@ stop_timer(Timer) ->
 
 try_send_request(Type, From, Data, State=#state{port=Port, queue=Queue,
         sent=Sent}, Timeout) ->
-    Info = {Type, From, start_timer(Timeout, timeout)},
+    Timer = case From of
+        unknown ->
+            start_timer(Timeout, out_timeout);
+        _ ->
+            start_timer(Timeout, {out_timeout, From})
+    end,
+    Info = {Type, From, Timer},
     case queue:is_empty(Sent) of
         true ->
             send_request(Info, Data, Queue, State);

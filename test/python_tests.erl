@@ -156,6 +156,7 @@ error3_test_() -> {setup,
         end
     ] end}.
 
+% TODO: Unicode test
 stdin_stdout_test_() -> {setup,
     fun setup/0,
     fun cleanup/1,
