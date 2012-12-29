@@ -1,7 +1,7 @@
 - call should support 'stop_on_error' (async?) option from both sides
 
-- Probably erlang.cast and print can be implemented with call(..., [async])
-  without any special messages?
+- It seems we need to remove all 'modern' interfaces to keep the consistensy
+  of the API
 
 - Add modules hierarchy for Ruby, for example: ErlPort::ErlTerms
 
@@ -14,12 +14,6 @@
   python.start() can also start Python on other nodes. And also we can allow
   creation of load balansers and messages routers through external language
   API?
-
-- In the erlang module we can create a current() function instead of Modules
-  object?
-
-- Threaded mode with numbered requests. We can use distinct callback module
-  in this case.
 
 - Ruby encoder/decoder for arguments/results
 
@@ -36,9 +30,6 @@
 
 - Rules for pub/sub messages handling:
 
-  - We should drop pub/sub messages if erlport in server mode;
-  - Messages should be delivered as 'switch' calls so external language can
-    send a possible response call
   - It's better to use Erlang subscribers and call them with an API from
     external languages. For example request/response can be handled easily in
     this case just as a function call.
@@ -48,7 +39,7 @@
   - Possible threaded mode can be used for full duplex messaging?
 
 - Allow only unidirectional subscriptions by default and make bidirectional
-  subscriptions optional?
+  subscriptions optional??
 
 - Need add messagehub:reply functions
 
@@ -71,9 +62,6 @@
 
   Add options to erlang.call: [{key, Key}, {timeout, Timeout}].
 
-  Can we select timeouts with the modern API? For example to create the root
-  object with some timeout?
-
   If process will die we just return 'noproc' error and raise it on the
   Python/Ruby side.
 
@@ -89,16 +77,20 @@
   some utils module? Maybe move types to a header file because -export_type
   seems doesn't work as expected in Erlang R13
 
+Later
+=====
+
+- Threaded mode with numbered requests. We can use distinct callback module
+  in this case.
+
+- Support for other languages (Perl, Lua, ?).
+
 Ideas
 =====
 
 - Add xref checks?
 
 - More methods for Ruby's Tuple class?
-
-- Add 'threaded' mode for switch (and call with a thread pool?)?
-
-- Support for other languages (Perl, Lua, ?).
 
 - Maybe it's possible to create an ErlPort interface which loads dynamic
   libraries?
