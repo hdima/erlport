@@ -5,11 +5,6 @@
 
 - It seems 'print' messages doesn't work with Unicode characters right now?
 
-- It seems we need to remove all 'modern' interfaces to keep the consistensy
-  of the API
-
-- Add modules hierarchy for Ruby, for example: ErlPort::ErlTerms
-
 - Split CallError into subclasses: ErlangError, PythonError, RubyError
 
 - Add more API for middleware scenario. For example modules for every language,

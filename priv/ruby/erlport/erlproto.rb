@@ -30,6 +30,7 @@ require "thread"
 require "erlport/errors"
 require "erlport/erlterms"
 
+module ErlPort
 module ErlProto
     class Port
         attr_reader :in_d, :out_d
@@ -78,13 +79,13 @@ module ErlProto
                 while buffer.length < length
                     buffer += read_data()
                 end
-                term, @buffer = ErlTerm.decode(buffer[packet..-1])
+                term, @buffer = ErlPort::ErlTerm.decode(buffer[packet..-1])
                 term
             }
         end
 
         def write message
-            data = ErlTerm.encode(message, compressed=@compressed)
+            data = ErlPort::ErlTerm.encode(message, compressed=@compressed)
             length = data.length
             data = pack(length) + data
             @write_lock.synchronize {
@@ -126,4 +127,5 @@ module ErlProto
             buf
         end
     end
+end
 end

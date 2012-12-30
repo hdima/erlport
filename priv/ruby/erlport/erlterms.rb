@@ -35,6 +35,7 @@
 require "zlib"
 require "erlport/errors"
 
+module ErlPort
 module ErlTerm
     class IncompleteData < Exception
         def initialize string
@@ -419,4 +420,5 @@ module ErlTerm
         end
         return OpaqueObject.new(data, :ruby).encode()
     end
+end
 end

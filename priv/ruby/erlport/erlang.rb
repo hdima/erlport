@@ -29,8 +29,9 @@ require "thread"
 
 require "erlport/erlterms"
 
-include ErlTerm
+include ErlPort::ErlTerm
 
+module ErlPort
 module Erlang
 
     class ErlPortError < Exception
@@ -49,22 +50,6 @@ module Erlang
             end
             @language, @type, @value, @stacktrace = value
             super value
-        end
-    end
-
-    module Modules
-        def self.method_missing name
-            Module.new name.to_sym
-        end
-
-        class Module
-            def initialize name
-                @name = name
-            end
-
-            def method_missing name, *args
-                Erlang.call @name, name.to_sym, args
-            end
         end
     end
 
@@ -172,4 +157,5 @@ module Erlang
             Tuple.new([:e, value])
         end
     end
+end
 end

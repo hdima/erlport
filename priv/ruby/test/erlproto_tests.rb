@@ -29,8 +29,8 @@ require 'test/unit'
 require 'erlport/erlproto'
 require 'erlport/erlterms'
 
-include ErlProto
-include ErlTerm
+include ErlPort::ErlProto
+include ErlPort::ErlTerm
 
 class TestPortClient
     attr_reader :port

@@ -28,7 +28,7 @@
 require 'test/unit'
 require 'erlport/erlterms'
 
-include ErlTerm
+include ErlPort::ErlTerm
 
 
 class EmptySymbolTestCase < Test::Unit::TestCase

@@ -84,7 +84,7 @@ cast_test_() ->
             Pid = self(),
             Message = test_message,
             ?assertEqual(undefined, ruby:call(P, 'erlport/erlang',
-                'Erlang::cast', [Pid, Message])),
+                'ErlPort::Erlang::cast', [Pid, Message])),
             ?assertEqual(ok, receive
                     Message ->
                         ok
@@ -100,18 +100,18 @@ error_test_() ->
         ?_assertError({ruby, 'LoadError',
                 <<"no such file to load -- unknown">>, [_|_]},
             ruby:call(P, unknown, unknown, [])),
-        ?_assertError({ruby, 'Erlang::CallError',
+        ?_assertError({ruby, 'ErlPort::Erlang::CallError',
                 {erlang, error, undef, [{unknown, unknown, []}|_]}, [_|_]},
-            ruby:call(P, 'erlport/erlang', 'Erlang::call',
+            ruby:call(P, 'erlport/erlang', 'ErlPort::Erlang::call',
                 [unknown, unknown, []])),
         fun () ->
             R2 = setup(),
             try
-                ?assertError({ruby, 'Erlang::CallError',
+                ?assertError({ruby, 'ErlPort::Erlang::CallError',
                         {ruby, 'LoadError',
                         <<"no such file to load -- unknown">>,
                         [_|_]}, [_|_]},
-                    ruby:call(P, 'erlport/erlang', 'Erlang::call',
+                    ruby:call(P, 'erlport/erlang', 'ErlPort::Erlang::call',
                         [ruby, call, [R2, unknown, unknown, []]]))
             after
                 cleanup(R2)
@@ -195,7 +195,7 @@ call_back_test_() -> {setup,
         cleanup_event_logger()
     end,
     fun (P) -> [
-        ?_assertEqual(3, ruby:call(P, 'erlport/erlang', 'Erlang::call',
+        ?_assertEqual(3, ruby:call(P, 'erlport/erlang', 'ErlPort::Erlang::call',
             [erlang, length, [[1, 2, 3]]])),
         fun () ->
             ?assertEqual(ok, ruby:call(P, test_utils, switch, [5], [async])),

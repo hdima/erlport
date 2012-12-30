@@ -235,7 +235,7 @@ setup() ->
 
 setup_factory(Options) ->
     fun () ->
-        {ok, P} = python:start_link([{cd, "test/python"} | Options]),
+        {ok, P} = python:start_link([{cd, "test/python2"} | Options]),
         P
     end.
 

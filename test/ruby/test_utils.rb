@@ -1,9 +1,9 @@
-include Erlang
+include ErlPort
 
 def switch n
     result = 0
     for i in 0...n
-        result = Modules.ruby_tests.test_callback result, i
+        result = Erlang.call :ruby_tests, :test_callback, [result, i]
     end
     n
 end

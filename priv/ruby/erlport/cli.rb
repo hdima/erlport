@@ -32,12 +32,13 @@ require "erlport/erlproto"
 require "erlport/erlang"
 
 
+module ErlPort
 class CommandLine
     def self.main
         options = parse
-        port = ErlProto::Port.new(options.packet, options.stdio,
+        port = ErlPort::ErlProto::Port.new(options.packet, options.stdio,
             options.compressed, nil, options.buffer_size)
-        Erlang.start port
+        ErlPort::Erlang.start port
     end
 
     private
@@ -88,5 +89,6 @@ class CommandLine
         options
     end
 end
+end
 
-CommandLine.main
+ErlPort::CommandLine.main
