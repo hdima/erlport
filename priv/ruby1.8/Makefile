@@ -26,6 +26,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 test:
-	ruby -I . test/tests.rb
+	ruby1.8 -I . test/tests.rb
 
 .PHONY: test

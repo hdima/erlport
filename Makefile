@@ -66,8 +66,13 @@ erlang-test: compile-test
 erlang-test-verbose: compile-test
 	./runtest verbose
 
-ruby-test:
-	cd priv/ruby; make test
+ruby-test: ruby1.8-test ruby1.9-test
+
+ruby1.8-test:
+	cd priv/ruby1.8; make test
+
+ruby1.9-test:
+	cd priv/ruby1.9; make test
 
 python-test: python2-test python3-test
 

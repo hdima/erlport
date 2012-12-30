@@ -178,8 +178,8 @@ module ErlTerm
     def decode string
         raise IncompleteData, string if string == ""
         raise ValueError, "unknown protocol version: %s" % string[0] \
-            if string[0] != 131
-        if string[1] == 80
+            if string[0] != "\x83"
+        if string[1] == "P"
             raise IncompleteData, string if string.length < 16
             zstream = Zlib::Inflate.new
             term_string = zstream.inflate(string[6..-1])
@@ -204,7 +204,7 @@ module ErlTerm
             compressed = 6
         elsif not compressed.is_a? Integer
             compressed = 0
-        elsif compressed < 0 or compressed > 9:
+        elsif compressed < 0 or compressed > 9
             raise ValueError, "invalid compression level: #{compressed}"
         end
         if compressed > 0
@@ -225,7 +225,7 @@ module ErlTerm
         raise IncompleteData, string if string == ""
         tag = string[0]
         case tag
-            when 100
+            when "d"
                 # ATOM_EXT
                 ln = string.length
                 raise IncompleteData, string if ln < 3
@@ -243,20 +243,20 @@ module ErlTerm
                         return EmptySymbol.new(), string[length..-1]
                 end
                 return name.to_sym, string[length..-1]
-            when 106
+            when "j"
                 # NIL_EXT
                 return [], string[1..-1]
-            when 107
+            when "k"
                 # STRING_EXT
                 ln = string.length
                 raise IncompleteData, string if ln < 3
                 length = string[1,2].unpack("n")[0] + 3
                 raise IncompleteData, string if ln < length
                 return string[3...length].unpack("C*"), string[length..-1]
-            when 108, 104, 105
-                if tag == 104
+            when "l", "h", "i"
+                if tag == "h"
                     raise IncompleteData, string if string.length < 2
-                    length = string[1]
+                    length = string[1].ord
                     tail = string[2..-1]
                 else
                     raise IncompleteData, string if string.length < 5
@@ -269,9 +269,9 @@ module ErlTerm
                     lst.push(term)
                     length -= 1
                 end
-                if tag == 108
+                if tag == "l"
                     raise IncompleteData, string if tail == ""
-                    if tail[0] != 106
+                    if tail[0] != "j"
                         improper_tail, tail = decode_term(tail)
                         return ImproperList.new(lst, improper_tail), tail
                     end
@@ -280,31 +280,29 @@ module ErlTerm
                 return [OpaqueObject.decode(lst[2], lst[1]), tail] \
                     if lst.length == 3 and lst[0] == OpaqueObject::MARKER
                 return Tuple.new(lst), tail
-            when 97
+            when "a"
                 # SMALL_INTEGER_EXT
                 raise IncompleteData, string if string.length < 2
-                return string[1], string[2..-1]
-            when 98
+                return string[1].ord, string[2..-1]
+            when "b"
                 # INTEGER_EXT
                 raise IncompleteData, string if string.length < 5
-                int = string[1,4].unpack("N")[0]
-                # Turn unsigned integer to signed integer
-                int -= 0x100000000 if int > 0x7fffffff
+                int = string[1,4].unpack("l>")[0]
                 return int, string[5..-1]
-            when 109
+            when "m"
                 # BINARY_EXT
                 ln = string.length
                 raise IncompleteData, string if ln < 5
                 length = string[1,4].unpack("N")[0] + 5
                 raise IncompleteData, string if ln < length
                 return string[5...length], string[length..-1]
-            when 70
+            when "F"
                 # NEW_FLOAT_EXT
                 raise IncompleteData, string if string.length < 9
                 return string[1,8].unpack("G")[0], string[9..-1]
-            when 110, 111
+            when "n", "o"
                 # SMALL_BIG_EXT, LARGE_BIG_EXT
-                if tag == 110
+                if tag == "n"
                     raise IncompleteData, string if string.length < 3
                     length, sign = string[1,2].unpack("CC")
                     tail = string[3..-1]

@@ -25,7 +25,7 @@
 %%% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %%% POSSIBILITY OF SUCH DAMAGE.
 
--module(python2_tests).
+-module(ruby19_tests).
 
 -export([test_callback/2]).
 
@@ -48,34 +48,34 @@ test_callback(PrevResult, N) ->
 
 start_stop_test_() -> [
     fun () ->
-        {ok, P} = python:start(),
-        ?assertEqual(ok, python:stop(P))
+        {ok, P} = ruby:start(),
+        ?assertEqual(ok, ruby:stop(P))
     end,
     fun () ->
-        {ok, P} = python:start_link(),
-        ?assertEqual(ok, python:stop(P))
+        {ok, P} = ruby:start_link(),
+        ?assertEqual(ok, ruby:stop(P))
     end,
     fun () ->
-        ?assertMatch({ok, _}, python:start({local, python_test})),
-        ?assertEqual(ok, python:stop(python_test))
+        ?assertMatch({ok, _}, ruby:start({local, ruby_test})),
+        ?assertEqual(ok, ruby:stop(ruby_test))
     end,
     fun () ->
-        ?assertMatch({ok, _}, python:start_link({local, python_test})),
-        ?assertEqual(ok, python:stop(python_test))
+        ?assertMatch({ok, _}, ruby:start_link({local, ruby_test})),
+        ?assertEqual(ok, ruby:stop(ruby_test))
     end,
     fun () ->
-        ?assertMatch({ok, _}, python:start({local, python_test}, [])),
-        ?assertEqual(ok, python:stop(python_test))
+        ?assertMatch({ok, _}, ruby:start({local, ruby_test}, [])),
+        ?assertEqual(ok, ruby:stop(ruby_test))
     end,
     fun () ->
-        ?assertMatch({ok, _}, python:start_link({local, python_test}, [])),
-        ?assertEqual(ok, python:stop(python_test))
+        ?assertMatch({ok, _}, ruby:start_link({local, ruby_test}, [])),
+        ?assertEqual(ok, ruby:stop(ruby_test))
     end
     ].
 
 call_test_() ->
     ?SETUP(
-        ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
+        ?_assertEqual(4, ruby:call(P, '', 'Kernel::eval', [<<"2 + 2">>]))
     ).
 
 cast_test_() ->
@@ -83,8 +83,8 @@ cast_test_() ->
         fun () ->
             Pid = self(),
             Message = test_message,
-            ?assertEqual(undefined, python:call(P, 'erlport.erlang', cast,
-                [Pid, Message])),
+            ?assertEqual(undefined, ruby:call(P, 'erlport/erlang',
+                'ErlPort::Erlang::cast', [Pid, Message])),
             ?assertEqual(ok, receive
                     Message ->
                         ok
@@ -97,37 +97,36 @@ cast_test_() ->
 
 error_test_() ->
     ?SETUP([
-        ?_assertError({python, 'exceptions.ImportError',
-                "No module named unknown", [_|_]},
-            python:call(P, unknown, unknown, [])),
-        ?_assertError({python, 'erlport.erlang.CallError',
-                "(Atom('erlang'), Atom('error'), Atom('undef'), "
-                "List([(Atom('unknown'), Atom('unknown'), List([]))," ++ _,
-                [_|_]},
-            python:call(P, 'erlport.erlang', call, [unknown, unknown, []])),
+        ?_assertError({ruby, 'LoadError',
+                <<"no such file to load -- unknown">>, [_|_]},
+            ruby:call(P, unknown, unknown, [])),
+        ?_assertError({ruby, 'ErlPort::Erlang::CallError',
+                {erlang, error, undef, [{unknown, unknown, []}|_]}, [_|_]},
+            ruby:call(P, 'erlport/erlang', 'ErlPort::Erlang::call',
+                [unknown, unknown, []])),
         fun () ->
-            P2 = setup(),
+            R2 = setup(),
             try
-                ?assertError({python, 'erlport.erlang.CallError',
-                        "(Atom('python'), Atom('exceptions.ImportError'), "
-                        ++ _, [_|_]},
-                    python:call(P, 'erlport.erlang', call,
-                        [python, call, [P2, unknown, unknown, []]]))
+                ?assertError({ruby, 'ErlPort::Erlang::CallError',
+                        {ruby, 'LoadError',
+                        <<"no such file to load -- unknown">>,
+                        [_|_]}, [_|_]},
+                    ruby:call(P, 'erlport/erlang', 'ErlPort::Erlang::call',
+                        [ruby, call, [R2, unknown, unknown, []]]))
             after
-                cleanup(P2)
+                cleanup(R2)
             end
         end
     ]).
 
-% TODO: Unicode test
 stdin_stdout_test_() ->
     ?SETUP([
         ?_test(erlport_test_utils:assert_output(<<"HELLO!\n">>,
-            fun () -> undefined = python:call(P, '__builtin__', print,
+            fun () -> undefined = ruby:call(P, '', 'ARGF::puts',
                 [<<"HELLO!">>]) end, P)),
-        ?_assertError({python, 'exceptions.RuntimeError',
-            "STDIN is closed for ErlPort connected process", [_|_]},
-            python:call(P, '__builtin__', raw_input, []))
+        ?_assertError({ruby, 'IOError',
+            <<"STDIN is closed for ErlPort connected process">>, [_|_]},
+            ruby:call(P, '', 'ARGF::read', []))
     ]).
 
 nouse_stdio_test_() ->
@@ -137,26 +136,27 @@ nouse_stdio_test_() ->
         _ ->
             ?SETUP(
                 setup_factory([nouse_stdio]),
-                ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
+                ?_assertEqual(4, ruby:call(P, '', 'Kernel::eval',
+                    [<<"2 + 2">>]))
             )
     end.
 
 packet4_test_() ->
     ?SETUP(
         setup_factory([{packet, 4}]),
-        ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
+        ?_assertEqual(4, ruby:call(P, '', 'Kernel::eval', [<<"2 + 2">>]))
     ).
 
 packet2_test_() ->
     ?SETUP(
         setup_factory([{packet, 2}]),
-        ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
+        ?_assertEqual(4, ruby:call(P, '', 'Kernel::eval', [<<"2 + 2">>]))
     ).
 
 packet1_test_() ->
     ?SETUP(
         setup_factory([{packet, 1}]),
-        ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
+        ?_assertEqual(4, ruby:call(P, '', 'Kernel::eval', [<<"2 + 2">>]))
     ).
 
 compressed_test_() ->
@@ -166,21 +166,21 @@ compressed_test_() ->
             S1 = list_to_binary(lists:duplicate(200, $0)),
             S2 = list_to_binary(lists:duplicate(200, $1)),
             ?assertEqual(<<S1/binary, S2/binary>>,
-                python:call(P, operator, add, [S1, S2]))
+                ruby:call(P, test_utils, 'Test::add', [S1, S2]))
         end
     ).
 
 call_pipeline_test_() ->
     ?SETUP(
         {inparallel, [
-            ?_assertEqual(N + 1, python:call(P, operator, add, [N , 1]))
+            ?_assertEqual(N + 1, ruby:call(P, test_utils, 'Test::add', [N , 1]))
             || N <- lists:seq(1, 50)]}
     ).
 
 queue_test_() ->
     ?SETUP(
         {inparallel, [
-            ?_assertEqual(262144, python:call(P, test_utils, length,
+            ?_assertEqual(262144, ruby:call(P, test_utils, 'Test::len',
                 [<<0:262144/unit:8>>]))
             || _ <- lists:seq(1, 50)]}
     ).
@@ -195,10 +195,10 @@ call_back_test_() -> {setup,
         cleanup_event_logger()
     end,
     fun (P) -> [
-        ?_assertEqual(3, python:call(P, 'erlport.erlang', call,
+        ?_assertEqual(3, ruby:call(P, 'erlport/erlang', 'ErlPort::Erlang::call',
             [erlang, length, [[1, 2, 3]]])),
         fun () ->
-            ?assertEqual(ok, python:call(P, test_utils, switch, [5], [async])),
+            ?assertEqual(ok, ruby:call(P, test_utils, switch, [5], [async])),
             timer:sleep(500),
             ?assertEqual([
                 {test_callback, 0, 0},
@@ -209,7 +209,7 @@ call_back_test_() -> {setup,
                 ], get_events())
         end,
         fun () ->
-            ?assertEqual(5, python:call(P, test_utils, switch, [5])),
+            ?assertEqual(5, ruby:call(P, test_utils, switch, [5])),
             ?assertEqual([
                 {test_callback, 0, 0},
                 {test_callback, 0, 1},
@@ -222,7 +222,7 @@ call_back_test_() -> {setup,
 
 datatype_test_() ->
     ?SETUP(
-        [?_assertEqual(V, python:call(P, test_utils, identity, [V]))
+        [?_assertEqual(V, ruby:call(P, test_utils, identity, [V]))
             || V <- datatype_test_data:get_test_data()]
     ).
 
@@ -235,13 +235,13 @@ setup() ->
 
 setup_factory(Options) ->
     fun () ->
-        {ok, P} = python:start_link([{python_path, "test/python2"},
-            {python, "python2"} | Options]),
+        {ok, P} = ruby:start_link([{ruby_lib, "test/ruby1.9"},
+            {ruby, "ruby1.9.1"} | Options]),
         P
     end.
 
 cleanup(P) ->
-    ok = python:stop(P).
+    ok = ruby:stop(P).
 
 log_event(Event) ->
     true = ets:insert(events, {events, Event}).

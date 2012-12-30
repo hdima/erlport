@@ -85,8 +85,8 @@ parse([], Options=#ruby_options{env=Env0, ruby_lib=RubyLib0,
     PortOptions1 = erlport_options:update_port_options(
         PortOptions, Path, UseStdio),
     case get_ruby(Ruby) of
-        {ok, RubyFilename} ->
-            case update_ruby_lib(Env0, RubyLib0) of
+        {ok, RubyFilename, MajVersion} ->
+            case update_ruby_lib(Env0, RubyLib0, MajVersion) of
                 {ok, RubyPath, Env} ->
                     {ok, Options#ruby_options{env=Env,
                         ruby_lib=RubyPath, ruby=RubyFilename,
@@ -109,12 +109,13 @@ set_by_name(Name, Value, Options) ->
             setelement(N, Options, Value)
     end.
 
-update_ruby_lib(Env0, RubyPath0) ->
+update_ruby_lib(Env0, RubyPath0, MajVersion) ->
     case code:priv_dir(erlport) of
         {error, bad_name} ->
             {error, {not_found, "erlport/priv"}};
         PrivDir ->
-            ErlPortPath = erlport_options:joinpath(PrivDir, "ruby"),
+            RubyDir = lists:concat([ruby, MajVersion]),
+            ErlPortPath = erlport_options:joinpath(PrivDir, RubyDir),
             {PathFromSetEnv, Env2} = extract_ruby_lib(Env0, "", []),
             PathFromEnv = erlport_options:getenv("RUBYLIB"),
             case erlport_options:join_path([[ErlPortPath], RubyPath0,
@@ -161,8 +162,9 @@ find_ruby(Ruby) ->
         Filename ->
             Fullname = erlport_options:absname(Filename),
             case check_ruby_version(Fullname) of
-                {ok, _Version} ->
-                    {ok, Fullname ++ Options};
+                {ok, {MajVersion, MinVersion, _}} ->
+                    Version = lists:concat([MajVersion, ".", MinVersion]),
+                    {ok, Fullname ++ Options, Version};
                 {error, _}=Error ->
                     Error
             end
