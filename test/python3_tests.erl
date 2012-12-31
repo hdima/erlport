@@ -103,30 +103,6 @@ call_back_test_() ->
 
 error_test_() ->
     ?SETUP([
-        ?_assertError({python, 'exceptions.ImportError',
-                "No module named unknown", [_|_]},
-            python:call(P, unknown, unknown, [])),
-        ?_assertError({python, 'erlport.erlang.CallError',
-                "(Atom('erlang'), Atom('error'), Atom('undef'), "
-                "List([(Atom('unknown'), Atom('unknown'), List([]))," ++ _,
-                [_|_]},
-            python:call(P, 'erlport.erlang', call, [unknown, unknown, []])),
-        fun () ->
-            P2 = setup(),
-            try
-                ?assertError({python, 'erlport.erlang.CallError',
-                        "(Atom('python'), Atom('exceptions.ImportError'), "
-                        ++ _, [_|_]},
-                    python:call(P, 'erlport.erlang', call,
-                        [python, call, [P2, unknown, unknown, []]]))
-            after
-                cleanup(P2)
-            end
-        end
-    ]).
-
-error3_test_() ->
-    ?SETUP([
         ?_assertError({python, 'builtins.ImportError',
                 "No module named unknown", [_|_]},
             python:call(P, unknown, unknown, [])),
@@ -149,18 +125,7 @@ error3_test_() ->
         end
     ]).
 
-% TODO: Unicode test
 stdin_stdout_test_() ->
-    ?SETUP([
-        ?_test(erlport_test_utils:assert_output(<<"HELLO!\n">>,
-            fun () -> undefined = python:call(P, '__builtin__', print,
-                [<<"HELLO!">>]) end, P)),
-        ?_assertError({python, 'exceptions.RuntimeError',
-            "STDIN is closed for ErlPort connected process", [_|_]},
-            python:call(P, '__builtin__', raw_input, []))
-    ]).
-
-stdin_stdout3_test_() ->
     ?SETUP([
         ?_test(erlport_test_utils:assert_output(<<"b'HELLO!'\n">>,
             fun () -> undefined = python:call(P, builtins, print,

@@ -30,8 +30,5 @@
 -include_lib("eunit/include/eunit.hrl").
 
 
-python2_test() ->
-    python2_tests:test().
-
-python3_test() ->
-    python3_tests:test().
+python_test_() ->
+    [python2_tests, python3_tests].

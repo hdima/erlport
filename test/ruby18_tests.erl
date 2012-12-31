@@ -101,16 +101,17 @@ error_test_() ->
                 <<"no such file to load -- unknown">>, [_|_]},
             ruby:call(P, unknown, unknown, [])),
         ?_assertError({ruby, 'ErlPort::Erlang::CallError',
-                {erlang, error, undef, [{unknown, unknown, []}|_]}, [_|_]},
+                <<"Tuple([:erlang, :error, :undef, "
+                    "[Tuple([:unknown, :unknown, []]), ", _/binary>>, [_|_]},
             ruby:call(P, 'erlport/erlang', 'ErlPort::Erlang::call',
                 [unknown, unknown, []])),
         fun () ->
             R2 = setup(),
             try
                 ?assertError({ruby, 'ErlPort::Erlang::CallError',
-                        {ruby, 'LoadError',
-                        <<"no such file to load -- unknown">>,
-                        [_|_]}, [_|_]},
+                        <<"Tuple([:ruby, :LoadError, "
+                            "\"no such file to load -- unknown\", ",
+                            _/binary>>, [_|_]},
                     ruby:call(P, 'erlport/erlang', 'ErlPort::Erlang::call',
                         [ruby, call, [R2, unknown, unknown, []]]))
             after
@@ -121,8 +122,8 @@ error_test_() ->
 
 stdin_stdout_test_() ->
     ?SETUP([
-        ?_test(erlport_test_utils:assert_output(<<"HELLO!\n">>,
-            fun () -> undefined = ruby:call(P, '', 'ARGF::puts',
+        ?_test(erlport_test_utils:assert_output(<<"HELLO!">>,
+            fun () -> undefined = ruby:call(P, '', 'Kernel::print',
                 [<<"HELLO!">>]) end, P)),
         ?_assertError({ruby, 'IOError',
             <<"STDIN is closed for ErlPort connected process">>, [_|_]},

@@ -49,7 +49,7 @@ module Erlang
                 value = Tuple.new([nil, nil, value, []])
             end
             @language, @type, @value, @stacktrace = value
-            super value
+            super value.to_s
         end
     end
 

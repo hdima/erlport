@@ -30,8 +30,5 @@
 -include_lib("eunit/include/eunit.hrl").
 
 
-ruby18_test() ->
-    ruby18_tests:test().
-
-ruby19_test() ->
-    ruby19_tests:test().
+ruby_test_() ->
+    [ruby18_tests, ruby19_tests].
