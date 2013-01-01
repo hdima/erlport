@@ -6,6 +6,9 @@
 - Can we allow method calls for objects? For example we can pass a tuple
   {object, Object} instead of a module name?
 
+- We can create links for unpicklable objects. And we can create proxy objects
+  this way?
+
 - It seems 'print' messages doesn't work with Unicode characters right now?
 
 - Split CallError into subclasses: ErlangError, PythonError, RubyError
