@@ -38,4 +38,7 @@ cleanup-test:
 	#
 	rm -rf .cover
 
-.PHONY: test test-verbose cleanup-test
+clean: cleanup-test
+	find . \( -name '*.py[co]' -o -name '__pycache__' \) -delete
+
+.PHONY: test test-verbose cleanup-test clean

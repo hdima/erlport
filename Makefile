@@ -99,10 +99,33 @@ create-ignore-file: $(TESTDIR) $(TESTBEAMS)
 doc:
 	$(ERL) -eval 'edoc:application(erlport)' -s init stop
 
-clean:
+clean: erlang-clean python-clean ruby-clean
+
+erlang-clean:
 	rm -rf $(RELDIR)/*.beam $(TESTDIR)
+	find test \( -name '*.py[co]' -o -name '__pycache__' \) -delete
+
+python-clean: python2-clean python3-clean
+
+python2-clean:
+	cd priv/python2; make clean
+
+python3-clean:
+	cd priv/python3; make clean
+
+ruby-clean: ruby1.8-clean ruby1.9-clean
+
+ruby1.8-clean:
+	cd priv/ruby1.8; make clean
+
+ruby1.9-clean:
+	cd priv/ruby1.9; make clean
 
 
-.PHONY: compile test test-verbose check doc clean python2-test
+.PHONY: compile compile-test test test-verbose check doc clean python2-test
 .PHONY: python2-test-verbose create-ignore-file python3-test
 .PHONY: python3-test-verbose python-test python-test-verbose
+.PHONY: erlang-test erlang-test-verbose
+.PHONY: ruby-test ruby1.8-test ruby1.9-test
+.PHONY: erlang-clean python-clean python2-clean python3-clean
+.PHONY: ruby-clean ruby1.8-clean ruby1.9-clean

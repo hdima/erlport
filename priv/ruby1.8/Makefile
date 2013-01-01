@@ -28,4 +28,6 @@
 test:
 	ruby1.8 -I . test/tests.rb
 
-.PHONY: test
+clean:
+
+.PHONY: test clean
