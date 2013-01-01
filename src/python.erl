@@ -1,4 +1,4 @@
-%%% Copyright (c) 2009-2012, Dmitry Vasiliev <dima@hlabs.org>
+%%% Copyright (c) 2009-2013, Dmitry Vasiliev <dima@hlabs.org>
 %%% All rights reserved.
 %%%
 %%% Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@
 %%%
 %%% @doc ErlPort Python interface
 %%% @author Dmitry Vasiliev <dima@hlabs.org>
-%%% @copyright 2009-2012 Dmitry Vasiliev <dima@hlabs.org>
+%%% @copyright 2009-2013 Dmitry Vasiliev <dima@hlabs.org>
 %%%
 
 -module(python).
