@@ -49,6 +49,7 @@ class Python(object):
 
     def call(self, module, function, args):
         # TODO: Check all arguments
+        # TODO: Reraise Python related exceptions
         return erlang.call(Atom("python"), Atom("call"),
             [self.pid, module, function, args])
 
