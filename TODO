@@ -1,3 +1,10 @@
+- Add registration for a message handler and send() (gen_server:cast) function
+  for erlport.erl module. We also can redirect all unknown messages to the
+  external language message handler. And probably we don't need 'async' option
+  for call() in this case because it can be replaced with send() function.
+
+- Support empty symbol instead of EmptySymbol class in Ruby 1.9.*
+
 - call should support 'stop_on_error' (async?) option from both sides
 
 - Allow not only atoms in call() functions, convert strings, unicode(?) to
