@@ -30,13 +30,12 @@
         erlport,
         erlport_options,
         erlport_utils,
-        messagehub,
         python,
         python_options,
         ruby,
         ruby_options
         ]},
     {description, "Erlang port protocol"},
-    {vsn, "1.0"},
+    {vsn, "1.0.0b1"},
     {applications, [kernel, stdlib]}
     ]}.

@@ -30,37 +30,6 @@
 
 - Set default timeout to 5 sec?
 
-- Rename messagehub to msgrouter?
-
-- Maybe pub/sub should be allowed only for Erlang?
-
-- Rules for pub/sub messages handling:
-
-  - It's better to use Erlang subscribers and call them with an API from
-    external languages. For example request/response can be handled easily in
-    this case just as a function call.
-  - Probably request/response can be handled by switching ErlPort to server
-    mode with some external subscriber which handles timeouts. But for this to
-    work external subscriber should monitor all the messages even private ones.
-  - Possible threaded mode can be used for full duplex messaging?
-
-- Allow only unidirectional subscriptions by default and make bidirectional
-  subscriptions optional??
-
-- Need add messagehub:reply functions
-
-- Support message handling in messagehub and erlport
-
-- How we should support external functions in sender and destination lists for
-  messages? Probably it should be {ErlporPid, ModuleFunctionString} tuples.
-  This way we can store anything as the second item.
-
-- We need to reduce/optimize number of messages sent as subscribe/unsubscribe
-  events. We can send only one subscribed/unsubscribed message with list of
-  topics.
-
-- Add subscriber behaviour so we can abstract message hubs
-
 - Allow calls in selected processes in Erlang. We can use arbitrary keys on
   Python/Ruby side and control process creation/mapping/cleanup on Erlang side.
 
@@ -101,6 +70,8 @@ Ideas
 - Add xref checks?
 
 - More methods for Ruby's Tuple class?
+
+- Add a pub/sub framework?
 
 - Maybe it's possible to create an ErlPort interface which loads dynamic
   libraries?
