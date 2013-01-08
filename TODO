@@ -1,7 +1,9 @@
 - Add registration for a message handler and send() (gen_server:cast) function
   for erlport.erl module. We also can redirect all unknown messages to the
   external language message handler. And probably we don't need 'async' option
-  for call() in this case because it can be replaced with send() function.
+  for call() in this case because it can be replaced with send() function. We
+  can add erlang.receive() function which waits for next message with optional
+  timeout.
 
 - Support empty symbol instead of EmptySymbol class in Ruby 1.9.*
 
@@ -44,8 +46,6 @@
   this case working process should be created explicitly and we can pass
   the pid to erlang.call?
 
-- Add workers_pool module with pluggable workers selection policies
-
 - Comments for modules
 
 - Check all TODO/FIXME comments
@@ -72,6 +72,8 @@ Ideas
 - More methods for Ruby's Tuple class?
 
 - Add a pub/sub framework?
+
+- Add workers_pool module with pluggable workers selection policies?
 
 - Maybe it's possible to create an ErlPort interface which loads dynamic
   libraries?
