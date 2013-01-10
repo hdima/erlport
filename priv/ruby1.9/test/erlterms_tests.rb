@@ -31,16 +31,6 @@ require 'erlport/erlterms'
 include ErlPort::ErlTerm
 
 
-class EmptySymbolTestCase < Test::Unit::TestCase
-    def test_empty_symbol
-        e = EmptySymbol.new
-        e2 = EmptySymbol.new
-        assert_equal e, e2
-        assert_equal "", e.to_s
-        assert_equal e.to_s, e2.to_s
-    end
-end
-
 class TupleTestCase < Test::Unit::TestCase
     def test_tuple
         tuple = Tuple.new([1, 2, 3])
@@ -159,9 +149,8 @@ class DecodeTestCase < Test::Unit::TestCase
         assert_raise(IncompleteData){decode("\x83d")}
         assert_raise(IncompleteData){decode("\x83d\0")}
         assert_raise(IncompleteData){decode("\x83d\0\1")}
-        assert_equal EmptySymbol, decode("\x83d\0\0")[0].class
-        assert_equal [EmptySymbol.new, ""], decode("\x83d\0\0")
-        assert_equal [EmptySymbol.new, "tail"], decode("\x83d\0\0tail")
+        assert_equal [:"", ""], decode("\x83d\0\0")
+        assert_equal [:"", "tail"], decode("\x83d\0\0tail")
         assert_equal [:test, ""], decode("\x83d\0\4test")
         assert_equal [:test, "tail"], decode("\x83d\0\4testtail")
     end
@@ -402,7 +391,7 @@ class EncodeTestCase < Test::Unit::TestCase
     end
 
     def test_encode_atom
-        assert_equal "\x83d\0\0", encode(EmptySymbol.new)
+        assert_equal "\x83d\0\0", encode(:"")
         assert_equal "\x83d\0\4test", encode(:test)
     end
 

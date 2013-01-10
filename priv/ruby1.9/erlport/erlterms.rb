@@ -43,18 +43,6 @@ module ErlTerm
         end
     end
 
-    class EmptySymbol
-        @@symbol = nil
-        def self.new
-            @@symbol = super if @@symbol == nil
-            @@symbol
-        end
-
-        def to_s
-            ""
-        end
-    end
-
     class Tuple
         def initialize array
             raise TypeError, "array expected" if not array.is_a? Array
@@ -239,8 +227,6 @@ module ErlTerm
                         return false, string[length..-1]
                     when "undefined"
                         return nil, string[length..-1]
-                    when ""
-                        return EmptySymbol.new(), string[length..-1]
                 end
                 return name.to_sym, string[length..-1]
             when "j"
@@ -374,8 +360,6 @@ module ErlTerm
                 return "d\0\4true"
             when false
                 return "d\0\5false"
-            when EmptySymbol
-                return "d\0\0"
             when Integer
                 if term >= 0 and term <= 255
                     return "a#{term.chr}"

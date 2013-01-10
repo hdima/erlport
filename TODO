@@ -1,3 +1,6 @@
+- For internal usage we can add Pid argument to incoming call messages which
+  can be 'new', 'local' or pid()
+
 - Add registration for a message handler and send() (gen_server:cast) function
   for erlport.erl module. We also can redirect all unknown messages to the
   external language message handler. And probably we don't need 'async' option
@@ -7,8 +10,6 @@
 
 - Add erlang.self() and maybe erlang.make_ref() functions? And can we call
   some (predefined?) functions inside the erlport process?
-
-- Support empty symbol instead of EmptySymbol class in Ruby 1.9.*
 
 - call should support 'stop_on_error' (async?) option from both sides
 
