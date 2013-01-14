@@ -1,3 +1,5 @@
+- Ruby 2.0 support?
+
 - For internal usage we can add Pid argument to incoming call messages which
   can be 'new', 'local' or pid()
 
@@ -11,7 +13,8 @@
 - Add erlang.self() and maybe erlang.make_ref() functions? And can we call
   some (predefined?) functions inside the erlport process?
 
-- call should support 'stop_on_error' (async?) option from both sides
+- call should support 'stop_on_error' (async?) option from both sides?? Maybe
+  we can use messages in this case and remove support for async calls?
 
 - Allow not only atoms in call() functions, convert strings, unicode(?) to
   atoms. Test functions with Unicode names.
