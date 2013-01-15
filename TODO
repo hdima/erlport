@@ -1,3 +1,6 @@
+- Update Python (Ruby?) version parsing to handle also any versions with
+  additional information
+
 - Ruby 2.0 support?
 
 - For internal usage we can add Pid argument to incoming call messages which
