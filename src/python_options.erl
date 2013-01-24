@@ -179,7 +179,7 @@ extract_python_path([], Path, Env) ->
 
 check_python_version(Python) ->
     Out = erlport_options:get_version(Python ++ " -V"),
-    case re:run(Out, "^Python ([0-9]+)\\.([0-9]+)\\.([0-9]+)$",
+    case re:run(Out, "^Python ([0-9]+)\\.([0-9]+)\\.([0-9]+)",
             [{capture, all_but_first, list}]) of
         {match, StrVersion} ->
             Version = list_to_tuple([list_to_integer(N) || N <- StrVersion]),

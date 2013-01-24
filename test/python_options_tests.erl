@@ -143,7 +143,7 @@ python_option_test_() -> {setup,
         GoodPython = erlport_test_utils:create_mock_script(
             "Python 2.5.0", TmpDir, "python2"),
         GoodPython3 = erlport_test_utils:create_mock_script(
-            "Python 3.0.0", TmpDir, "python3"),
+            "Python 3.0.0p1", TmpDir, "python3"),
         UnsupportedPython = erlport_test_utils:create_mock_script(
             "Python 2.4.6", TmpDir, "unsupported"),
         UnsupportedPython2 = erlport_test_utils:create_mock_script(
