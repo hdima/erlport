@@ -352,10 +352,12 @@ module ErlTerm
                     if length > 255
                 return [100, length].pack("Cn") + s
             when String
-                length = term.length
+                # term can be a frozen String here so it should be duplicated
+                s = term.dup.force_encoding("BINARY")
+                length = s.bytesize
                 raise ValueError, "invalid binary length: #{length}" \
                     if length > 4294967295
-                return [109, length].pack("CN") + term
+                return [109, length].pack("CN") + s
             when true
                 return "d\0\4true"
             when false

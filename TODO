@@ -1,3 +1,5 @@
+- Add tests for calls in hierarchy of objects
+
 - Ruby 2.0 support?
 
 - For internal usage we can add Pid argument to incoming call messages which
@@ -25,8 +27,6 @@
 - We can create references for unpicklable objects (and all objects through the
   explicit API). And we can create proxy objects this way? Need to think about
   garbage collection however.
-
-- It seems 'print' messages doesn't work with Unicode characters right now?
 
 - Add more API for middleware scenario (python, ruby, workers_pool, msghub
   modules). Reraise the language related exceptions in every module. And

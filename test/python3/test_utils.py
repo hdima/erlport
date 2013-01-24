@@ -12,3 +12,6 @@ def identity(v):
 
 def length(v):
     return len(v)
+
+def print_string(s):
+    print(s.to_string())

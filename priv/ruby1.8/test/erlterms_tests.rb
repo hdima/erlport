@@ -409,6 +409,7 @@ class EncodeTestCase < Test::Unit::TestCase
     def test_encode_string
         assert_equal "\x83m\0\0\0\0", encode("")
         assert_equal "\x83m\0\0\0\4test", encode("test")
+        assert_equal "\x83m\0\0\0\2\xd0\x90", encode([0x410].pack("U*"))
     end
 
     def test_encode_boolean

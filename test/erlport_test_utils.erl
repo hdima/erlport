@@ -223,9 +223,10 @@ assert_output(Expected, Fun, Printer) when is_binary(Expected)
     true = group_leader(Leader, Printer),
     try Fun()
     after
-        true = group_leader(OldLeader, Printer),
-        assert_expected_output(Expected, Leader)
-    end.
+        Leader ! stop,
+        true = group_leader(OldLeader, Printer)
+    end,
+    assert_expected_output(Expected).
 
 %%
 %% Internal functions
@@ -268,8 +269,7 @@ str_replace(Str, Find, Replace) ->
             end
         end, Str)).
 
-assert_expected_output(Expected, Leader) ->
-    Leader ! stop,
+assert_expected_output(Expected) ->
     receive
         {output, Output} ->
             ?assertEqual(Expected, Output)

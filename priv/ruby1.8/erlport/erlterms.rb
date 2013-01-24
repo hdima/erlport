@@ -368,7 +368,7 @@ module ErlTerm
                     if length > 255
                 return [100, length].pack("Cn") + s
             when String
-                length = term.length
+                length = term.bytesize
                 raise ValueError, "invalid binary length: #{length}" \
                     if length > 4294967295
                 return [109, length].pack("CN") + term

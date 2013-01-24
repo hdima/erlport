@@ -22,4 +22,9 @@ module Test
     def len s
         s.length
     end
+
+    module_function
+    def print_string s
+        puts s.pack "U*"
+    end
 end

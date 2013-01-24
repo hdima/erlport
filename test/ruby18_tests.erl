@@ -122,9 +122,15 @@ error_test_() ->
 
 stdin_stdout_test_() ->
     ?SETUP([
-        ?_test(erlport_test_utils:assert_output(<<"HELLO!">>,
-            fun () -> undefined = ruby:call(P, '', 'Kernel::print',
-                [<<"HELLO!">>]) end, P)),
+        ?_test(erlport_test_utils:assert_output(<<"HELLO!\n">>,
+            fun () -> undefined = ruby:call(P, test_utils, 'Test::print_string',
+                ["HELLO!"]) end, P)),
+        ?_test(erlport_test_utils:assert_output(
+            <<16#d0, 16#9f, 16#d1, 16#80, 16#d0, 16#b8, 16#d0, 16#b2,
+                16#d0, 16#b5, 16#d1, 16#82, "!\n">>,
+            fun () -> undefined = ruby:call(P, test_utils, 'Test::print_string',
+                [[16#41f, 16#440, 16#438, 16#432, 16#435, 16#442, $!]])
+                end, P)),
         ?_assertError({ruby, 'IOError',
             <<"STDIN is closed for ErlPort connected process">>, [_|_]},
             ruby:call(P, '', 'ARGF::read', []))

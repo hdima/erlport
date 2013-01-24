@@ -127,9 +127,15 @@ error_test_() ->
 
 stdin_stdout_test_() ->
     ?SETUP([
-        ?_test(erlport_test_utils:assert_output(<<"b'HELLO!'\n">>,
-            fun () -> undefined = python:call(P, builtins, print,
-                [<<"HELLO!">>]) end, P)),
+        ?_test(erlport_test_utils:assert_output(<<"HELLO!\n">>,
+            fun () -> undefined = python:call(P, test_utils, print_string,
+                ["HELLO!"]) end, P)),
+        ?_test(erlport_test_utils:assert_output(
+            <<16#d0, 16#9f, 16#d1, 16#80, 16#d0, 16#b8, 16#d0, 16#b2,
+                16#d0, 16#b5, 16#d1, 16#82, "!\n">>,
+            fun () -> undefined = python:call(P, test_utils, print_string,
+                [[16#41f, 16#440, 16#438, 16#432, 16#435, 16#442, $!]])
+                end, P)),
         ?_assertError({python, 'builtins.RuntimeError',
             "STDIN is closed for ErlPort connected process", [_|_]},
             python:call(P, builtins, input, []))
