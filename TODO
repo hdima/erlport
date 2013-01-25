@@ -1,6 +1,6 @@
 - Add tests for calls in hierarchy of objects
 
-- Ruby 2.0 support?
+- Check how Unicode characters in symbols work in Ruby 1.9
 
 - For internal usage we can add Pid argument to incoming call messages which
   can be 'new', 'local' or pid()
@@ -70,6 +70,8 @@ Later
   in this case.
 
 - Support for other languages (Perl, Lua, ?).
+
+- Ruby 2.0 support
 
 Ideas
 =====
