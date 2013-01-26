@@ -60,6 +60,7 @@ class MessageHandler(object):
         call_lock = Lock()
         self._call_lock_acquire = call_lock.acquire
         self._call_lock_release = call_lock.release
+        self._self = None
 
     def set_encoder(self, encoder):
         if encoder:
@@ -103,11 +104,22 @@ class MessageHandler(object):
             write(call(module, function, args))
 
     def cast(self, pid, message):
-        # It safe to call it from multiple threads because port.write will be
+        # It's safe to call it from multiple threads because port.write will be
         # locked
         self.port.write((Atom('M'), pid, message))
 
     def call(self, module, function, args):
+        return self._call(module, function, args, Atom('N'))
+
+    def self(self):
+        if self._self is None:
+            self._self = self._call(Atom('erlang'), Atom('self'), [], Atom('L'))
+        return self._self
+
+    def make_ref(self):
+        return self._call(Atom('erlang'), Atom('make_ref'), [], Atom('L'))
+
+    def _call(self, module, function, args, context):
         if not isinstance(module, Atom):
             raise ValueError(module)
         if not isinstance(function, Atom):
@@ -118,7 +130,7 @@ class MessageHandler(object):
         self._call_lock_acquire()
         try:
             self.port.write((Atom('C'), module, function,
-                map(self.encoder, args)))
+                map(self.encoder, args), context))
             response = self.port.read()
         finally:
             self._call_lock_release()
@@ -187,9 +199,11 @@ def setup_stdin_stdout(port):
     del RedirectedStdin, RedirectedStdout
 
 def setup_api_functions(handler):
-    global call, cast, set_encoder, set_decoder
+    global call, cast, self, make_ref, set_encoder, set_decoder
     call = handler.call
     cast = handler.cast
+    self = handler.self
+    make_ref = handler.make_ref
     set_encoder = handler.set_encoder
     set_decoder = handler.set_decoder
 

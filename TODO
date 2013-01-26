@@ -1,9 +1,3 @@
-- Split Erlang tests by languages? For example it can be useful if some of the
-  languages not installed.
-
-- For internal usage we can add Pid argument to incoming call messages which
-  can be 'new', 'local' or pid()
-
 - Add registration for a message handler and send() (gen_server:cast) function
   for erlport.erl module. We also can redirect all unknown messages to the
   external language message handler. And probably we don't need 'async' option
@@ -11,22 +5,15 @@
   can add erlang.receive() function which waits for next message with optional
   timeout.
 
-- Add erlang.self() and maybe erlang.make_ref() functions? And can we call
-  some (predefined?) functions inside the erlport process?
-
 - call should support 'stop_on_error' (async?) option from both sides?? Maybe
   we can use messages in this case and remove support for async calls?
 
 - Allow not only atoms in call() functions and Atom() classes. Convert strings,
   unicode(?) to atoms. Test functions with Unicode names.
 
-- Can we allow method calls for objects? For example we can pass a tuple
-  {object, Object} instead of a module name?
-
-- Add more API for middleware scenario (python, ruby, workers_pool, msghub
-  modules). Reraise the language related exceptions in every module. And
-  allow to start a language instance on other nodes. Probably we also can
-  allow creation of remote objects if object references will be available.
+- Add more API for middleware scenario (python, ruby). Reraise the language
+  related exceptions in every module. And allow to start a language instance on
+  other nodes.
 
 - Ruby encoder/decoder for arguments/results
 
@@ -37,8 +24,6 @@
 - Allow calls in selected processes in Erlang. We can use arbitrary keys on
   Python/Ruby side and control process creation/mapping/cleanup on Erlang side.
 
-  API: Erlang[Key].module.function(args)
-
   Add options to erlang.call: [{key, Key}, {timeout, Timeout}].
 
   If process will die we just return 'noproc' error and raise it on the
@@ -47,6 +32,9 @@
   We also can create a class (erlang.Process) with call and exit methods. In
   this case working process should be created explicitly and we can pass
   the pid to erlang.call?
+
+- Split Erlang tests by languages? For example it can be useful if some of the
+  languages not installed.
 
 - Comments for modules
 
@@ -70,6 +58,9 @@ Later
 
 Ideas
 =====
+
+- Can we allow method calls for objects? For example we can pass a tuple
+  {object, Object} instead of a module name?
 
 - We can create references for unpicklable objects (and all objects through the
   explicit API). And we can create proxy objects this way. Need to think about

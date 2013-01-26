@@ -101,6 +101,22 @@ objects_hierarchy_test_() ->
             'TestClass.TestSubClass.test_method', []))
     ).
 
+erlang_util_functions_test_() ->
+    ?SETUP([
+        fun () ->
+            ?assertEqual(P, python:call(P, 'erlport.erlang', self, [])),
+            % Check cached value
+            ?assertEqual(P, python:call(P, 'erlport.erlang', self, []))
+        end,
+        fun () ->
+            Ref = python:call(P, 'erlport.erlang', make_ref, []),
+            ?assert(is_reference(Ref)),
+            Ref2 = python:call(P, 'erlport.erlang', make_ref, []),
+            ?assert(is_reference(Ref2)),
+            ?assertNot(Ref =:= Ref2)
+        end
+    ]).
+
 error_test_() ->
     ?SETUP([
         ?_assertError({python, 'builtins.ImportError',

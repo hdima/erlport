@@ -55,7 +55,7 @@ module Erlang
 
     module_function
     def cast pid, message
-        # It safe to call it from multiple threads because port.write will be
+        # It's safe to call it from multiple threads because port.write will be
         # locked
         @@port.write(Tuple.new([:M, pid, message]))
         nil
@@ -63,25 +63,18 @@ module Erlang
 
     module_function
     def call mod, function, args
-        raise ValueError, mod \
-            if not (mod.is_a? Symbol or mod.is_a? EmptySymbol)
-        raise ValueError, function \
-            if not (function.is_a? Symbol or function.is_a? EmptySymbol)
-        raise ValueError, args if not args.is_a? Array
+        _call(mod, function, args, :N)
+    end
 
-        response = @@call_lock.synchronize {
-            @@port.write(Tuple.new([:C, mod, function, args]))
-            @@port.read
-        }
-        raise InvalidMessage, response if not response.is_a? Tuple \
-            or response.length != 2
-        mtype, value = response
+    module_function
+    def self
+        @@self = _call(:erlang, :self, [], :L) if @@self == nil
+        @@self
+    end
 
-        if mtype != :r
-            raise CallError, value if mtype == :e
-            raise UnknownMessage, response
-        end
-        value
+    module_function
+    def make_ref
+        _call(:erlang, :make_ref, [], :L)
     end
 
     module_function
@@ -90,6 +83,7 @@ module Erlang
         @@call_lock = Mutex.new
         $stdin = RedirectedStdin.new
         $stdout = RedirectedStdout.new port
+        @@self = nil
         Erlang.instance_eval {undef :start}
         begin
             self.loop
@@ -118,6 +112,29 @@ module Erlang
             raise IOError, "unsupported STDOUT operation for ErlPort"
                 " connected process"
         end
+    end
+
+    module_function
+    def _call mod, function, args, context
+        raise ValueError, mod \
+            if not (mod.is_a? Symbol or mod.is_a? EmptySymbol)
+        raise ValueError, function \
+            if not (function.is_a? Symbol or function.is_a? EmptySymbol)
+        raise ValueError, args if not args.is_a? Array
+
+        response = @@call_lock.synchronize {
+            @@port.write(Tuple.new([:C, mod, function, args, context]))
+            @@port.read
+        }
+        raise InvalidMessage, response if not response.is_a? Tuple \
+            or response.length != 2
+        mtype, value = response
+
+        if mtype != :r
+            raise CallError, value if mtype == :e
+            raise UnknownMessage, response
+        end
+        value
     end
 
     module_function

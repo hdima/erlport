@@ -136,7 +136,8 @@ handle_cast(_Event, State) ->
 %%
 handle_info({Port, {data, Data}}, State=#state{port=Port}) ->
     handle_port_data(Data, State);
-handle_info({'EXIT', Pid, Result}, State=#state{call={Pid, _Timer}}) ->
+handle_info({'EXIT', Pid, Result}, State=#state{call={Pid, Timer}}) ->
+    erlport_utils:stop_timer(Timer),
     handle_call_result(Result, State);
 handle_info({in_timeout, Pid}, State=#state{call={Pid, _Timer}}) ->
     true = exit(Pid, timeout),
@@ -226,18 +227,7 @@ print(Data, State) ->
 %% @doc Spawn a process to handle incoming call request
 %%
 spawn_call(Module, Function, Args) ->
-    proc_lib:spawn_link(fun () ->
-        exit(try {ok, apply(Module, Function, Args)}
-            catch
-                error:{Language, Type, _Val, Trace}=Error
-                        when is_atom(Language) andalso is_atom(Type)
-                        andalso is_list(Trace) ->
-                    {error, Error};
-                Type:Reason ->
-                    Trace = erlang:get_stacktrace(),
-                    {error, {erlang, Type, Reason, Trace}}
-            end)
-        end).
+    proc_lib:spawn_link(fun () -> exit(call_mfa(Module, Function, Args)) end).
 
 %%
 %% @doc Check options for the call request
@@ -283,11 +273,9 @@ handle_port_data(Data, State) ->
 %%
 %% @doc Handle incoming message
 %%
-handle_message({'C', Module, Function, Args}, State=#state{timeout=Timeout})
+handle_message({'C', Module, Function, Args, Context}, State)
         when is_atom(Module), is_atom(Function), is_list(Args) ->
-    Pid = spawn_call(Module, Function, Args),
-    Info = {Pid, erlport_utils:start_timer(Timeout, {in_timeout, Pid})},
-    {noreply, State#state{call=Info}};
+    incoming_call(Module, Function, Args, Context, State);
 handle_message({'r', Result}, State) ->
     erlport_utils:handle_response(call, {ok, Result}, State);
 handle_message({'e', Error}, State) ->
@@ -302,9 +290,7 @@ handle_message(Request, State) ->
 %%
 %% @doc Handle incoming call result
 %%
-handle_call_result(Result, State=#state{port=Port, call={_Pid, Timer},
-        compressed=Compressed}) ->
-    erlport_utils:stop_timer(Timer),
+handle_call_result(Result, State=#state{port=Port, compressed=Compressed}) ->
     Data = erlport_utils:encode_term(format_call_result(Result), Compressed),
     case erlport_utils:send_data(Port, Data) of
         ok ->
@@ -345,3 +331,29 @@ send_call_request({call, Module, Function, Args, Options}, From, State=#state{
                     {reply, Error, State}
             end
     end.
+
+%%
+%% @doc Call with module, function and args
+%%
+call_mfa(Module, Function, Args) ->
+    try {ok, apply(Module, Function, Args)}
+    catch
+        error:{Language, Type, _Val, Trace}=Error
+                when is_atom(Language) andalso is_atom(Type)
+                andalso is_list(Trace) ->
+            {error, Error};
+        Type:Reason ->
+            Trace = erlang:get_stacktrace(),
+            {error, {erlang, Type, Reason, Trace}}
+    end.
+
+%%
+%% @doc Handle incoming call request
+%%
+incoming_call(Module, Function, Args, 'L', State) ->
+    handle_call_result(call_mfa(Module, Function, Args), State);
+incoming_call(Module, Function, Args, _Context, State=#state{
+        timeout=Timeout}) ->
+    Pid = spawn_call(Module, Function, Args),
+    Info = {Pid, erlport_utils:start_timer(Timeout, {in_timeout, Pid})},
+    {noreply, State#state{call=Info}}.

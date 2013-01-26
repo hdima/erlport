@@ -101,6 +101,26 @@ objects_hierarchy_test_() ->
             'TestModule::TestClass::test_method', []))
     ).
 
+erlang_util_functions_test_() ->
+    ?SETUP([
+        fun () ->
+            ?assertEqual(P, ruby:call(P, 'erlport/erlang',
+                'ErlPort::Erlang::self', [])),
+            % Check cached value
+            ?assertEqual(P, ruby:call(P, 'erlport/erlang',
+                'ErlPort::Erlang::self', []))
+        end,
+        fun () ->
+            Ref = ruby:call(P, 'erlport/erlang',
+                'ErlPort::Erlang::make_ref', []),
+            ?assert(is_reference(Ref)),
+            Ref2 = ruby:call(P, 'erlport/erlang',
+                'ErlPort::Erlang::make_ref', []),
+            ?assert(is_reference(Ref2)),
+            ?assertNot(Ref =:= Ref2)
+        end
+    ]).
+
 error_test_() ->
     ?SETUP([
         ?_assertError({ruby, 'LoadError',
