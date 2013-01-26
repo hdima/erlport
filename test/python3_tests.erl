@@ -95,10 +95,10 @@ cast_test_() ->
         end
     ).
 
-call_back_test_() ->
+objects_hierarchy_test_() ->
     ?SETUP(
-        ?_assertEqual(3, python:call(P, 'erlport.erlang', call,
-            [erlang, length, [[1, 2, 3]]]))
+        ?_assertEqual(ok, python:call(P, test_utils,
+            'TestClass.TestSubClass.test_method', []))
     ).
 
 error_test_() ->
@@ -196,7 +196,7 @@ queue_test_() ->
             || _ <- lists:seq(1, 50)]}
     ).
 
-multiple_call_back_test_() -> {setup,
+call_back_test_() -> {setup,
     fun () ->
         setup_event_logger(),
         setup()
@@ -206,6 +206,8 @@ multiple_call_back_test_() -> {setup,
         cleanup_event_logger()
     end,
     fun (P) -> [
+        ?_assertEqual(3, python:call(P, 'erlport.erlang', call,
+            [erlang, length, [[1, 2, 3]]])),
         fun () ->
             ?assertEqual(ok, python:call(P, test_utils, switch, [5], [async])),
             timer:sleep(500),

@@ -95,6 +95,12 @@ cast_test_() ->
         end
     ).
 
+objects_hierarchy_test_() ->
+    ?SETUP(
+        ?_assertEqual(ok, python:call(P, test_utils,
+            'TestClass.TestSubClass.test_method', []))
+    ).
+
 error_test_() ->
     ?SETUP([
         ?_assertError({python, 'exceptions.ImportError',

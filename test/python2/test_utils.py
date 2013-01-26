@@ -15,3 +15,9 @@ def length(v):
 
 def print_string(s):
     print s.to_string()
+
+class TestClass(object):
+    class TestSubClass(object):
+        @staticmethod
+        def test_method():
+            return Atom("ok")

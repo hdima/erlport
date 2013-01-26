@@ -1,4 +1,5 @@
-- Add tests for calls in hierarchy of objects
+- Split Erlang tests by languages? For example it can be useful if some of the
+  languages not installed.
 
 - Check how Unicode characters in symbols work in Ruby 1.9
 
@@ -18,15 +19,11 @@
 - call should support 'stop_on_error' (async?) option from both sides?? Maybe
   we can use messages in this case and remove support for async calls?
 
-- Allow not only atoms in call() functions, convert strings, unicode(?) to
-  atoms. Test functions with Unicode names.
+- Allow not only atoms in call() functions and Atom() classes. Convert strings,
+  unicode(?) to atoms. Test functions with Unicode names.
 
 - Can we allow method calls for objects? For example we can pass a tuple
   {object, Object} instead of a module name?
-
-- We can create references for unpicklable objects (and all objects through the
-  explicit API). And we can create proxy objects this way? Need to think about
-  garbage collection however.
 
 - Add more API for middleware scenario (python, ruby, workers_pool, msghub
   modules). Reraise the language related exceptions in every module. And
@@ -75,6 +72,10 @@ Later
 
 Ideas
 =====
+
+- We can create references for unpicklable objects (and all objects through the
+  explicit API). And we can create proxy objects this way. Need to think about
+  garbage collection however.
 
 - Add xref checks?
 

@@ -75,7 +75,7 @@ start_stop_test_() -> [
 
 call_test_() ->
     ?SETUP(
-        ?_assertEqual(4, ruby:call(P, '', 'Kernel::eval', [<<"2 + 2">>]))
+        ?_assertEqual(4, ruby:call(P, test_utils, add, [2, 2]))
     ).
 
 cast_test_() ->
@@ -93,6 +93,12 @@ cast_test_() ->
                         timeout
                 end)
         end
+    ).
+
+objects_hierarchy_test_() ->
+    ?SETUP(
+        ?_assertEqual(ok, ruby:call(P, test_utils,
+            'TestModule::TestClass::test_method', []))
     ).
 
 error_test_() ->
@@ -123,12 +129,12 @@ error_test_() ->
 stdin_stdout_test_() ->
     ?SETUP([
         ?_test(erlport_test_utils:assert_output(<<"HELLO!\n">>,
-            fun () -> undefined = ruby:call(P, test_utils, 'Test::print_string',
+            fun () -> undefined = ruby:call(P, test_utils, 'print_string',
                 ["HELLO!"]) end, P)),
         ?_test(erlport_test_utils:assert_output(
             <<16#d0, 16#9f, 16#d1, 16#80, 16#d0, 16#b8, 16#d0, 16#b2,
                 16#d0, 16#b5, 16#d1, 16#82, "!\n">>,
-            fun () -> undefined = ruby:call(P, test_utils, 'Test::print_string',
+            fun () -> undefined = ruby:call(P, test_utils, 'print_string',
                 [[16#41f, 16#440, 16#438, 16#432, 16#435, 16#442, $!]])
                 end, P)),
         ?_assertError({ruby, 'IOError',
@@ -143,27 +149,26 @@ nouse_stdio_test_() ->
         _ ->
             ?SETUP(
                 setup_factory([nouse_stdio]),
-                ?_assertEqual(4, ruby:call(P, '', 'Kernel::eval',
-                    [<<"2 + 2">>]))
+                ?_assertEqual(4, ruby:call(P, test_utils, add, [2, 2]))
             )
     end.
 
 packet4_test_() ->
     ?SETUP(
         setup_factory([{packet, 4}]),
-        ?_assertEqual(4, ruby:call(P, '', 'Kernel::eval', [<<"2 + 2">>]))
+        ?_assertEqual(4, ruby:call(P, test_utils, add, [2, 2]))
     ).
 
 packet2_test_() ->
     ?SETUP(
         setup_factory([{packet, 2}]),
-        ?_assertEqual(4, ruby:call(P, '', 'Kernel::eval', [<<"2 + 2">>]))
+        ?_assertEqual(4, ruby:call(P, test_utils, add, [2, 2]))
     ).
 
 packet1_test_() ->
     ?SETUP(
         setup_factory([{packet, 1}]),
-        ?_assertEqual(4, ruby:call(P, '', 'Kernel::eval', [<<"2 + 2">>]))
+        ?_assertEqual(4, ruby:call(P, test_utils, add, [2, 2]))
     ).
 
 compressed_test_() ->
@@ -173,21 +178,21 @@ compressed_test_() ->
             S1 = list_to_binary(lists:duplicate(200, $0)),
             S2 = list_to_binary(lists:duplicate(200, $1)),
             ?assertEqual(<<S1/binary, S2/binary>>,
-                ruby:call(P, test_utils, 'Test::add', [S1, S2]))
+                ruby:call(P, test_utils, 'add', [S1, S2]))
         end
     ).
 
 call_pipeline_test_() ->
     ?SETUP(
         {inparallel, [
-            ?_assertEqual(N + 1, ruby:call(P, test_utils, 'Test::add', [N , 1]))
+            ?_assertEqual(N + 1, ruby:call(P, test_utils, 'add', [N , 1]))
             || N <- lists:seq(1, 50)]}
     ).
 
 queue_test_() ->
     ?SETUP(
         {inparallel, [
-            ?_assertEqual(262144, ruby:call(P, test_utils, 'Test::len',
+            ?_assertEqual(262144, ruby:call(P, test_utils, 'len',
                 [<<0:262144/unit:8>>]))
             || _ <- lists:seq(1, 50)]}
     ).

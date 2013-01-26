@@ -12,19 +12,22 @@ def identity v
     v
 end
 
-module Test
-    module_function
-    def add a, b
-        a + b
-    end
+def add a, b
+    a + b
+end
 
-    module_function
-    def len s
-        s.length
-    end
+def len s
+    s.length
+end
 
-    module_function
-    def print_string s
-        puts s.pack "U*"
+def print_string s
+    puts s.pack "U*"
+end
+
+module TestModule
+    class TestClass
+        def self.test_method
+            :ok
+        end
     end
 end
