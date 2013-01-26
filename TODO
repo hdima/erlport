@@ -21,17 +21,11 @@
 
 - Set default timeout to 5 sec?
 
-- Allow calls in selected processes in Erlang. We can use arbitrary keys on
-  Python/Ruby side and control process creation/mapping/cleanup on Erlang side.
+- Add [{timeout, Timeout}] options for erlang.call() function
 
-  Add options to erlang.call: [{key, Key}, {timeout, Timeout}].
-
-  If process will die we just return 'noproc' error and raise it on the
-  Python/Ruby side.
-
-  We also can create a class (erlang.Process) with call and exit methods. In
-  this case working process should be created explicitly and we can pass
-  the pid to erlang.call?
+- Allow calls in selected processes in Erlang. We can create a class
+  (erlang.Process) which has call and exit methods. If Erlang process will die
+  we just raise 'noproc' error.
 
 - Split Erlang tests by languages? For example it can be useful if some of the
   languages not installed.
