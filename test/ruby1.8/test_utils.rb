@@ -24,6 +24,10 @@ def print_string s
     puts s.pack "U*"
 end
 
+def string_to_sym s
+    s.pack("U*").to_sym
+end
+
 module TestModule
     class TestClass
         def self.test_method

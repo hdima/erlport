@@ -180,15 +180,15 @@ module ErlTerm
         raise ValueError, "unknown protocol version: %s" % string[0] \
             if string[0] != 131
         if string[1] == 80
-            raise IncompleteData, string if string.length < 16
+            raise IncompleteData, string if string.bytesize < 16
             zstream = Zlib::Inflate.new
             term_string = zstream.inflate(string[6..-1])
             unused = zstream.finish
             zstream.close
             uncompressed_size = string[2,4].unpack("N")[0]
             raise ValueError, "invalid compressed tag, #{uncompressed_size}" \
-                " bytes but got #{term_string.length}" \
-                if term_string.length != uncompressed_size
+                " bytes but got #{term_string.bytesize}" \
+                if term_string.bytesize != uncompressed_size
             # tail data returned by decode_term() can be simple ignored
             term, _tail = decode_term term_string
             return term, unused
@@ -209,8 +209,8 @@ module ErlTerm
         end
         if compressed > 0
             zlib_term = Zlib::Deflate.deflate(encoded_term, compressed)
-            ln = encoded_term.length
-            if zlib_term.length + 5 <= ln
+            ln = encoded_term.bytesize
+            if zlib_term.bytesize + 5 <= ln
                 # Compressed term should be smaller
                 return [131, 80, ln].pack("CCN") + zlib_term
             end
@@ -227,7 +227,7 @@ module ErlTerm
         case tag
             when 100
                 # ATOM_EXT
-                ln = string.length
+                ln = string.bytesize
                 raise IncompleteData, string if ln < 3
                 length = string[1,2].unpack("n")[0] + 3
                 raise IncompleteData, string if ln < length
@@ -248,18 +248,18 @@ module ErlTerm
                 return [], string[1..-1]
             when 107
                 # STRING_EXT
-                ln = string.length
+                ln = string.bytesize
                 raise IncompleteData, string if ln < 3
                 length = string[1,2].unpack("n")[0] + 3
                 raise IncompleteData, string if ln < length
                 return string[3...length].unpack("C*"), string[length..-1]
             when 108, 104, 105
                 if tag == 104
-                    raise IncompleteData, string if string.length < 2
+                    raise IncompleteData, string if string.bytesize < 2
                     length = string[1]
                     tail = string[2..-1]
                 else
-                    raise IncompleteData, string if string.length < 5
+                    raise IncompleteData, string if string.bytesize < 5
                     length = string[1,4].unpack("N")[0]
                     tail = string[5..-1]
                 end
@@ -282,38 +282,38 @@ module ErlTerm
                 return Tuple.new(lst), tail
             when 97
                 # SMALL_INTEGER_EXT
-                raise IncompleteData, string if string.length < 2
+                raise IncompleteData, string if string.bytesize < 2
                 return string[1], string[2..-1]
             when 98
                 # INTEGER_EXT
-                raise IncompleteData, string if string.length < 5
+                raise IncompleteData, string if string.bytesize < 5
                 int = string[1,4].unpack("N")[0]
                 # Turn unsigned integer to signed integer
                 int -= 0x100000000 if int > 0x7fffffff
                 return int, string[5..-1]
             when 109
                 # BINARY_EXT
-                ln = string.length
+                ln = string.bytesize
                 raise IncompleteData, string if ln < 5
                 length = string[1,4].unpack("N")[0] + 5
                 raise IncompleteData, string if ln < length
                 return string[5...length], string[length..-1]
             when 70
                 # NEW_FLOAT_EXT
-                raise IncompleteData, string if string.length < 9
+                raise IncompleteData, string if string.bytesize < 9
                 return string[1,8].unpack("G")[0], string[9..-1]
             when 110, 111
                 # SMALL_BIG_EXT, LARGE_BIG_EXT
                 if tag == 110
-                    raise IncompleteData, string if string.length < 3
+                    raise IncompleteData, string if string.bytesize < 3
                     length, sign = string[1,2].unpack("CC")
                     tail = string[3..-1]
                 else
-                    raise IncompleteData, string if string.length < 6
+                    raise IncompleteData, string if string.bytesize < 6
                     length, sign = string[1,5].unpack("NC")
                     tail = string[6..-1]
                 end
-                raise IncompleteData, string if tail.length < length
+                raise IncompleteData, string if tail.bytesize < length
                 n = 0
                 if length > 0
                     for i in tail[0,length].unpack("C*").reverse!
@@ -363,7 +363,7 @@ module ErlTerm
                     + term.map{|i| encode_term i}.join + "j"
             when Symbol
                 s = term.to_s
-                length = s.length
+                length = s.bytesize
                 raise ValueError, "invalid atom length: #{length}" \
                     if length > 255
                 return [100, length].pack("Cn") + s

@@ -393,6 +393,7 @@ class EncodeTestCase < Test::Unit::TestCase
     def test_encode_atom
         assert_equal "\x83d\0\0", encode(:"")
         assert_equal "\x83d\0\4test", encode(:test)
+        assert_equal "\x83d\0\2\xd0\x90", encode([0x410].pack("U*").to_sym)
     end
 
     def test_encode_string

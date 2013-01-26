@@ -238,6 +238,12 @@ datatype_test_() ->
             || V <- datatype_test_data:get_test_data()]
     ).
 
+unicode_symbols_test_() ->
+    ?SETUP(
+        ?_assertEqual(list_to_atom([16#d0, 16#90, 16#d0, 16#91]), ruby:call(P,
+            test_utils, string_to_sym, [[16#410, 16#411]]))
+    ).
+
 %%%
 %%% Utility functions
 %%%

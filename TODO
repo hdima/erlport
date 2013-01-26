@@ -1,8 +1,6 @@
 - Split Erlang tests by languages? For example it can be useful if some of the
   languages not installed.
 
-- Check how Unicode characters in symbols work in Ruby 1.9
-
 - For internal usage we can add Pid argument to incoming call messages which
   can be 'new', 'local' or pid()
 
