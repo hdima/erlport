@@ -160,8 +160,9 @@ handle_info(_Info, State) ->
 %%
 terminate(Reason, #state{sent=Sent, queue=Queue}) ->
     Error = get_termination_error(Reason),
-    queue_foreach(send_error_factory(Error), Sent),
-    queue_foreach(send_error_factory(Error), Queue).
+    Factory = send_error_factory(Error),
+    queue_foreach(Factory, Sent),
+    queue_foreach(Factory, Queue).
 
 %%
 %% @doc Code change handler
