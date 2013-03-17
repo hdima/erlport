@@ -44,7 +44,8 @@
     start_link/2,
     stop/1,
     call/4,
-    call/5
+    call/5,
+    cast/2
     ]).
 
 -include("python.hrl").
@@ -149,6 +150,15 @@ call(Instance, Module, Function, Args) ->
 
 call(Pid, Module, Function, Args, Options) ->
     erlport:call(Pid, Module, Function, Args, Options).
+
+%%
+%% @doc Send message to the external process
+%%
+
+-spec cast(Instance::erlport:server_instance(), Message::term()) -> ok.
+
+cast(Pid, Message) ->
+    erlport:cast(Pid, Message).
 
 %%%============================================================================
 %%% Utility functions

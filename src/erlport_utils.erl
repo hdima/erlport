@@ -44,8 +44,8 @@
     prepare_list/1,
     start_timer/2,
     stop_timer/1,
-    try_send_request/5,
-    handle_response/3
+    try_send_request/4,
+    handle_response/2
     ]).
 
 -type timer() :: undefined | reference().
@@ -158,38 +158,29 @@ stop_timer(Timer) ->
 %% @doc Try to send request
 %%
 
-try_send_request(Type, From, Data, State=#state{port=Port, queue=Queue,
-        sent=Sent}, Timeout) ->
+try_send_request(From, Data, State=#state{queue=Queue}, Timeout) ->
     Timer = case From of
         unknown ->
             start_timer(Timeout, out_timeout);
         _ ->
             start_timer(Timeout, {out_timeout, From})
     end,
-    Info = {Type, From, Timer},
-    case queue:is_empty(Sent) of
-        true ->
-            send_request(Info, Data, Queue, State);
-        false ->
-            case try_send_data(Port, Data) of
-                ok ->
-                    Sent2 = queue:in(Info, Sent),
-                    {noreply, State#state{sent=Sent2}};
-                wait ->
-                    Queue2 = queue:in({Info, Data}, Queue),
-                    {noreply, State#state{queue=Queue2}};
-                error ->
-                    {stop, port_closed, State}
-            end
+    Info = {From, Timer},
+    case send_or_queue(Info, Data, Queue, State) of
+        wait ->
+            Queue2 = queue:in({Info, Data}, Queue),
+            {noreply, State#state{queue=Queue2}};
+        Result ->
+            Result
     end.
 
 %%
 %% @doc Handle response
 %%
 
-handle_response(ExpectedType, Response, State=#state{sent=Sent}) ->
+handle_response(Response, State=#state{sent=Sent}) ->
     case queue:out(Sent) of
-        {{value, {ExpectedType, From, Timer}}, Sent2} ->
+        {{value, {From, Timer}}, Sent2} ->
             stop_timer(Timer),
             % TODO: Cleanup this code
             case From of
@@ -231,7 +222,15 @@ process_queue(State=#state{queue=Queue}) ->
             send_from_queue(Queued, Queue2, State)
     end.
 
-send_from_queue({Info, Data}, Queue, State=#state{port=Port, sent=Sent}) ->
+send_from_queue({Info, Data}, Queue, State) ->
+    case send_or_queue(Info, Data, Queue, State) of
+        wait ->
+            {noreply, State};
+        Result ->
+            Result
+    end.
+
+send_or_queue(Info, Data, Queue, State=#state{port=Port, sent=Sent}) ->
     case queue:is_empty(Sent) of
         true ->
             send_request(Info, Data, Queue, State);
@@ -241,7 +240,7 @@ send_from_queue({Info, Data}, Queue, State=#state{port=Port, sent=Sent}) ->
                     Sent2 = queue:in(Info, Sent),
                     {noreply, State#state{sent=Sent2, queue=Queue}};
                 wait ->
-                    {noreply, State};
+                    wait;
                 error ->
                     {stop, port_closed, State}
             end

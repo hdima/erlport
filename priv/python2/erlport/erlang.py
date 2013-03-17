@@ -29,6 +29,7 @@ import sys
 from sys import exc_info
 from threading import Lock
 from traceback import extract_tb
+from inspect import getargspec
 
 from erlport import Atom
 
@@ -57,6 +58,7 @@ class MessageHandler(object):
         self.port = port
         self.set_encoder(None)
         self.set_decoder(None)
+        self.set_message_handler(None)
         call_lock = Lock()
         self._call_lock_acquire = call_lock.acquire
         self._call_lock_release = call_lock.release
@@ -64,15 +66,34 @@ class MessageHandler(object):
 
     def set_encoder(self, encoder):
         if encoder:
+            self.check_handler(encoder)
             self.encoder = self.object_iterator(encoder)
         else:
             self.encoder = lambda o: o
 
     def set_decoder(self, decoder):
         if decoder:
+            self.check_handler(decoder)
             self.decoder = self.object_iterator(decoder)
         else:
             self.decoder = lambda o: o
+
+    def set_message_handler(self, handler):
+        if handler:
+            self.check_handler(handler)
+            self.handler = handler
+        else:
+            self.handler = lambda o: None
+
+    def check_handler(self, handler):
+        # getargspec will raise TypeError if handler is not a function
+        args, varargs, _keywords, defaults = getargspec(handler)
+        largs = len(args)
+        too_much = largs > 1 and largs - len(default) > 1
+        too_few = largs == 0 and varargs is None
+        if too_much or too_few:
+            raise ValueError("expected single argument function: %r"
+                % (handler,))
 
     def object_iterator(self, handler,
             isinstance=isinstance, list=list, tuple=tuple, map=map):
@@ -91,17 +112,34 @@ class MessageHandler(object):
             pass
 
     def loop(self, read, write, call):
+        message_ack = Atom("r")
         while True:
             message = read()
             try:
-                mtype, module, function, args = message
-            except ValueError:
+                mtype = message[0]
+            except TypeError:
                 raise InvalidMessage(message)
 
-            if mtype != "C":
+            if mtype == "C":
+                try:
+                    module, function, args = message[1:]
+                except ValueError:
+                    raise InvalidMessage(message)
+                write(call(module, function, args))
+            elif mtype == "M":
+                write(message_ack)
+                try:
+                    payload, = message[1:]
+                except ValueError:
+                    raise InvalidMessage(message)
+                try:
+                    self.handler(payload)
+                except:
+                    # TODO: Should we handle errors?
+                    # Probably we should send error response in this case
+                    pass
+            else:
                 raise UnknownMessage(message)
-
-            write(call(module, function, args))
 
     def cast(self, pid, message):
         # It's safe to call it from multiple threads because port.write will be
@@ -199,13 +237,15 @@ def setup_stdin_stdout(port):
     del RedirectedStdin, RedirectedStdout
 
 def setup_api_functions(handler):
-    global call, cast, self, make_ref, set_encoder, set_decoder
+    global call, cast, self, make_ref
+    global set_encoder, set_decoder, set_message_handler
     call = handler.call
     cast = handler.cast
     self = handler.self
     make_ref = handler.make_ref
     set_encoder = handler.set_encoder
     set_decoder = handler.set_decoder
+    set_message_handler = handler.set_message_handler
 
 def setup(port):
     global MessageHandler, setup

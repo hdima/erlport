@@ -1,17 +1,18 @@
 - Do we really need erlang.make_ref() function?
 
-- Add registration in erlang module for a message handler and send()
-  (gen_server:cast) function for erlport.erl module. We also can redirect all
-  unknown messages to the external language message handler. On error in the
-  message handler we should shutdown the port by sending the special
-  'error_exit' message. And probably we don't need 'async' option for call() in
-  this case because it can be replaced with send() function.
+- Support erlport:cast for all languages
+
+- We can redirect all unknown messages to the external language message
+  handler.
+
+- On error in the message handler we should shutdown the port by sending the
+  special 'error_exit' message.
+
+- Probably we don't need 'async' option for call() in this case because it can
+  be replaced with send() function.
 
 - We can add erlang.receive() function which waits for next message with
   optional timeout.
-
-- call should support 'stop_on_error' (async?) option from both sides?? Maybe
-  we can use messages in this case and remove support for async calls?
 
 - Allow not only atoms in call() functions and Atom() classes. Convert strings,
   unicode(?) to atoms. Test functions with Unicode names.

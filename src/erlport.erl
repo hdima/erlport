@@ -40,7 +40,8 @@
 
 -export([
     stop/1,
-    call/5
+    call/5,
+    cast/2
     ]).
 
 %% Behaviour callbacks
@@ -96,6 +97,14 @@ call(Pid, Module, Function, Args, Options) when is_atom(Module)
             gen_server:cast(Pid, Request)
     end.
 
+%%
+%% @doc Send message to the external process
+%%
+
+-spec cast(Instance::server_instance(), Message::term()) -> ok.
+
+cast(Pid, Message) ->
+    gen_server:cast(Pid, {message, Message}).
 
 %%%
 %%% Behaviour callbacks
@@ -113,8 +122,9 @@ init(Fun) when is_function(Fun, 0) ->
 %% @doc Synchronous event handler
 %% @hidden
 %%
-handle_call(Call={call, _M, _F, _A, _O}, From, State=#state{}) ->
-    send_call_request(Call, From, State);
+handle_call(Call={call, _M, _F, _A, Options}, From, State=#state{})
+        when is_list(Options) ->
+    send_request(Call, From, Options, State);
 handle_call(Request, From, State) ->
     Error = {unknown_call, ?MODULE, Request, From},
     {reply, Error, State}.
@@ -123,8 +133,11 @@ handle_call(Request, From, State) ->
 %% @doc Asynchronous event handler
 %% @hidden
 %%
-handle_cast(Call={call, _M, _F, _A, _O}, State=#state{}) ->
-    send_call_request(Call, unknown, State);
+handle_cast(Call={message, _Message}, State) ->
+    send_request(Call, unknown, [], State);
+handle_cast(Call={call, _M, _F, _A, Options}, State)
+        when is_list(Options) ->
+    send_request(Call, unknown, Options, State);
 handle_cast(stop, State) ->
     {stop, normal, State};
 handle_cast(_Event, State) ->
@@ -272,20 +285,28 @@ handle_port_data(Data, State) ->
     end.
 
 %%
+%% @doc Handle incoming reply message
+%%
+handle_message({'r', Result}, State) ->
+    erlport_utils:handle_response({ok, Result}, State);
+handle_message('r', State) ->
+    erlport_utils:handle_response(ok, State);
+handle_message({'e', Error}, State) ->
+    erlport_utils:handle_response({error, Error}, State);
+handle_message(Request, State) ->
+    handle_incoming_message(Request, State).
+
+%%
 %% @doc Handle incoming message
 %%
-handle_message({'C', Module, Function, Args, Context}, State)
+handle_incoming_message({'C', Module, Function, Args, Context}, State)
         when is_atom(Module), is_atom(Function), is_list(Args) ->
     incoming_call(Module, Function, Args, Context, State);
-handle_message({'r', Result}, State) ->
-    erlport_utils:handle_response(call, {ok, Result}, State);
-handle_message({'e', Error}, State) ->
-    erlport_utils:handle_response(call, {error, Error}, State);
-handle_message({'M', Pid, Message}, State) ->
+handle_incoming_message({'M', Pid, Message}, State) ->
     send(Pid, Message, State);
-handle_message({'P', StdoutData}, State) ->
+handle_incoming_message({'P', StdoutData}, State) ->
     print(StdoutData, State);
-handle_message(Request, State) ->
+handle_incoming_message(Request, State) ->
     {stop, {invalid_protocol_message, Request}, State}.
 
 %%
@@ -313,16 +334,11 @@ format_call_result(Error) ->
 %%
 %% @doc Send or queue outgoing call request
 %%
-send_call_request({call, Module, Function, Args, Options}, From, State=#state{
-        timeout=DefaultTimeout, compressed=Compressed})
-        when is_atom(Module) andalso is_atom(Function) andalso is_list(Args)
-        andalso is_list(Options) ->
+send_request(Request, From, Options, State=#state{timeout=DefaultTimeout}) ->
     Timeout = proplists:get_value(timeout, Options, DefaultTimeout),
     case erlport_options:timeout(Timeout) of
         {ok, Timeout} ->
-            Data = erlport_utils:encode_term({'C', Module, Function,
-                erlport_utils:prepare_list(Args)}, Compressed),
-            erlport_utils:try_send_request(call, From, Data, State, Timeout);
+            send_request2(Request, From, Timeout, State);
         error ->
             Error = {error, {invalid_option, {timeout, Timeout}}},
             case From of
@@ -332,6 +348,18 @@ send_call_request({call, Module, Function, Args, Options}, From, State=#state{
                     {reply, Error, State}
             end
     end.
+
+send_request2({call, Module, Function, Args, _Options}, From, Timeout,
+        State=#state{compressed=Compressed})
+        when is_atom(Module) andalso is_atom(Function) andalso is_list(Args) ->
+    Data = erlport_utils:encode_term({'C', Module, Function,
+        erlport_utils:prepare_list(Args)}, Compressed),
+    erlport_utils:try_send_request(From, Data, State, Timeout);
+send_request2({message, Message}, From, Timeout, State=#state{
+        compressed=Compressed}) ->
+    Data = erlport_utils:encode_term({'M',
+        erlport_utils:prepare_term(Message)}, Compressed),
+    erlport_utils:try_send_request(From, Data, State, Timeout).
 
 %%
 %% @doc Call with module, function and args
