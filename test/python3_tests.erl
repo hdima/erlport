@@ -27,7 +27,7 @@
 
 -module(python3_tests).
 
--export([test_callback/2]).
+-export([test_callback/1]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -42,9 +42,9 @@
 -define(TIMEOUT, 5000).
 
 
-test_callback(PrevResult, N) ->
-    log_event({test_callback, PrevResult, N}),
-    N.
+test_callback(Result) ->
+    log_event({test_callback, Result}),
+    Result.
 
 start_stop_test_() -> [
     fun () ->
@@ -78,7 +78,7 @@ call_test_() ->
         ?_assertEqual(4, python:call(P, operator, add, [2, 2]))
     ).
 
-cast_test_() ->
+python_cast_test_() ->
     ?SETUP(
         fun () ->
             Pid = self(),
@@ -94,6 +94,25 @@ cast_test_() ->
                 end)
         end
     ).
+
+erlang_cast_test_() -> {setup,
+    fun () ->
+        setup_event_logger(),
+        setup()
+    end,
+    fun (P) ->
+        cleanup(P),
+        cleanup_event_logger()
+    end,
+    fun (P) ->
+        fun () ->
+            python:call(P, test_utils, setup_message_handler, []),
+            ?assertEqual(ok, python:cast(P, test_message)),
+            timer:sleep(500),
+            ?assertEqual([{test_callback, {message, test_message}}],
+                get_events())
+        end
+    end}.
 
 objects_hierarchy_test_() ->
     ?SETUP(
@@ -228,21 +247,21 @@ call_back_test_() -> {setup,
             ?assertEqual(ok, python:call(P, test_utils, switch, [5], [async])),
             timer:sleep(500),
             ?assertEqual([
-                {test_callback, 0, 0},
-                {test_callback, 0, 1},
-                {test_callback, 1, 2},
-                {test_callback, 2, 3},
-                {test_callback, 3, 4}
+                {test_callback, {0, 0}},
+                {test_callback, {0, 1}},
+                {test_callback, {1, 2}},
+                {test_callback, {2, 3}},
+                {test_callback, {3, 4}}
                 ], get_events())
         end,
         fun () ->
             ?assertEqual(5, python:call(P, test_utils, switch, [5])),
             ?assertEqual([
-                {test_callback, 0, 0},
-                {test_callback, 0, 1},
-                {test_callback, 1, 2},
-                {test_callback, 2, 3},
-                {test_callback, 3, 4}
+                {test_callback, {0, 0}},
+                {test_callback, {0, 1}},
+                {test_callback, {1, 2}},
+                {test_callback, {2, 3}},
+                {test_callback, {3, 4}}
                 ], get_events())
         end
     ] end}.

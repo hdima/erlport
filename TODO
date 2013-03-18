@@ -1,5 +1,7 @@
 - Do we really need erlang.make_ref() function?
 
+- Add delete_(encode|decode|message_handler) functions for API clarity?
+
 - Support erlport:cast for all languages
 
 - We can redirect all unknown messages to the external language message

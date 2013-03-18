@@ -1,9 +1,9 @@
 python2_tests.erl:132: The variable _ can never match since previous clauses completely covered the type 'false'
 python2_tests.erl:134: The variable _ can never match since previous clauses completely covered the type 'false'
 python2_tests.erl:135: The variable _ can never match since previous clauses completely covered the type 'false'
-python3_tests.erl:113: The variable _ can never match since previous clauses completely covered the type 'false'
-python3_tests.erl:115: The variable _ can never match since previous clauses completely covered the type 'false'
-python3_tests.erl:116: The variable _ can never match since previous clauses completely covered the type 'false'
+python3_tests.erl:132: The variable _ can never match since previous clauses completely covered the type 'false'
+python3_tests.erl:134: The variable _ can never match since previous clauses completely covered the type 'false'
+python3_tests.erl:135: The variable _ can never match since previous clauses completely covered the type 'false'
 python_options_tests.erl:56: The created fun has no local return
 python_options_tests.erl:56: The created fun has no local return
 python_options_tests.erl:57: The call python_options:parse([{'buffer_size','invalid'},...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}

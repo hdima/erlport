@@ -3,9 +3,15 @@ from erlport import Atom, erlang
 def switch(n):
     result = 0
     for i in range(n):
-        result = erlang.call(Atom(b"python3_tests"), Atom(b"test_callback"),
-            [result, i])
+        _, result = erlang.call(Atom(b"python3_tests"), Atom(b"test_callback"),
+            [(result, i)])
     return n
+
+def setup_message_handler():
+    def handler(message):
+        erlang.call(Atom(b"python3_tests"), Atom(b"test_callback"),
+            [(Atom(b"message"), message)])
+    erlang.set_message_handler(handler)
 
 def identity(v):
     return v
