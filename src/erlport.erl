@@ -164,6 +164,10 @@ handle_info({Port, closed}, State=#state{port=Port}) ->
     {stop, port_closed, State};
 handle_info({'EXIT', Port, Reason}, State=#state{port=Port}) ->
     {stop, {port_closed, Reason}, State};
+handle_info({Port, {exit_status, Code}}, State=#state{port=Port}) ->
+    % We can get this message even if 'exit_status' option wasn't set for the
+    % port
+    {stop, {port_closed, {code, Code}}, State};
 handle_info(_Info, State) ->
     {noreply, State}.
 
