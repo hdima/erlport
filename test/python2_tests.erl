@@ -108,6 +108,8 @@ erlang_cast_test_() -> {setup,
         fun () ->
             python:call(P, test_utils, setup_message_handler, []),
             ?assertEqual(ok, python:cast(P, test_message)),
+            % TODO:
+            % P ! test_message2,
             timer:sleep(500),
             ?assertEqual([{test_callback, {message, test_message}}],
                 get_events())

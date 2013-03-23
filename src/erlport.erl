@@ -168,8 +168,9 @@ handle_info({Port, {exit_status, Code}}, State=#state{port=Port}) ->
     % We can get this message even if 'exit_status' option wasn't set for the
     % port
     {stop, {port_closed, {code, Code}}, State};
-handle_info(_Info, State) ->
-    {noreply, State}.
+handle_info(Message, State) ->
+    % Send all other messages to the port
+    send_request({message, Message}, unknown, [], State).
 
 %%
 %% @doc Server is about to terminate
