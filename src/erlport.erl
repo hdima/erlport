@@ -152,13 +152,13 @@ handle_info({Port, {data, Data}}, State=#state{port=Port}) ->
 handle_info({'EXIT', Pid, Result}, State=#state{call={Pid, Timer}}) ->
     erlport_utils:stop_timer(Timer),
     handle_call_result(Result, State);
-handle_info({in_timeout, Pid}, State=#state{call={Pid, _Timer}}) ->
+handle_info({erlport_timeout, {in, Pid}}, State=#state{call={Pid, _Timer}}) ->
     true = exit(Pid, timeout),
     {noreply, State};
-handle_info({out_timeout, From}, State) ->
+handle_info({erlport_timeout, {out, From}}, State) ->
     gen_server:reply(From, {error, timeout}),
     {noreply, State};
-handle_info(out_timeout, State) ->
+handle_info({erlport_timeout, out}, State) ->
     {stop, timeout, State};
 handle_info({Port, closed}, State=#state{port=Port}) ->
     {stop, port_closed, State};
@@ -384,5 +384,6 @@ incoming_call(Module, Function, Args, 'L', State) ->
 incoming_call(Module, Function, Args, _Context, State=#state{
         timeout=Timeout}) ->
     Pid = spawn_call(Module, Function, Args),
-    Info = {Pid, erlport_utils:start_timer(Timeout, {in_timeout, Pid})},
+    Info = {Pid, erlport_utils:start_timer(Timeout,
+        {erlport_timeout, {in, Pid}})},
     {noreply, State#state{call=Info}}.

@@ -161,9 +161,9 @@ stop_timer(Timer) ->
 try_send_request(From, Data, State=#state{queue=Queue}, Timeout) ->
     Timer = case From of
         unknown ->
-            start_timer(Timeout, out_timeout);
+            start_timer(Timeout, {erlport_timeout, out});
         _ ->
-            start_timer(Timeout, {out_timeout, From})
+            start_timer(Timeout, {erlport_timeout, {out, From}})
     end,
     Info = {From, Timer},
     case send_or_queue(Info, Data, Queue, State) of
