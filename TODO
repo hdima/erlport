@@ -13,9 +13,6 @@
 - Probably we don't need 'async' option for call() in this case because it can
   be replaced with send() function.
 
-- We can add erlang.receive() function which waits for next message with
-  optional timeout.
-
 - Allow not only atoms in call() functions and Atom() classes. Convert strings,
   unicode(?) to atoms. Test functions with Unicode names.
 
@@ -62,6 +59,9 @@ Later
 
 Ideas
 =====
+
+- We can add erlang.receive() function which waits for next message (with
+  optional timeout?).
 
 - Can we allow method calls for objects? For example we can pass a tuple
   {object, Object} instead of a module name?
