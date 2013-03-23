@@ -201,9 +201,9 @@ get_termination_error(Reason) ->
 %%
 send_error_factory(Error) ->
     fun
-        ({_Type, unknown, _Timer}) ->
+        ({unknown, _Timer}) ->
             ok;
-        ({_Type, From, _Timer}) ->
+        ({From, _Timer}) ->
             gen_server:reply(From, Error)
     end.
 
