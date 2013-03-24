@@ -2,8 +2,6 @@
   Erlang at the same time. In this case instead of a function result we can get
   the message.
 
-- Replace erlport:queue_foreach/2 with lists:foreach/2
-
 - Do we really need erlang.make_ref() function?
 
 - Add delete_(encode|decode|message_handler) functions for API clarity?
@@ -66,8 +64,9 @@ Later
 Ideas
 =====
 
-- We can add erlang.receive() function which waits for next message (with
-  optional timeout?).
+- We can add erlang.receive() function which waits for next message with
+  optional timeout (timeouts can be implemented with select/etc. modules and
+  probably with msvcrt.kbhit() on Windows).
 
 - Can we allow method calls for objects? For example we can pass a tuple
   {object, Object} instead of a module name?
