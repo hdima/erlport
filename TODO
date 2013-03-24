@@ -2,6 +2,11 @@
   Erlang at the same time. In this case instead of a function result we can get
   the message.
 
+- It seems we need to use call IDs so we can handle multiple calls at once and
+  avoid deadlocks in erlang._call. And when we wait for response in
+  erlang._call we should probably queue other responses (allow only incoming
+  calls and messages) for later processing.
+
 - Do we really need erlang.make_ref() function?
 
 - Add delete_(encode|decode|message_handler) functions for API clarity?
@@ -66,7 +71,7 @@ Ideas
 
 - We can add erlang.receive() function which waits for next message with
   optional timeout (timeouts can be implemented with select/etc. modules and
-  probably with msvcrt.kbhit() on Windows).
+  probably with msvcrt.kbhit() on Windows). What about Ruby?
 
 - Can we allow method calls for objects? For example we can pass a tuple
   {object, Object} instead of a module name?
