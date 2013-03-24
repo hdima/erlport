@@ -7,6 +7,8 @@
   erlang._call we should probably queue other responses (allow only incoming
   calls and messages) for later processing.
 
+- Probably we don't need acknowledge messages from Erlang
+
 - Do we really need erlang.make_ref() function?
 
 - Add delete_(encode|decode|message_handler) functions for API clarity?
