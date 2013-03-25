@@ -7,13 +7,13 @@
   erlang._call we should probably queue other responses (allow only incoming
   calls and messages) for later processing.
 
-- Probably we don't need acknowledge messages from Erlang
-
 - Do we really need erlang.make_ref() function?
 
 - Add delete_(encode|decode|message_handler) functions for API clarity?
 
 - Support erlport:cast for all languages
+
+- Set default timeout to 5 sec?
 
 - We can redirect all unknown messages to the external language message
   handler.
@@ -34,8 +34,6 @@
 - Ruby encoder/decoder for arguments/results
 
 - Add custom encode/decode handlers in Erlang? Should it be a callback module?
-
-- Set default timeout to 5 sec?
 
 - Add [{timeout, Timeout}] options for erlang.call() function
 
