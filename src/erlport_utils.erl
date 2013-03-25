@@ -44,8 +44,8 @@
     prepare_list/1,
     start_timer/2,
     stop_timer/1,
-    try_send_request/4,
-    handle_response/2
+    try_send_request/5,
+    handle_response/3
     ]).
 
 -type timer() :: undefined | reference().
@@ -158,7 +158,7 @@ stop_timer(Timer) ->
 %% @doc Try to send request
 %%
 
-try_send_request(From, Data, State=#state{queue=Queue}, Timeout) ->
+try_send_request(From, Data, Id, State=#state{queue=Queue}, Timeout) ->
     Timer = case From of
         unknown ->
             start_timer(Timeout, {erlport_timeout, out});
@@ -166,9 +166,9 @@ try_send_request(From, Data, State=#state{queue=Queue}, Timeout) ->
             start_timer(Timeout, {erlport_timeout, {out, From}})
     end,
     Info = {From, Timer},
-    case send_or_queue(Info, Data, Queue, State) of
+    case send_or_queue(Info, Id, Data, Queue, State) of
         wait ->
-            Queue2 = queue:in({Info, Data}, Queue),
+            Queue2 = queue:in({Info, Id, Data}, Queue),
             {noreply, State#state{queue=Queue2}};
         Result ->
             Result
@@ -178,16 +178,17 @@ try_send_request(From, Data, State=#state{queue=Queue}, Timeout) ->
 %% @doc Handle response
 %%
 
-handle_response(Response, State=#state{sent=Sent}) ->
-    case queue:out(Sent) of
-        {{value, {From, Timer}}, Sent2} ->
+handle_response(Response, Id, State=#state{sent=Sent}) ->
+    case orddict:find(Id, Sent) of
+        {ok, {From, Timer}} ->
+            Sent2 = orddict:erase(Id, Sent),
             stop_timer(Timer),
             % TODO: Cleanup this code
             case From of
                 unknown ->
                     case Response of
                         {error, _} ->
-                            {stop, Response, State};
+                            {stop, Response, State#state{sent=Sent2}};
                         _ ->
                             process_queue(State#state{sent=Sent2})
                     end;
@@ -195,20 +196,23 @@ handle_response(Response, State=#state{sent=Sent}) ->
                     gen_server:reply(From, Response),
                     process_queue(State#state{sent=Sent2})
             end;
-        {empty, Sent} ->
-            {stop, orphan_response, State};
-        _ ->
-            {stop, unexpected_response, State}
+        error ->
+            case Sent of
+                [] ->
+                    {stop, {orphan_response, Response}, State};
+                _ ->
+                    {stop, {unexpected_response, Response}, State}
+            end
     end.
 
 %%=============================================================================
 %% Utility functions
 %%=============================================================================
 
-send_request(Info, Data, Queue, State=#state{port=Port, sent=Sent}) ->
+send_request(Info, Id, Data, Queue, State=#state{port=Port, sent=Sent}) ->
     case send_data(Port, Data) of
         ok ->
-            Sent2 = queue:in(Info, Sent),
+            Sent2 = orddict:store(Id, Info, Sent),
             {noreply, State#state{sent=Sent2, queue=Queue}};
         error ->
             {stop, port_closed, State}
@@ -222,22 +226,22 @@ process_queue(State=#state{queue=Queue}) ->
             send_from_queue(Queued, Queue2, State)
     end.
 
-send_from_queue({Info, Data}, Queue, State) ->
-    case send_or_queue(Info, Data, Queue, State) of
+send_from_queue({Info, Id, Data}, Queue, State) ->
+    case send_or_queue(Info, Id, Data, Queue, State) of
         wait ->
             {noreply, State};
         Result ->
             Result
     end.
 
-send_or_queue(Info, Data, Queue, State=#state{port=Port, sent=Sent}) ->
-    case queue:is_empty(Sent) of
-        true ->
-            send_request(Info, Data, Queue, State);
-        false ->
+send_or_queue(Info, Id, Data, Queue, State=#state{port=Port, sent=Sent}) ->
+    case Sent of
+        [] ->
+            send_request(Info, Id, Data, Queue, State);
+        _ ->
             case try_send_data(Port, Data) of
                 ok ->
-                    Sent2 = queue:in(Info, Sent),
+                    Sent2 = orddict:store(Id, Info, Sent),
                     {noreply, State#state{sent=Sent2, queue=Queue}};
                 wait ->
                     wait;

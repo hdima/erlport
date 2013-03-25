@@ -179,7 +179,7 @@ handle_info(Message, State) ->
 terminate(Reason, #state{sent=Sent, queue=Queue}) ->
     Error = get_termination_error(Reason),
     Factory = send_error_factory(Error),
-    queue_foreach(Factory, Sent),
+    lists:foreach(Factory, [V || {_K, V} <- orddict:to_list(Sent)]),
     queue_foreach(Factory, Queue).
 
 %%
@@ -292,12 +292,12 @@ handle_port_data(Data, State) ->
 %%
 %% @doc Handle incoming reply message
 %%
-handle_message({'r', Result}, State) ->
-    erlport_utils:handle_response({ok, Result}, State);
-handle_message('r', State) ->
-    erlport_utils:handle_response(ok, State);
-handle_message({'e', Error}, State) ->
-    erlport_utils:handle_response({error, Error}, State);
+handle_message({'r', Id, Result}, State) ->
+    erlport_utils:handle_response({ok, Result}, Id, State);
+handle_message({'r', Id}, State) ->
+    erlport_utils:handle_response(ok, Id, State);
+handle_message({'e', Id, Error}, State) ->
+    erlport_utils:handle_response({error, Error}, Id, State);
 handle_message(Request, State) ->
     handle_incoming_message(Request, State).
 
@@ -357,14 +357,24 @@ send_request(Request, From, Options, State=#state{timeout=DefaultTimeout}) ->
 send_request2({call, Module, Function, Args, _Options}, From, Timeout,
         State=#state{compressed=Compressed})
         when is_atom(Module) andalso is_atom(Function) andalso is_list(Args) ->
-    Data = erlport_utils:encode_term({'C', Module, Function,
+    Id = next_message_id(State),
+    Data = erlport_utils:encode_term({'C', Id, Module, Function,
         erlport_utils:prepare_list(Args)}, Compressed),
-    erlport_utils:try_send_request(From, Data, State, Timeout);
+    erlport_utils:try_send_request(From, Data, Id, State, Timeout);
 send_request2({message, Message}, From, Timeout, State=#state{
         compressed=Compressed}) ->
-    Data = erlport_utils:encode_term({'M',
+    Id = next_message_id(State),
+    Data = erlport_utils:encode_term({'M', Id,
         erlport_utils:prepare_term(Message)}, Compressed),
-    erlport_utils:try_send_request(From, Data, State, Timeout).
+    erlport_utils:try_send_request(From, Data, Id, State, Timeout).
+
+%%
+%% @doc Generate next message ID
+%%
+next_message_id(#state{sent=[]}) ->
+    1;
+next_message_id(#state{sent=Sent}) ->
+    lists:max(orddict:fetch_keys(Sent)) + 1.
 
 %%
 %% @doc Call with module, function and args

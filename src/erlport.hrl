@@ -38,8 +38,8 @@
     compressed = 0 :: 0..9,
     port :: port(),
     queue = queue:new() :: queue(),
-    % {call | switch | swtich_wait, From::term(), Timer::reference()}
-    sent = queue:new() :: queue(),
+    % orddict(): Id -> {From::term(), Timer::reference() | undefined}
+    sent = orddict:new() :: list(),
     call :: {Pid::pid(), Timer::reference()}
     }).
 

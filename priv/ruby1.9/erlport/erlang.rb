@@ -143,17 +143,17 @@ module Erlang
         while true
             message = @@port.read
             raise InvalidMessage, message \
-                if not message.is_a? Tuple or message.length != 4
-            mtype, mod, function, args = message
+                if not message.is_a? Tuple or message.length != 5
+            mtype, mid, mod, function, args = message
 
             raise UnknownMessage, message if mtype != :C
 
-            @@port.write(self.call_with_error_handler(mod, function, args))
+            @@port.write(self.call_with_error_handler(mid, mod, function, args))
         end
     end
 
     module_function
-    def call_with_error_handler mod, function, args
+    def call_with_error_handler mid, mod, function, args
         begin
             m = mod.to_s
             f = function.to_s
@@ -167,12 +167,12 @@ module Erlang
                 r = container.send(fun, *args)
             end
             # TODO: Encode result
-            Tuple.new([:r, r])
+            Tuple.new([:r, mid, r])
         rescue Exception => why
             exc = why.class.to_s.to_sym
             exc_tb = why.backtrace.reverse
             value = Tuple.new([:ruby, exc, why.message, exc_tb])
-            Tuple.new([:e, value])
+            Tuple.new([:e, mid, value])
         end
     end
 end

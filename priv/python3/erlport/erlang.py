@@ -114,20 +114,20 @@ class MessageHandler(object):
         while True:
             message = read()
             try:
-                mtype = message[0]
-            except TypeError:
+                mtype, mid = message[:2]
+            except (TypeError, ValueError):
                 raise InvalidMessage(message)
 
             if mtype == b"C":
                 try:
-                    module, function, args = message[1:]
+                    module, function, args = message[2:]
                 except ValueError:
                     raise InvalidMessage(message)
-                write(call(module, function, args))
+                write(call(mid, module, function, args))
             elif mtype == b"M":
-                write(message_ack)
+                write((message_ack, mid))
                 try:
-                    payload, = message[1:]
+                    payload, = message[2:]
                 except ValueError:
                     raise InvalidMessage(message)
                 try:
@@ -183,7 +183,7 @@ class MessageHandler(object):
             raise UnknownMessage(response)
         return self.decoder(value)
 
-    def call_with_error_handler(self, module, function, args):
+    def call_with_error_handler(self, mid, module, function, args):
         try:
             mod = module.decode()
             objects = function.decode().split(".")
@@ -192,13 +192,13 @@ class MessageHandler(object):
                 f = __import__(mod, {}, {}, [objects[0]])
             for o in objects:
                 f = getattr(f, o)
-            result = Atom(b"r"), self.encoder(f(*map(self.decoder, args)))
+            result = Atom(b"r"), mid, self.encoder(f(*map(self.decoder, args)))
         except:
             t, val, tb = exc_info()
             exc = Atom(bytes("%s.%s" % (t.__module__, t.__name__), "utf-8"))
             exc_tb = extract_tb(tb)
             exc_tb.reverse()
-            result = Atom(b"e"), (Atom(b"python"), exc, str(val), exc_tb)
+            result = Atom(b"e"), mid, (Atom(b"python"), exc, str(val), exc_tb)
         return result
 
 class RedirectedStdin(object):
