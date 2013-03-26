@@ -1,3 +1,5 @@
+- Remove 'no_susped' functionality from erlport_utils
+
 - We can face race condition when we call erlang.call and send a message from
   Erlang at the same time. In this case instead of a function result we can get
   the message.
