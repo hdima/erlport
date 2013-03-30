@@ -38,13 +38,12 @@
 
 -export([
     send_data/2,
-    try_send_data/2,
     encode_term/2,
     prepare_term/1,
     prepare_list/1,
     start_timer/2,
     stop_timer/1,
-    try_send_request/5,
+    send_request/5,
     handle_response/3
     ]).
 
@@ -66,23 +65,6 @@ send_data(Port, Data) when is_port(Port) andalso is_binary(Data) ->
     try port_command(Port, Data) of
         true ->
             ok
-    catch
-        error:badarg ->
-            error
-    end.
-
-%%
-%% @doc Try to send data to port
-%%
-
--spec try_send_data(Port::port(), Data::binary()) -> ok | wait | error.
-
-try_send_data(Port, Data) when is_port(Port) andalso is_binary(Data) ->
-    try erlang:port_command(Port, Data, [nosuspend]) of
-        true ->
-            ok;
-        false ->
-            wait
     catch
         error:badarg ->
             error
@@ -155,23 +137,28 @@ stop_timer(Timer) ->
     erlang:cancel_timer(Timer).
 
 %%
-%% @doc Try to send request
+%% @doc Send request
 %%
 
-try_send_request(From, Data, Id, State=#state{queue=Queue}, Timeout) ->
+send_request(From, Data, Id, State=#state{port=Port, sent=Sent}, Timeout) ->
     Timer = case From of
         unknown ->
             start_timer(Timeout, {erlport_timeout, out});
         _ ->
             start_timer(Timeout, {erlport_timeout, {out, From}})
     end,
-    Info = {From, Timer},
-    case send_or_queue(Info, Id, Data, Queue, State) of
-        wait ->
-            Queue2 = queue:in({Info, Id, Data}, Queue),
-            {noreply, State#state{queue=Queue2}};
-        Result ->
-            Result
+    case send_data(Port, Data) of
+        ok ->
+            case Id of
+                undefined ->
+                    {noreply, State};
+                _ ->
+                    Info = {From, Timer},
+                    Sent2 = orddict:store(Id, Info, Sent),
+                    {noreply, State#state{sent=Sent2}}
+            end;
+        error ->
+            {stop, port_closed, State}
     end.
 
 %%
@@ -183,18 +170,14 @@ handle_response(Response, Id, State=#state{sent=Sent}) ->
         {ok, {From, Timer}} ->
             Sent2 = orddict:erase(Id, Sent),
             stop_timer(Timer),
-            % TODO: Cleanup this code
-            case From of
-                unknown ->
-                    case Response of
-                        {error, _} ->
-                            {stop, Response, State#state{sent=Sent2}};
-                        _ ->
-                            process_queue(State#state{sent=Sent2})
-                    end;
+            case {From, Response} of
+                {unknown, {error, _}} ->
+                    {stop, Response, State#state{sent=Sent2}};
+                {unknown, _} ->
+                    {noreply, State#state{sent=Sent2}};
                 _ ->
                     gen_server:reply(From, Response),
-                    process_queue(State#state{sent=Sent2})
+                    {noreply, State#state{sent=Sent2}}
             end;
         error ->
             case Sent of
@@ -202,50 +185,5 @@ handle_response(Response, Id, State=#state{sent=Sent}) ->
                     {stop, {orphan_response, Response}, State};
                 _ ->
                     {stop, {unexpected_response, Response}, State}
-            end
-    end.
-
-%%=============================================================================
-%% Utility functions
-%%=============================================================================
-
-send_request(Info, Id, Data, Queue, State=#state{port=Port, sent=Sent}) ->
-    case send_data(Port, Data) of
-        ok ->
-            Sent2 = orddict:store(Id, Info, Sent),
-            {noreply, State#state{sent=Sent2, queue=Queue}};
-        error ->
-            {stop, port_closed, State}
-    end.
-
-process_queue(State=#state{queue=Queue}) ->
-    case queue:out(Queue) of
-        {empty, Queue} ->
-            {noreply, State};
-        {{value, Queued}, Queue2} ->
-            send_from_queue(Queued, Queue2, State)
-    end.
-
-send_from_queue({Info, Id, Data}, Queue, State) ->
-    case send_or_queue(Info, Id, Data, Queue, State) of
-        wait ->
-            {noreply, State};
-        Result ->
-            Result
-    end.
-
-send_or_queue(Info, Id, Data, Queue, State=#state{port=Port, sent=Sent}) ->
-    case Sent of
-        [] ->
-            send_request(Info, Id, Data, Queue, State);
-        _ ->
-            case try_send_data(Port, Data) of
-                ok ->
-                    Sent2 = orddict:store(Id, Info, Sent),
-                    {noreply, State#state{sent=Sent2, queue=Queue}};
-                wait ->
-                    wait;
-                error ->
-                    {stop, port_closed, State}
             end
     end.

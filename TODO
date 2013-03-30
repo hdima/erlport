@@ -1,4 +1,4 @@
-- Remove 'no_susped' functionality from erlport_utils
+- Split erlport_utils:send_request into send_call_request and send_request?
 
 - We can face race condition when we call erlang.call and send a message from
   Erlang at the same time. In this case instead of a function result we can get
@@ -77,6 +77,9 @@ Ideas
 
 - Can we allow method calls for objects? For example we can pass a tuple
   {object, Object} instead of a module name?
+
+- We can try to use 'no_suspend' options for port and try to batch port
+  requests
 
 - We can create references for unpicklable objects (and all objects through the
   explicit API). And we can create proxy objects this way. Need to think about

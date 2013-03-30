@@ -112,24 +112,22 @@ class MessageHandler(object):
             pass
 
     def loop(self, read, write, call):
-        message_ack = Atom("r")
         while True:
             message = read()
             try:
-                mtype, mid = message[:2]
-            except (TypeError, ValueError):
+                mtype = message[0]
+            except (IndexError, TypeError):
                 raise InvalidMessage(message)
 
             if mtype == "C":
                 try:
-                    module, function, args = message[2:]
+                    mid, module, function, args = message[1:]
                 except ValueError:
                     raise InvalidMessage(message)
                 write(call(mid, module, function, args))
             elif mtype == "M":
-                write((message_ack, mid))
                 try:
-                    payload, = message[2:]
+                    payload, = message[1:]
                 except ValueError:
                     raise InvalidMessage(message)
                 try:

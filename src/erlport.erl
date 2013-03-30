@@ -176,11 +176,10 @@ handle_info(Message, State) ->
 %% @doc Server is about to terminate
 %% @hidden
 %%
-terminate(Reason, #state{sent=Sent, queue=Queue}) ->
+terminate(Reason, #state{sent=Sent}) ->
     Error = get_termination_error(Reason),
     Factory = send_error_factory(Error),
-    lists:foreach(Factory, [V || {_K, V} <- orddict:to_list(Sent)]),
-    queue_foreach(Factory, Queue).
+    lists:foreach(Factory, [V || {_K, V} <- orddict:to_list(Sent)]).
 
 %%
 %% @doc Code change handler
@@ -210,18 +209,6 @@ send_error_factory(Error) ->
             ok;
         ({From, _Timer}) ->
             gen_server:reply(From, Error)
-    end.
-
-%%
-%% @doc Call Fun for each item in the Queue
-%%
-queue_foreach(Fun, Queue) ->
-    case queue:out(Queue) of
-        {{value, Item}, Queue2} ->
-            Fun(Item),
-            queue_foreach(Fun, Queue2);
-        {empty, Queue} ->
-            ok
     end.
 
 %%
@@ -294,8 +281,6 @@ handle_port_data(Data, State) ->
 %%
 handle_message({'r', Id, Result}, State) ->
     erlport_utils:handle_response({ok, Result}, Id, State);
-handle_message({'r', Id}, State) ->
-    erlport_utils:handle_response(ok, Id, State);
 handle_message({'e', Id, Error}, State) ->
     erlport_utils:handle_response({error, Error}, Id, State);
 handle_message(Request, State) ->
@@ -360,13 +345,12 @@ send_request2({call, Module, Function, Args, _Options}, From, Timeout,
     Id = next_message_id(State),
     Data = erlport_utils:encode_term({'C', Id, Module, Function,
         erlport_utils:prepare_list(Args)}, Compressed),
-    erlport_utils:try_send_request(From, Data, Id, State, Timeout);
+    erlport_utils:send_request(From, Data, Id, State, Timeout);
 send_request2({message, Message}, From, Timeout, State=#state{
         compressed=Compressed}) ->
-    Id = next_message_id(State),
-    Data = erlport_utils:encode_term({'M', Id,
+    Data = erlport_utils:encode_term({'M',
         erlport_utils:prepare_term(Message)}, Compressed),
-    erlport_utils:try_send_request(From, Data, Id, State, Timeout).
+    erlport_utils:send_request(From, Data, undefined, State, Timeout).
 
 %%
 %% @doc Generate next message ID
