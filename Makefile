@@ -28,6 +28,7 @@
 RELDIR = ebin
 TESTDIR = .eunit
 
+HEADERS = $(wildcard src/*.hrl)
 SOURCES = $(wildcard src/*.erl)
 BEAMS = $(patsubst src/%.erl,$(RELDIR)/%.beam,$(SOURCES))
 TESTSOURCES = $(wildcard test/*.erl)
@@ -41,13 +42,13 @@ compile: $(BEAMS)
 
 compile-test: $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
  
-$(RELDIR)/%.beam: src/%.erl
+$(RELDIR)/%.beam: src/%.erl $(HEADERS)
 	$(ERLC) -o $(RELDIR) $<
  
 $(TESTDIR)/%.beam: test/%.erl
 	$(ERLC) +debug_info -o $(TESTDIR) $<
  
-$(TESTDIR)/%.beam: src/%.erl
+$(TESTDIR)/%.beam: src/%.erl $(HEADERS)
 	$(ERLC) +debug_info -o $(TESTDIR) $<
 
 $(TESTDIR):
