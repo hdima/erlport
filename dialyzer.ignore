@@ -1,6 +1,6 @@
-python2_tests.erl:134: The variable _ can never match since previous clauses completely covered the type 'false'
+python2_tests.erl:133: The variable _ can never match since previous clauses completely covered the type 'false'
+python2_tests.erl:135: The variable _ can never match since previous clauses completely covered the type 'false'
 python2_tests.erl:136: The variable _ can never match since previous clauses completely covered the type 'false'
-python2_tests.erl:137: The variable _ can never match since previous clauses completely covered the type 'false'
 python3_tests.erl:132: The variable _ can never match since previous clauses completely covered the type 'false'
 python3_tests.erl:134: The variable _ can never match since previous clauses completely covered the type 'false'
 python3_tests.erl:135: The variable _ can never match since previous clauses completely covered the type 'false'

@@ -1,13 +1,8 @@
 - Split erlport_utils:send_request into send_call_request and send_request?
 
-- We can face race condition when we call erlang.call and send a message from
-  Erlang at the same time. In this case instead of a function result we can get
-  the message.
+- Cleanup call IDs handling for Python 2
 
-- It seems we need to use call IDs so we can handle multiple calls at once and
-  avoid deadlocks in erlang._call. And when we wait for response in
-  erlang._call we should probably queue other responses (allow only incoming
-  calls and messages) for later processing.
+- Support call IDs for all languages
 
 - Do we really need erlang.make_ref() function?
 

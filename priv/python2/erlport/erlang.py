@@ -27,7 +27,6 @@
 
 import sys
 from sys import exc_info
-from threading import Lock
 from traceback import extract_tb
 from inspect import getargspec
 
@@ -41,6 +40,15 @@ class InvalidMessage(Error):
 
 class UnknownMessage(Error):
     """Unknown message."""
+
+class UnexpectedMessage(Error):
+    """Unexpected message."""
+
+class UnexpectedResponses(UnexpectedMessage):
+    """Unexpected responses."""
+
+class DuplicateMessageId(Error):
+    """Duplicate message ID."""
 
 class CallError(Error):
     """Call error."""
@@ -59,10 +67,9 @@ class MessageHandler(object):
         self.set_encoder(None)
         self.set_decoder(None)
         self.set_message_handler(None)
-        call_lock = Lock()
-        self._call_lock_acquire = call_lock.acquire
-        self._call_lock_release = call_lock.release
         self._self = None
+        self.responses = {}
+        self.calls = set()
 
     def set_encoder(self, encoder):
         if encoder:
@@ -105,15 +112,18 @@ class MessageHandler(object):
         return iterator
 
     def start(self):
-        call = self.call_with_error_handler
         try:
-            self.loop(self.port.read, self.port.write, call)
+            self.receive()
         except EOFError:
             pass
 
-    def loop(self, read, write, call):
+    def receive(self, expect_id=None, expect_message=False):
+        if expect_id is None and self.responses:
+            raise UnexpectedResponses(self.responses)
         while True:
-            message = read()
+            if expect_id is not None and expect_id in self.responses:
+                return self.responses.pop(expect_id)
+            message = self.port.read()
             try:
                 mtype = message[0]
             except (IndexError, TypeError):
@@ -124,8 +134,11 @@ class MessageHandler(object):
                     mid, module, function, args = message[1:]
                 except ValueError:
                     raise InvalidMessage(message)
-                write(call(mid, module, function, args))
+                self.port.write(self.call_with_error_handler(
+                    mid, module, function, args))
             elif mtype == "M":
+                if expect_message:
+                    return message
                 try:
                     payload, = message[1:]
                 except ValueError:
@@ -133,9 +146,24 @@ class MessageHandler(object):
                 try:
                     self.handler(payload)
                 except:
-                    # TODO: Should we handle errors?
-                    # Probably we should send error response in this case
+                    # TODO: Return formatted exception
                     pass
+            elif mtype == "r" or mtype == "e":
+                if expect_id is not None:
+                    try:
+                        mid = message[1]
+                    except IndexError:
+                        raise InvalidMessage(message)
+                    if mid == expect_id:
+                        return message
+                    else:
+                        # TODO: Should we lock all self.responses and
+                        # self.calls operations?
+                        if mid in self.responses:
+                            raise DuplicateMessageId(message)
+                        self.responses[mid] = message
+                else:
+                    raise UnexpectedMessage(message)
             else:
                 raise UnknownMessage(message)
 
@@ -163,15 +191,19 @@ class MessageHandler(object):
         if not isinstance(args, list):
             raise ValueError(args)
 
-        self._call_lock_acquire()
+        # TODO: Should we lock all self.responses and self.calls operations?
+        if self.calls:
+            mid = max(self.calls) + 1
+        else:
+            mid = 1
+        self.calls.add(mid)
+        self.port.write((Atom('C'), mid, module, function,
+            map(self.encoder, args), context))
+        response = self.receive(expect_id=mid)
+        self.calls.remove(mid)
+
         try:
-            self.port.write((Atom('C'), module, function,
-                map(self.encoder, args), context))
-            response = self.port.read()
-        finally:
-            self._call_lock_release()
-        try:
-            mtype, value = response
+            mtype, _mid, value = response
         except ValueError:
             raise InvalidMessage(response)
 

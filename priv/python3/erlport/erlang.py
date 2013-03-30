@@ -164,14 +164,15 @@ class MessageHandler(object):
 
         self._call_lock_acquire()
         try:
-            self.port.write((Atom(b"C"), module, function,
+            # TODO: Message ID hardcoded to 1 for now
+            self.port.write((Atom(b"C"), 1, module, function,
                 # TODO: Optimize list(map())
                 list(map(self.encoder, args)), context))
             response = self.port.read()
         finally:
             self._call_lock_release()
         try:
-            mtype, value = response
+            mtype, _mid, value = response
         except ValueError:
             raise InvalidMessage(response)
 

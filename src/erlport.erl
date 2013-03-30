@@ -149,12 +149,26 @@ handle_cast(_Event, State) ->
 %%
 handle_info({Port, {data, Data}}, State=#state{port=Port}) ->
     handle_port_data(Data, State);
-handle_info({'EXIT', Pid, Result}, State=#state{call={Pid, Timer}}) ->
-    erlport_utils:stop_timer(Timer),
-    handle_call_result(Result, State);
-handle_info({erlport_timeout, {in, Pid}}, State=#state{call={Pid, _Timer}}) ->
-    true = exit(Pid, timeout),
-    {noreply, State};
+handle_info({'EXIT', Port, Reason}, State=#state{port=Port}) ->
+    {stop, {port_closed, Reason}, State};
+handle_info({'EXIT', Pid, {Id, Result}}, State=#state{calls=Calls}) ->
+    case orddict:find(Id, Calls) of
+        {ok, {Pid, Timer}} ->
+            Calls2 = orddict:erase(Id, Calls),
+            erlport_utils:stop_timer(Timer),
+            handle_call_result(Id, Result, State#state{calls=Calls2});
+        error ->
+            {noreply, State}
+    end;
+handle_info({erlport_timeout, {in, Id}}, State=#state{calls=Calls}) ->
+    case orddict:find(Id, Calls) of
+        {ok, {Pid, _Timer}} ->
+            Calls2 = orddict:erase(Id, Calls),
+            true = exit(Pid, timeout),
+            {noreply, State#state{calls=Calls2}};
+        error ->
+            {noreply, State}
+    end;
 handle_info({erlport_timeout, {out, From}}, State) ->
     gen_server:reply(From, {error, timeout}),
     {noreply, State};
@@ -162,8 +176,6 @@ handle_info({erlport_timeout, out}, State) ->
     {stop, timeout, State};
 handle_info({Port, closed}, State=#state{port=Port}) ->
     {stop, port_closed, State};
-handle_info({'EXIT', Port, Reason}, State=#state{port=Port}) ->
-    {stop, {port_closed, Reason}, State};
 handle_info({Port, {exit_status, Code}}, State=#state{port=Port}) ->
     % We can get this message even if 'exit_status' option wasn't set for the
     % port
@@ -232,8 +244,10 @@ print(Data, State) ->
 %%
 %% @doc Spawn a process to handle incoming call request
 %%
-spawn_call(Module, Function, Args) ->
-    proc_lib:spawn_link(fun () -> exit(call_mfa(Module, Function, Args)) end).
+spawn_call(Id, Module, Function, Args) ->
+    proc_lib:spawn_link(fun () ->
+        exit({Id, call_mfa(Module, Function, Args)})
+        end).
 
 %%
 %% @doc Check options for the call request
@@ -289,9 +303,9 @@ handle_message(Request, State) ->
 %%
 %% @doc Handle incoming message
 %%
-handle_incoming_message({'C', Module, Function, Args, Context}, State)
+handle_incoming_message({'C', Id, Module, Function, Args, Context}, State)
         when is_atom(Module), is_atom(Function), is_list(Args) ->
-    incoming_call(Module, Function, Args, Context, State);
+    incoming_call(Id, Module, Function, Args, Context, State);
 handle_incoming_message({'M', Pid, Message}, State) ->
     send(Pid, Message, State);
 handle_incoming_message({'P', StdoutData}, State) ->
@@ -302,24 +316,26 @@ handle_incoming_message(Request, State) ->
 %%
 %% @doc Handle incoming call result
 %%
-handle_call_result(Result, State=#state{port=Port, compressed=Compressed}) ->
-    Data = erlport_utils:encode_term(format_call_result(Result), Compressed),
+handle_call_result(Id, Result, State=#state{port=Port,
+        compressed=Compressed}) ->
+    Data = erlport_utils:encode_term(format_call_result(Id, Result),
+        Compressed),
     case erlport_utils:send_data(Port, Data) of
         ok ->
-            {noreply, State#state{call=undefined}};
+            {noreply, State};
         error ->
-            {stop, port_closed, State#state{call=undefined}}
+            {stop, port_closed, State}
     end.
 
 %%
 %% @doc Format incoming call result
 %%
-format_call_result({ok, Response}) ->
-    {'r', erlport_utils:prepare_term(Response)};
-format_call_result({error, Error}) ->
-    {'e', erlport_utils:prepare_term(Error)};
-format_call_result(Error) ->
-    {'e', {erlang, undefined, erlport_utils:prepare_term(Error), []}}.
+format_call_result(Id, {ok, Response}) ->
+    {'r', Id, erlport_utils:prepare_term(Response)};
+format_call_result(Id, {error, Error}) ->
+    {'e', Id, erlport_utils:prepare_term(Error)};
+format_call_result(Id, Error) ->
+    {'e', Id, {erlang, undefined, erlport_utils:prepare_term(Error), []}}.
 
 %%
 %% @doc Send or queue outgoing call request
@@ -378,11 +394,17 @@ call_mfa(Module, Function, Args) ->
 %%
 %% @doc Handle incoming call request
 %%
-incoming_call(Module, Function, Args, 'L', State) ->
-    handle_call_result(call_mfa(Module, Function, Args), State);
-incoming_call(Module, Function, Args, _Context, State=#state{
-        timeout=Timeout}) ->
-    Pid = spawn_call(Module, Function, Args),
-    Info = {Pid, erlport_utils:start_timer(Timeout,
-        {erlport_timeout, {in, Pid}})},
-    {noreply, State#state{call=Info}}.
+incoming_call(Id, Module, Function, Args, 'L', State) ->
+    handle_call_result(Id, call_mfa(Module, Function, Args), State);
+incoming_call(Id, Module, Function, Args, _Context, State=#state{
+        timeout=Timeout, calls=Calls}) ->
+    case orddict:find(Id, Calls) of
+        {ok, {_Pid, _Timer}=Info} ->
+            {stop, {duplicate_incoming_call, Id, Info}, State};
+        error ->
+            Pid = spawn_call(Id, Module, Function, Args),
+            Info = {Pid, erlport_utils:start_timer(Timeout,
+                {erlport_timeout, {in, Id}})},
+            Calls2 = orddict:store(Id, Info, Calls),
+            {noreply, State#state{calls=Calls2}}
+    end.

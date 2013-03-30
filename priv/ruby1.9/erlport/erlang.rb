@@ -123,12 +123,13 @@ module Erlang
         raise ValueError, args if not args.is_a? Array
 
         response = @@call_lock.synchronize {
-            @@port.write(Tuple.new([:C, mod, function, args, context]))
+            # TODO: Message ID hardcoded to 1 for now
+            @@port.write(Tuple.new([:C, 1, mod, function, args, context]))
             @@port.read
         }
         raise InvalidMessage, response if not response.is_a? Tuple \
-            or response.length != 2
-        mtype, value = response
+            or response.length != 3
+        mtype, _mid, value = response
 
         if mtype != :r
             raise CallError, value if mtype == :e
