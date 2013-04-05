@@ -25,43 +25,41 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import unittest
+import sys
 
 from erlport import Atom
-from erlport.erlang import RedirectedStdin, RedirectedStdout
 
 
-class TestPort(object):
+class RedirectedStdin(object):
+
+    def __getattr__(self, name):
+        def closed(*args, **kwargs):
+            raise RuntimeError("STDIN is closed for ErlPort connected process")
+        return closed
+
+class RedirectedStdout(object):
+
+    def __init__(self, port):
+        self.__port = port
 
     def write(self, data):
-        return data
+        if not isinstance(data, (str, unicode, buffer)):
+            raise TypeError("expected a characer buffer object")
+        return self.__port.write((Atom("P"), data))
 
-class RedirectedStdinTestCase(unittest.TestCase):
+    def writelines(self, lst):
+        for data in lst:
+            if not isinstance(data, (str, unicode, buffer)):
+                raise TypeError("expected a character buffer object")
+        return self.write("".join(lst))
 
-    def test_read(self):
-        stdin = RedirectedStdin()
-        self.assertRaises(RuntimeError, stdin.read)
-
-class RedirectedStdoutTestCase(unittest.TestCase):
-
-    def test_write(self):
-        stdout = RedirectedStdout(TestPort())
-        self.assertEqual((Atom("P"), "data"), stdout.write("data"))
-        self.assertRaises(TypeError, stdout.write, 1234)
-
-    def test_writelines(self):
-        stdout = RedirectedStdout(TestPort())
-        self.assertEqual((Atom("P"), "data"), stdout.writelines(["da", "ta"]))
-        self.assertRaises(TypeError, stdout.writelines, ["da", 1234])
-
-    def test_unsupported_methods(self):
-        stdout = RedirectedStdout(TestPort())
-        self.assertRaises(RuntimeError, stdout.read)
+    def __getattr__(self, name):
+        def unsupported(*args, **kwargs):
+            raise RuntimeError("unsupported STDOUT operation for ErlPort"
+                " connected process")
+        return unsupported
 
 
-def get_suite():
-    load = unittest.TestLoader().loadTestsFromTestCase
-    suite = unittest.TestSuite()
-    suite.addTests(load(RedirectedStdinTestCase))
-    suite.addTests(load(RedirectedStdoutTestCase))
-    return suite
+def redirect(port):
+    sys.stdin = RedirectedStdin()
+    sys.stdout = RedirectedStdout(port)

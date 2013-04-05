@@ -1,17 +1,15 @@
 - Split erlport_utils:send_request into send_call_request and send_request?
 
-- Cleanup call IDs handling for Python 2
-
 - Support call IDs for all languages
 
 - Do we really need erlang.make_ref() function?
 
-- Add delete_(encode|decode|message_handler) functions for API clarity?
+- Add set_default_(encode|decode|message_handler) functions for all languages
 
 - Support erlport:cast for all languages
 
 - Probably we need 'queue' option for set_message_handler() in which case
-  only receive() call can be used to receive messages
+  only receive() call can be used to receive messages?
 
 - Set default timeout to 5 sec?
 
@@ -20,9 +18,6 @@
 
 - On error in the message handler we should shutdown the port by sending the
   special 'error_exit' message.
-
-- Probably we don't need 'async' option for call() in this case because it can
-  be replaced with send() function.
 
 - Allow not only atoms in call() functions and Atom() classes. Convert strings,
   unicode(?) to atoms. Test functions with Unicode names.
@@ -56,6 +51,8 @@
 
 - Test with R16
 
+- Ruby 2.0 support
+
 Later
 =====
 
@@ -63,8 +60,6 @@ Later
   in this case.
 
 - Support for other languages (Perl, Lua, ?).
-
-- Ruby 2.0 support
 
 Ideas
 =====

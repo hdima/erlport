@@ -297,6 +297,8 @@ handle_message({'r', Id, Result}, State) ->
     erlport_utils:handle_response({ok, Result}, Id, State);
 handle_message({'e', Id, Error}, State) ->
     erlport_utils:handle_response({error, Error}, Id, State);
+handle_message({'e', Error}, State) ->
+    {stop, {message_handler_error, Error}, State};
 handle_message(Request, State) ->
     handle_incoming_message(Request, State).
 

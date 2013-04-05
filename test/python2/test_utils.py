@@ -13,6 +13,11 @@ def setup_message_handler():
             [(Atom("message"), message)])
     erlang.set_message_handler(handler)
 
+def setup_faulty_message_handler():
+    def handler(message):
+        raise ValueError(message)
+    erlang.set_message_handler(handler)
+
 def identity(v):
     return v
 

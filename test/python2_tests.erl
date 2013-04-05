@@ -115,6 +115,63 @@ erlang_cast_test_() -> {setup,
         end
     end}.
 
+message_handler_error_test_() -> {setup,
+    fun () ->
+        ok = error_logger:tty(false)
+    end,
+    fun (_) ->
+        ok = error_logger:tty(true)
+    end,
+    fun () ->
+        P = setup(),
+        process_flag(trap_exit, true),
+        try
+            link(P),
+            python:call(P, test_utils, setup_faulty_message_handler, []),
+            P ! test_message,
+            ?assertEqual(ok,
+                receive
+                    {'EXIT', P, {message_handler_error,
+                            {python, 'exceptions.ValueError',
+                                "test_message", [_|_]}}} ->
+                        ok
+                after
+                    3000 ->
+                        timeout
+                end)
+        after
+            process_flag(trap_exit, false)
+        end
+    end}.
+
+async_call_error_test_() -> {setup,
+    fun () ->
+        ok = error_logger:tty(false)
+    end,
+    fun (_) ->
+        ok = error_logger:tty(true)
+    end,
+    fun () ->
+        P = setup(),
+        process_flag(trap_exit, true),
+        try
+            link(P),
+            python:call(P, unknown, unknown, [], [async]),
+            ?assertEqual(ok,
+                receive
+                    {'EXIT', P, {async_call_error,
+                            {python, 'exceptions.ImportError',
+                                "No module named unknown", [_|_]}}} ->
+                        ok
+                after
+                    3000 ->
+                        timeout
+                end)
+        after
+            process_flag(trap_exit, false)
+        end
+    end}.
+
 objects_hierarchy_test_() ->
     ?SETUP(
         ?_assertEqual(ok, python:call(P, test_utils,

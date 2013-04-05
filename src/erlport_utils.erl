@@ -171,8 +171,8 @@ handle_response(Response, Id, State=#state{sent=Sent}) ->
             Sent2 = orddict:erase(Id, Sent),
             stop_timer(Timer),
             case {From, Response} of
-                {unknown, {error, _}} ->
-                    {stop, Response, State#state{sent=Sent2}};
+                {unknown, {error, Error}} ->
+                    {stop, {async_call_error, Error}, State#state{sent=Sent2}};
                 {unknown, _} ->
                     {noreply, State#state{sent=Sent2}};
                 _ ->
