@@ -338,6 +338,15 @@ datatype_test_() ->
             || V <- datatype_test_data:get_test_data()]
     ).
 
+custom_datatype_test_() ->
+    ?SETUP(
+        fun () ->
+            ?assertEqual(ok, python:call(P, test_utils, setup_date_types, [])),
+            ?assertEqual({date, {2013, 2, 1}}, python:call(P, operator, add,
+                [{date, {2013, 1, 31}}, {days, 1}]))
+        end
+    ).
+
 %%%
 %%% Utility functions
 %%%

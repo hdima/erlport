@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from erlport import Atom, erlang
 
 def switch(n):
@@ -38,3 +40,24 @@ class TestClass(object):
         @staticmethod
         def test_method():
             return Atom("done")
+
+def setup_date_types():
+    erlang.set_encoder(date_encoder)
+    erlang.set_decoder(date_decoder)
+    return Atom("ok")
+
+def date_encoder(value):
+    if isinstance(value, date):
+        value = Atom("date"), (value.year, value.month, value.day)
+    elif isinstance(value, timedelta):
+        value = Atom("days"), timedelta.days
+    return value
+
+def date_decoder(value):
+    if isinstance(value, tuple) and len(value) == 2:
+        if value[0] == "date":
+            year, month, day = value[1]
+            value = date(year, month, day)
+        elif value[0] == "days":
+            value = timedelta(days=value[1])
+    return value

@@ -125,14 +125,14 @@ class MessageHandler(object):
 
     def set_encoder(self, encoder):
         self._check_handler(encoder)
-        self.encoder = self._object_iterator(encoder)
+        self.encoder = encoder
 
     def set_default_decoder(self):
         self.decoder = lambda o: o
 
     def set_decoder(self, decoder):
         self._check_handler(decoder)
-        self.decoder = self._object_iterator(decoder)
+        self.decoder = decoder
 
     def set_default_message_handler(self):
         self.handler = lambda o: None
@@ -150,15 +150,6 @@ class MessageHandler(object):
         if too_much or too_few:
             raise ValueError("expected single argument function: %r"
                 % (handler,))
-
-    def _object_iterator(self, handler,
-            isinstance=isinstance, list=list, tuple=tuple, map=map):
-        def iterator(obj):
-            obj = handler(obj)
-            if isinstance(obj, (list, tuple)):
-                return obj.__class__(map(iterator, obj))
-            return obj
-        return iterator
 
     def start(self):
         try:
