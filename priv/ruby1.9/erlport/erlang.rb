@@ -28,6 +28,7 @@
 require "thread"
 
 require "erlport/erlterms"
+require "erlport/stdio"
 
 include ErlPort::ErlTerm
 
@@ -80,10 +81,10 @@ module Erlang
     module_function
     def start port
         @@port = port
-        @@call_lock = Mutex.new
-        $stdin = RedirectedStdin.new
-        $stdout = RedirectedStdout.new port
         @@self = nil
+        @@call_lock = Mutex.new
+        ErlPort::StdIO::redirect port
+        # Remove ErlPort::Erlang::start function
         Erlang.instance_eval {undef :start}
         begin
             self.loop
@@ -92,27 +93,6 @@ module Erlang
     end
 
     private
-
-    class RedirectedStdin
-        def method_missing name, *args
-            raise IOError, "STDIN is closed for ErlPort connected process"
-        end
-    end
-
-    class RedirectedStdout
-        def initialize port
-            @port = port
-        end
-
-        def write string
-            @port.write(Tuple.new([:P, string]))
-        end
-
-        def method_missing name, *args
-            raise IOError, "unsupported STDOUT operation for ErlPort"
-                " connected process"
-        end
-    end
 
     module_function
     def _call mod, function, args, context
