@@ -27,7 +27,7 @@
 
 -module(python3_tests).
 
--export([test_callback/1]).
+-export([test_callback/1, recurse/2]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -45,6 +45,9 @@
 test_callback(Result) ->
     log_event({test_callback, Result}),
     Result.
+
+recurse(P, N) ->
+    python:call(P, test_utils, recurse, [P, N]).
 
 start_stop_test_() -> [
     fun () ->
@@ -108,15 +111,79 @@ erlang_cast_test_() -> {setup,
         fun () ->
             python:call(P, test_utils, setup_message_handler, []),
             ?assertEqual(ok, python:cast(P, test_message)),
+            P ! test_message2,
             timer:sleep(500),
-            ?assertEqual([{test_callback, {message, test_message}}],
-                get_events())
+            ?assertEqual([{test_callback, {message, test_message}},
+                {test_callback, {message, test_message2}}], get_events())
         end
     end}.
 
+message_handler_error_test_() -> {setup,
+    fun () ->
+        ok = error_logger:tty(false)
+    end,
+    fun (_) ->
+        ok = error_logger:tty(true)
+    end,
+    fun () ->
+        P = setup(),
+        process_flag(trap_exit, true),
+        try
+            link(P),
+            python:call(P, test_utils, setup_faulty_message_handler, []),
+            P ! test_message,
+            ?assertEqual(ok,
+                receive
+                    {'EXIT', P, {message_handler_error,
+                            {python, 'builtins.ValueError',
+                                "b'test_message'", [_|_]}}} ->
+                        ok
+                after
+                    3000 ->
+                        timeout
+                end)
+        after
+            process_flag(trap_exit, false)
+        end
+    end}.
+
+async_call_error_test_() -> {setup,
+    fun () ->
+        ok = error_logger:tty(false)
+    end,
+    fun (_) ->
+        ok = error_logger:tty(true)
+    end,
+    fun () ->
+        P = setup(),
+        process_flag(trap_exit, true),
+        try
+            link(P),
+            python:call(P, unknown, unknown, [], [async]),
+            ?assertEqual(ok,
+                receive
+                    {'EXIT', P, {async_call_error,
+                            {python, 'builtins.ImportError',
+                                "No module named unknown", [_|_]}}} ->
+                        ok
+                after
+                    3000 ->
+                        timeout
+                end)
+        after
+            process_flag(trap_exit, false)
+        end
+    end}.
+
+recursion_test_() ->
+    ?SETUP(
+        ?_assertEqual(done, python:call(P, test_utils, recurse, [P, 50]))
+    ).
+
+
 objects_hierarchy_test_() ->
     ?SETUP(
-        ?_assertEqual(ok, python:call(P, test_utils,
+        ?_assertEqual(done, python:call(P, test_utils,
             'TestClass.TestSubClass.test_method', []))
     ).
 

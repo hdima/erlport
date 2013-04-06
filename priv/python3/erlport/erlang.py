@@ -27,9 +27,10 @@
 
 import sys
 from sys import exc_info
-from threading import Lock
 from traceback import extract_tb
 from inspect import getargspec
+from threading import Lock
+from contextlib import contextmanager
 
 from erlport import Atom
 
@@ -42,6 +43,15 @@ class InvalidMessage(Error):
 class UnknownMessage(Error):
     """Unknown message."""
 
+class UnexpectedMessage(Error):
+    """Unexpected message."""
+
+class UnexpectedResponses(UnexpectedMessage):
+    """Unexpected responses."""
+
+class DuplicateMessageId(Error):
+    """Duplicate message ID."""
+
 class CallError(Error):
     """Call error."""
 
@@ -51,39 +61,87 @@ class CallError(Error):
         self.language, self.type, self.value, self.stacktrace = value
         Error.__init__(self, value)
 
+class Responses(object):
+
+    def __init__(self):
+        self.__responses = {}
+        self.__lock = Lock()
+
+    def get(self, response_id, default=None):
+        with self.__lock:
+            if response_id is None:
+                if self.__responses:
+                    raise UnexpectedResponses(self.__responses)
+            elif response_id in self.__responses:
+                return self.__responses.pop(response_id)
+        return default
+
+    def put(self, response_id, message, default=None):
+        if response_id is None:
+            raise UnexpectedMessage(message)
+        with self.__lock:
+            if response_id in self.__responses:
+                raise DuplicateMessageId(message)
+            try:
+                if response_id == message[1]:
+                    return message
+            except IndexError:
+                raise InvalidMessage(message)
+            self.__responses[response_id] = message
+        return default
+
+class MessageId(object):
+
+    def __init__(self):
+        self.__ids = set()
+        self.__lock = Lock()
+
+    @contextmanager
+    def __call__(self):
+        with self.__lock:
+            if self.__ids:
+                mid = max(self.__ids) + 1
+            else:
+                mid = 1
+            self.__ids.add(mid)
+        try:
+            yield mid
+        finally:
+            self.__ids.remove(mid)
 
 class MessageHandler(object):
 
     def __init__(self, port):
         self.port = port
-        self.set_encoder(None)
-        self.set_decoder(None)
-        self.set_message_handler(None)
-        call_lock = Lock()
-        self._call_lock_acquire = call_lock.acquire
-        self._call_lock_release = call_lock.release
+        self.set_default_encoder()
+        self.set_default_decoder()
+        self.set_default_message_handler()
         self._self = None
+        self.responses = Responses()
+        self.message_id = MessageId()
+
+    def set_default_encoder(self):
+        self.encoder = lambda o: o
 
     def set_encoder(self, encoder):
-        if encoder:
-            self.encoder = self.object_iterator(encoder)
-        else:
-            self.encoder = lambda o: o
+        self._check_handler(encoder)
+        self.encoder = self._object_iterator(encoder)
+
+    def set_default_decoder(self):
+        self.decoder = lambda o: o
 
     def set_decoder(self, decoder):
-        if decoder:
-            self.decoder = self.object_iterator(decoder)
-        else:
-            self.decoder = lambda o: o
+        self._check_handler(decoder)
+        self.decoder = self._object_iterator(decoder)
+
+    def set_default_message_handler(self):
+        self.handler = lambda o: None
 
     def set_message_handler(self, handler):
-        if handler:
-            self.check_handler(handler)
-            self.handler = handler
-        else:
-            self.handler = lambda o: None
+        self._check_handler(handler)
+        self.handler = handler
 
-    def check_handler(self, handler):
+    def _check_handler(self, handler):
         # getargspec will raise TypeError if handler is not a function
         args, varargs, _keywords, defaults = getargspec(handler)
         largs = len(args)
@@ -93,7 +151,7 @@ class MessageHandler(object):
             raise ValueError("expected single argument function: %r"
                 % (handler,))
 
-    def object_iterator(self, handler,
+    def _object_iterator(self, handler,
             isinstance=isinstance, list=list, tuple=tuple, map=map):
         def iterator(obj):
             obj = handler(obj)
@@ -103,15 +161,18 @@ class MessageHandler(object):
         return iterator
 
     def start(self):
-        call = self.call_with_error_handler
         try:
-            self.loop(self.port.read, self.port.write, call)
+            self._receive()
         except EOFError:
             pass
 
-    def loop(self, read, write, call):
+    def _receive(self, expect_id=None, expect_message=False):
+        marker = object()
         while True:
-            message = read()
+            expected = self.responses.get(expect_id, marker)
+            if expected is not marker:
+                return expected
+            message = self.port.read()
             try:
                 mtype = message[0]
             except (IndexError, TypeError):
@@ -122,18 +183,20 @@ class MessageHandler(object):
                     mid, module, function, args = message[1:]
                 except ValueError:
                     raise InvalidMessage(message)
-                write(call(mid, module, function, args))
+                self._call_with_error_handler(
+                    mid, self._incoming_call, mid, module, function, args)
             elif mtype == b"M":
+                if expect_message:
+                    return message
                 try:
                     payload, = message[1:]
                 except ValueError:
                     raise InvalidMessage(message)
-                try:
-                    self.handler(payload)
-                except:
-                    # TODO: Should we handle errors?
-                    # Probably we should send error response in this case
-                    pass
+                self._call_with_error_handler(None, self.handler, payload)
+            elif mtype == b"r" or mtype == b"e":
+                expected = self.responses.put(expect_id, message, marker)
+                if expected is not marker:
+                    return expected
             else:
                 raise UnknownMessage(message)
 
@@ -143,65 +206,69 @@ class MessageHandler(object):
         self.port.write((Atom(b'M'), pid, message))
 
     def call(self, module, function, args):
-        return self._call(module, function, args, Atom(b'N'))
-
-    def self(self):
-        if self._self is None:
-            self._self = self._call(Atom(b'erlang'), Atom(b'self'),
-                [], Atom(b'L'))
-        return self._self
-
-    def make_ref(self):
-        return self._call(Atom(b'erlang'), Atom(b'make_ref'), [], Atom(b'L'))
-
-    def _call(self, module, function, args, context):
         if not isinstance(module, Atom):
             raise ValueError(module)
         if not isinstance(function, Atom):
             raise ValueError(function)
         if not isinstance(args, list):
             raise ValueError(args)
+        return self._call(module, function, args, Atom(b'N'))
 
-        self._call_lock_acquire()
-        try:
-            # TODO: Message ID hardcoded to 1 for now
-            self.port.write((Atom(b"C"), 1, module, function,
+    def self(self):
+        if self._self is None:
+            self._self = self._call(Atom(b'erlang'), Atom(b'self'), [],
+                Atom(b'L'))
+        return self._self
+
+    def make_ref(self):
+        return self._call(Atom(b'erlang'), Atom(b'make_ref'), [], Atom(b'L'))
+
+    def _call(self, module, function, args, context):
+        with self.message_id() as mid:
+            self.port.write((Atom(b'C'), mid, module, function,
                 # TODO: Optimize list(map())
                 list(map(self.encoder, args)), context))
-            response = self.port.read()
-        finally:
-            self._call_lock_release()
+            response = self._receive(expect_id=mid)
         try:
             mtype, _mid, value = response
         except ValueError:
             raise InvalidMessage(response)
-
         if mtype != b"r":
             if mtype == b"e":
                 raise CallError(value)
             raise UnknownMessage(response)
         return self.decoder(value)
 
-    def call_with_error_handler(self, mid, module, function, args):
+    def _incoming_call(self, mid, module, function, args):
+        mod = module.decode()
+        objects = function.decode().split(".")
+        f = sys.modules.get(mod)
+        if not f:
+            f = __import__(mod, {}, {}, [objects[0]])
+        for o in objects:
+            f = getattr(f, o)
+        result = Atom(b"r"), mid, self.encoder(f(*map(self.decoder, args)))
+        self.port.write(result)
+
+    def _call_with_error_handler(self, mid, function, *args):
         try:
-            mod = module.decode()
-            objects = function.decode().split(".")
-            f = sys.modules.get(mod)
-            if not f:
-                f = __import__(mod, {}, {}, [objects[0]])
-            for o in objects:
-                f = getattr(f, o)
-            result = Atom(b"r"), mid, self.encoder(f(*map(self.decoder, args)))
+            function(*args)
         except:
             t, val, tb = exc_info()
             exc = Atom(bytes("%s.%s" % (t.__module__, t.__name__), "utf-8"))
             exc_tb = extract_tb(tb)
             exc_tb.reverse()
-            result = Atom(b"e"), mid, (Atom(b"python"), exc, str(val), exc_tb)
-        return result
+            error = Atom(b"python"), exc, str(val), exc_tb
+            if mid is not None:
+                result = Atom(b"e"), mid, error
+            else:
+                result = Atom(b"e"), error
+            self.port.write(result)
 
 def setup_api_functions(handler):
     global call, cast, self, make_ref
+    global set_default_encoder, set_default_decoder
+    global set_default_message_handler
     global set_encoder, set_decoder, set_message_handler
     call = handler.call
     cast = handler.cast
@@ -210,6 +277,9 @@ def setup_api_functions(handler):
     set_encoder = handler.set_encoder
     set_decoder = handler.set_decoder
     set_message_handler = handler.set_message_handler
+    set_default_encoder = handler.set_default_encoder
+    set_default_decoder = handler.set_default_decoder
+    set_default_message_handler = handler.set_default_message_handler
 
 def setup(port):
     from . import stdio
