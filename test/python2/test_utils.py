@@ -18,6 +18,12 @@ def setup_faulty_message_handler():
         raise ValueError(message)
     erlang.set_message_handler(handler)
 
+def recurse(python, n):
+    if n <= 0:
+        return Atom("done")
+    return erlang.call(Atom("python2_tests"), Atom("recurse"),
+        [python, n - 1])
+
 def identity(v):
     return v
 
@@ -31,4 +37,4 @@ class TestClass(object):
     class TestSubClass(object):
         @staticmethod
         def test_method():
-            return Atom("ok")
+            return Atom("done")

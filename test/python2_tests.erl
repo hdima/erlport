@@ -27,7 +27,7 @@
 
 -module(python2_tests).
 
--export([test_callback/1]).
+-export([test_callback/1, recurse/2]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -45,6 +45,9 @@
 test_callback(Result) ->
     log_event({test_callback, Result}),
     Result.
+
+recurse(P, N) ->
+    python:call(P, test_utils, recurse, [P, N]).
 
 start_stop_test_() -> [
     fun () ->
@@ -172,9 +175,14 @@ async_call_error_test_() -> {setup,
         end
     end}.
 
+recursion_test_() ->
+    ?SETUP(
+        ?_assertEqual(done, python:call(P, test_utils, recurse, [P, 50]))
+    ).
+
 objects_hierarchy_test_() ->
     ?SETUP(
-        ?_assertEqual(ok, python:call(P, test_utils,
+        ?_assertEqual(done, python:call(P, test_utils,
             'TestClass.TestSubClass.test_method', []))
     ).
 
