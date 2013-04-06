@@ -264,6 +264,15 @@ unicode_symbols_test_() ->
             test_utils, string_to_sym, [[16#410, 16#411]]))
     ).
 
+custom_datatype_test_() ->
+    ?SETUP(
+        fun () ->
+            ?assertEqual(ok, ruby:call(P, test_utils, setup_date_types, [])),
+            ?assertEqual({date, {2013, 2, 1}}, ruby:call(P, test_utils, add,
+                [{date, {2013, 1, 31}}, 60 * 60 * 24]))
+        end
+    ).
+
 %%%
 %%% Utility functions
 %%%

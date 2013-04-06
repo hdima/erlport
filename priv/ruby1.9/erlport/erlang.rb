@@ -64,7 +64,12 @@ module Erlang
 
     module_function
     def call mod, function, args
-        _call(mod, function, args, :N)
+        raise ValueError, mod \
+            if not (mod.is_a? Symbol or mod.is_a? EmptySymbol)
+        raise ValueError, function \
+            if not (function.is_a? Symbol or function.is_a? EmptySymbol)
+        raise ValueError, args if not args.is_a? Array
+        _call mod, function, args, :N
     end
 
     module_function
@@ -79,11 +84,30 @@ module Erlang
     end
 
     module_function
+    def set_default_encoder
+        @@encoder = lambda {|v| v}
+    end
+
+    module_function
+    def set_encoder &encoder
+        check_handler encoder
+        @@encoder = encoder
+    end
+
+    module_function
+    def set_default_decoder
+        @@decoder = lambda {|v| v}
+    end
+
+    module_function
+    def set_decoder &decoder
+        check_handler decoder
+        @@decoder = decoder
+    end
+
+    module_function
     def start port
-        @@port = port
-        @@self = nil
-        @@call_lock = Mutex.new
-        ErlPort::StdIO::redirect port
+        setup port
         # Remove ErlPort::Erlang::start function
         Erlang.instance_eval {undef :start}
         begin
@@ -95,16 +119,27 @@ module Erlang
     private
 
     module_function
-    def _call mod, function, args, context
-        raise ValueError, mod \
-            if not (mod.is_a? Symbol or mod.is_a? EmptySymbol)
-        raise ValueError, function \
-            if not (function.is_a? Symbol or function.is_a? EmptySymbol)
-        raise ValueError, args if not args.is_a? Array
+    def setup port
+        @@port = port
+        @@self = nil
+        @@call_lock = Mutex.new
+        ErlPort::StdIO::redirect port
+        set_default_encoder
+        set_default_decoder
+    end
 
+    module_function
+    def check_handler handler
+        raise ValueError, "expected single argument block: #{handler}" \
+            if handler.arity != 1
+    end
+
+    module_function
+    def _call mod, function, args, context
         response = @@call_lock.synchronize {
             # TODO: Message ID hardcoded to 1 for now
-            @@port.write(Tuple.new([:C, 1, mod, function, args, context]))
+            @@port.write(Tuple.new([:C, 1, mod, function,
+                args.map(&@@encoder), context]))
             @@port.read
         }
         raise InvalidMessage, response if not response.is_a? Tuple \
@@ -115,9 +150,8 @@ module Erlang
             raise CallError, value if mtype == :e
             raise UnknownMessage, response
         end
-        value
+        @@decoder.call(value)
     end
-
 
     module_function
     def loop
@@ -137,6 +171,7 @@ module Erlang
     def call_with_error_handler mid, mod, function, args
         begin
             m = mod.to_s
+            args = args.map(&@@decoder)
             f = function.to_s
             require m if m != ""
             idx = f.rindex("::")
@@ -147,8 +182,7 @@ module Erlang
                 fun = f[idx + 2..-1]
                 r = container.send(fun, *args)
             end
-            # TODO: Encode result
-            Tuple.new([:r, mid, r])
+            Tuple.new([:r, mid, @@encoder.call(r)])
         rescue Exception => why
             exc = why.class.to_s.to_sym
             exc_tb = why.backtrace.reverse

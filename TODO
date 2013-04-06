@@ -4,8 +4,6 @@
 
 - Do we really need erlang.make_ref() function?
 
-- Add set_default_(encode|decode|message_handler) functions for all languages
-
 - Support erlport:cast for all languages
 
 - Probably we need 'queue' option for set_message_handler() in which case
@@ -26,11 +24,8 @@
   related exceptions in every module. And allow to start a language instance on
   other nodes.
 
-- Ruby encoder/decoder for arguments/results
-
 - Add custom encode/decode handlers in Erlang? Should it be a callback module?
-
-- Add tests for custom encoders/decoders
+  And tests.
 
 - Add [{timeout, Timeout}] options for erlang.call() function
 

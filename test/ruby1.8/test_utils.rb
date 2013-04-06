@@ -1,4 +1,5 @@
 include ErlPort
+include ErlPort::ErlTerm
 
 def switch n
     result = 0
@@ -34,4 +35,26 @@ module TestModule
             :ok
         end
     end
+end
+
+def setup_date_types
+    Erlang.set_encoder {|v| date_encoder v}
+    Erlang.set_decoder {|v| date_decoder v}
+    :ok
+end
+
+def date_encoder value
+    if value.is_a? Time
+        value = Tuple.new([:date,
+            Tuple.new([value.year, value.month, value.day])])
+    end
+    value
+end
+
+def date_decoder value
+    if value.is_a? Tuple and value.length == 2 and value[0] == :date
+        year, month, day = value[1]
+        value = Time.utc(year, month, day)
+    end
+    value
 end
