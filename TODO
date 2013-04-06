@@ -1,21 +1,21 @@
-- Split erlport_utils:send_request into send_call_request and send_request?
-
 - Support call IDs for all languages
 
-- Do we really need erlang.make_ref() function?
-
 - Support erlport:cast for all languages
-
-- Probably we need 'queue' option for set_message_handler() in which case
-  only receive() call can be used to receive messages?
-
-- Set default timeout to 5 sec?
 
 - We can redirect all unknown messages to the external language message
   handler.
 
 - On error in the message handler we should shutdown the port by sending the
   special 'error_exit' message.
+
+- Do we really need erlang.make_ref() function?
+
+- Split erlport_utils:send_request into send_call_request and send_request?
+
+- Probably we need 'queue' option for set_message_handler() in which case
+  only receive() call can be used to receive messages?
+
+- Set default timeout to 5 sec?
 
 - Allow not only atoms in call() functions and Atom() classes. Convert strings,
   unicode(?) to atoms. Test functions with Unicode names.
