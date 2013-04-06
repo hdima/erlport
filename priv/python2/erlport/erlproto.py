@@ -53,8 +53,8 @@ class Port(object):
         struct = self._formats.get(packet)
         if struct is None:
             raise ValueError("invalid packet size value: %s" % (packet,))
-        self._pack = struct.pack
-        self._unpack = struct.unpack
+        self.__pack = struct.pack
+        self.__unpack = struct.unpack
         self.packet = packet
         self.compressed = compressed
 
@@ -65,14 +65,10 @@ class Port(object):
         else:
             self.in_d, self.out_d = 3, 4
 
-        self.buffer = ""
+        self.__buffer = ""
         self.buffer_size = buffer_size
-        read_lock = Lock()
-        self._read_lock_acquire = read_lock.acquire
-        self._read_lock_release = read_lock.release
-        write_lock = Lock()
-        self._write_lock_acquire = write_lock.acquire
-        self._write_lock_release = write_lock.release
+        self.__read_lock = Lock()
+        self.__write_lock = Lock()
 
     def _read_data(self):
         try:
@@ -88,26 +84,22 @@ class Port(object):
     def read(self):
         """Read incoming message."""
         packet = self.packet
-        self._read_lock_acquire()
-        try:
-            buffer = self.buffer
+        with self.__read_lock:
+            buffer = self.__buffer
             while len(buffer) < packet:
                 buffer += self._read_data()
-            length = self._unpack(buffer[:packet])[0] + packet
+            length = self.__unpack(buffer[:packet])[0] + packet
             while len(buffer) < length:
                 buffer += self._read_data()
-            term, self.buffer = decode(buffer[packet:])
-        finally:
-            self._read_lock_release()
+            term, self.__buffer = decode(buffer[packet:])
         return term
 
     def write(self, message):
         """Write outgoing message."""
         data = encode(message, compressed=self.compressed)
         length = len(data)
-        data = self._pack(length) + data
-        self._write_lock_acquire()
-        try:
+        data = self.__pack(length) + data
+        with self.__write_lock:
             while data:
                 try:
                     n = os.write(self.out_d, data)
@@ -118,8 +110,6 @@ class Port(object):
                 if not n:
                     raise EOFError()
                 data = data[n:]
-        finally:
-            self._write_lock_release()
         return length + self.packet
 
     def close(self):
