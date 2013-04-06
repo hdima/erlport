@@ -28,7 +28,7 @@
 import unittest
 
 from erlport import Atom
-from erlport.erlang import RedirectedStdin, RedirectedStdout
+from erlport.stdio import RedirectedStdin, RedirectedStdout
 
 
 class TestPort(object):

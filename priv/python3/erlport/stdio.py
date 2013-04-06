@@ -25,43 +25,41 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import os
-import doctest
-import unittest
+import sys
 
-try:
-    import coverage
-except ImportError:
-    coverage = None
-
-from . import erlterms_tests
-from . import erlproto_tests
-from . import stdio_tests
+from erlport import Atom
 
 
-def test_suite():
-    suite = unittest.TestSuite()
-    suite.addTests(erlterms_tests.get_suite())
-    suite.addTests(erlproto_tests.get_suite())
-    suite.addTests(stdio_tests.get_suite())
-    return suite
+class RedirectedStdin(object):
 
-def test_cover(fun, *args, **kwargs):
-    cov = coverage.coverage()
-    cov.start()
-    try:
-        fun(*args, **kwargs)
-    finally:
-        cov.stop()
-        modules = [os.path.join("erlport", n) for n in os.listdir("erlport")
-            if n.endswith(".py")]
-        cov.report(morfs=modules, show_missing=False)
-        cov.html_report(morfs=modules, directory=".cover")
+    def __getattr__(self, name):
+        def closed(*args, **kwargs):
+            raise RuntimeError("STDIN is closed for ErlPort connected process")
+        return closed
+
+class RedirectedStdout(object):
+
+    def __init__(self, port):
+        self.__port = port
+
+    def write(self, data):
+        if not isinstance(data, str):
+            raise TypeError("must be str, not %s" % data.__class__.__name__)
+        return self.__port.write((Atom(b"P"), data))
+
+    def writelines(self, lst):
+        for data in lst:
+            if not isinstance(data, str):
+                raise TypeError("must be str, not %s" % data.__class__.__name__)
+        return self.write("".join(lst))
+
+    def __getattr__(self, name):
+        def unsupported(*args, **kwargs):
+            raise RuntimeError("unsupported STDOUT operation for ErlPort"
+                " connected process")
+        return unsupported
 
 
-def main():
-    if coverage:
-        test_cover(unittest.main, module="erlport.tests",
-            defaultTest="test_suite")
-    else:
-        unittest.main(module="erlport.tests", defaultTest="test_suite")
+def redirect(port):
+    sys.stdin = RedirectedStdin()
+    sys.stdout = RedirectedStdout(port)

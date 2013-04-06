@@ -1,9 +1,9 @@
 # Copyright (c) 2009-2013, Dmitry Vasiliev <dima@hlabs.org>
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 #  * Redistributions of source code must retain the above copyright notice,
 #    this list of conditions and the following disclaimer.
 #  * Redistributions in binary form must reproduce the above copyright notice,
@@ -11,8 +11,8 @@
 #    and/or other materials provided with the distribution.
 #  * Neither the name of the copyright holders nor the names of its
 #    contributors may be used to endorse or promote products derived from this
-#    software without specific prior written permission. 
-# 
+#    software without specific prior written permission.
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -200,42 +200,6 @@ class MessageHandler(object):
             result = Atom(b"e"), mid, (Atom(b"python"), exc, str(val), exc_tb)
         return result
 
-class RedirectedStdin(object):
-
-    def __getattr__(self, name):
-        def closed(*args, **kwargs):
-            raise RuntimeError("STDIN is closed for ErlPort connected process")
-        return closed
-
-class RedirectedStdout(object):
-
-    def __init__(self, port):
-        self.__port = port
-
-    def write(self, data):
-        if not isinstance(data, str):
-            raise TypeError("must be str, not %s" % data.__class__.__name__)
-        return self.__port.write((Atom(b"P"), data))
-
-    def writelines(self, lst):
-        for data in lst:
-            if not isinstance(data, str):
-                raise TypeError("must be str, not %s" % data.__class__.__name__)
-        return self.write("".join(lst))
-
-    def __getattr__(self, name):
-        def unsupported(*args, **kwargs):
-            raise RuntimeError("unsupported STDOUT operation for ErlPort"
-                " connected process")
-        return unsupported
-
-
-def setup_stdin_stdout(port):
-    global RedirectedStdin, RedirectedStdout
-    sys.stdin = RedirectedStdin()
-    sys.stdout = RedirectedStdout(port)
-    del RedirectedStdin, RedirectedStdout
-
 def setup_api_functions(handler):
     global call, cast, self, make_ref
     global set_encoder, set_decoder, set_message_handler
@@ -248,9 +212,10 @@ def setup_api_functions(handler):
     set_message_handler = handler.set_message_handler
 
 def setup(port):
+    from . import stdio
     global MessageHandler, setup
     handler = MessageHandler(port)
     setup_api_functions(handler)
-    setup_stdin_stdout(port)
+    stdio.redirect(port)
     del MessageHandler, setup
     handler.start()
