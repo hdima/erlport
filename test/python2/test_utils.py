@@ -14,11 +14,13 @@ def setup_message_handler():
         erlang.call(Atom("python2_tests"), Atom("test_callback"),
             [(Atom("message"), message)])
     erlang.set_message_handler(handler)
+    return Atom("ok")
 
 def setup_faulty_message_handler():
     def handler(message):
         raise ValueError(message)
     erlang.set_message_handler(handler)
+    return Atom("ok")
 
 def recurse(python, n):
     if n <= 0:
@@ -39,7 +41,7 @@ class TestClass(object):
     class TestSubClass(object):
         @staticmethod
         def test_method():
-            return Atom("done")
+            return Atom("ok")
 
 def setup_date_types():
     erlang.set_encoder(date_encoder)

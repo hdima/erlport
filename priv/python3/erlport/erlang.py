@@ -99,10 +99,7 @@ class MessageId(object):
     @contextmanager
     def __call__(self):
         with self.__lock:
-            if self.__ids:
-                mid = max(self.__ids) + 1
-            else:
-                mid = 1
+            mid = max(self.__ids) + 1 if self.__ids else 1
             self.__ids.add(mid)
         try:
             yield mid

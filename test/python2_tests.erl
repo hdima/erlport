@@ -109,7 +109,8 @@ erlang_cast_test_() -> {setup,
     end,
     fun (P) ->
         fun () ->
-            python:call(P, test_utils, setup_message_handler, []),
+            ?assertEqual(ok, python:call(P, test_utils, setup_message_handler,
+                [])),
             ?assertEqual(ok, python:cast(P, test_message)),
             P ! test_message2,
             timer:sleep(500),
@@ -130,7 +131,8 @@ message_handler_error_test_() -> {setup,
         process_flag(trap_exit, true),
         try
             link(P),
-            python:call(P, test_utils, setup_faulty_message_handler, []),
+            ?assertEqual(ok, python:call(P, test_utils,
+                setup_faulty_message_handler, [])),
             P ! test_message,
             ?assertEqual(ok,
                 receive
@@ -182,7 +184,7 @@ recursion_test_() ->
 
 objects_hierarchy_test_() ->
     ?SETUP(
-        ?_assertEqual(done, python:call(P, test_utils,
+        ?_assertEqual(ok, python:call(P, test_utils,
             'TestClass.TestSubClass.test_method', []))
     ).
 
