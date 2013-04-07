@@ -11,7 +11,9 @@
 - How erlang.receive() should work with threads? Can we just wait for calls in
   different threads with erlang.receive() (probably it should be an
   erlang.wait_for_calls_here() call which calls erlang._receive() without any
-  arguments)?
+  arguments)? What if someone call this function in main thread, does it block
+  everything? Maybe it's better to create an erlang.start_receive_thread()
+  function?
 
 - Do we really need erlang.make_ref() function?
 
