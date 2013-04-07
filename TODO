@@ -1,13 +1,3 @@
-- Support call IDs for all languages
-
-- Support erlport:cast for all languages
-
-- We can redirect all unknown messages to the external language message
-  handler.
-
-- On error in the message handler we should shutdown the port by sending the
-  special 'error_exit' message.
-
 - How erlang.receive() should work with threads? Can we just wait for calls in
   different threads with erlang.receive() (probably it should be an
   erlang.wait_for_calls_here() call which calls erlang._receive() without any

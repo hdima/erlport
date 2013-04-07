@@ -27,7 +27,7 @@
 
 -module(ruby19_tests).
 
--export([test_callback/2]).
+-export([test_callback/1, recurse/2]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -42,9 +42,12 @@
 -define(TIMEOUT, 5000).
 
 
-test_callback(PrevResult, N) ->
-    log_event({test_callback, PrevResult, N}),
-    N.
+test_callback(Result) ->
+    log_event({test_callback, Result}),
+    Result.
+
+recurse(P, N) ->
+    python:call(P, test_utils, recurse, [P, N]).
 
 start_stop_test_() -> [
     fun () ->
@@ -78,7 +81,7 @@ call_test_() ->
         ?_assertEqual(4, ruby:call(P, test_utils, add, [2, 2]))
     ).
 
-cast_test_() ->
+ruby_cast_test_() ->
     ?SETUP(
         fun () ->
             Pid = self(),
@@ -93,6 +96,91 @@ cast_test_() ->
                         timeout
                 end)
         end
+    ).
+
+erlang_cast_test_() -> {setup,
+    fun () ->
+        setup_event_logger(),
+        setup()
+    end,
+    fun (P) ->
+        cleanup(P),
+        cleanup_event_logger()
+    end,
+    fun (P) ->
+        fun () ->
+            ?assertEqual(ok, ruby:call(P, test_utils, setup_message_handler,
+                [])),
+            ?assertEqual(ok, ruby:cast(P, test_message)),
+            P ! test_message2,
+            timer:sleep(500),
+            ?assertEqual([{test_callback, {message, test_message}},
+                {test_callback, {message, test_message2}}], get_events())
+        end
+    end}.
+
+message_handler_error_test_() -> {setup,
+    fun () ->
+        ok = error_logger:tty(false)
+    end,
+    fun (_) ->
+        ok = error_logger:tty(true)
+    end,
+    fun () ->
+        P = setup(),
+        process_flag(trap_exit, true),
+        try
+            link(P),
+            ?assertEqual(ok, ruby:call(P, test_utils,
+                setup_faulty_message_handler, [])),
+            P ! test_message,
+            ?assertEqual(ok,
+                receive
+                    {'EXIT', P, {message_handler_error,
+                            {ruby, 'ValueError', <<"test_message">>,
+                                [_|_]}}} ->
+                        ok
+                after
+                    3000 ->
+                        timeout
+                end)
+        after
+            process_flag(trap_exit, false)
+        end
+    end}.
+
+async_call_error_test_() -> {setup,
+    fun () ->
+        ok = error_logger:tty(false)
+    end,
+    fun (_) ->
+        ok = error_logger:tty(true)
+    end,
+    fun () ->
+        P = setup(),
+        process_flag(trap_exit, true),
+        try
+            link(P),
+            ruby:call(P, unknown, unknown, [], [async]),
+            ?assertEqual(ok,
+                receive
+                    {'EXIT', P, {async_call_error,
+                            {ruby, 'LoadError',
+                                <<"cannot load such file -- unknown">>,
+                                [_|_]}}} ->
+                        ok
+                after
+                    3000 ->
+                        timeout
+                end)
+        after
+            process_flag(trap_exit, false)
+        end
+    end}.
+
+recursion_test_() ->
+    ?SETUP(
+        ?_assertEqual(done, ruby:call(P, test_utils, recurse, [P, 50]))
     ).
 
 objects_hierarchy_test_() ->
@@ -233,21 +321,21 @@ call_back_test_() -> {setup,
             ?assertEqual(ok, ruby:call(P, test_utils, switch, [5], [async])),
             timer:sleep(500),
             ?assertEqual([
-                {test_callback, 0, 0},
-                {test_callback, 0, 1},
-                {test_callback, 1, 2},
-                {test_callback, 2, 3},
-                {test_callback, 3, 4}
+                {test_callback, {0, 0}},
+                {test_callback, {0, 1}},
+                {test_callback, {1, 2}},
+                {test_callback, {2, 3}},
+                {test_callback, {3, 4}}
                 ], get_events())
         end,
         fun () ->
             ?assertEqual(5, ruby:call(P, test_utils, switch, [5])),
             ?assertEqual([
-                {test_callback, 0, 0},
-                {test_callback, 0, 1},
-                {test_callback, 1, 2},
-                {test_callback, 2, 3},
-                {test_callback, 3, 4}
+                {test_callback, {0, 0}},
+                {test_callback, {0, 1}},
+                {test_callback, {1, 2}},
+                {test_callback, {2, 3}},
+                {test_callback, {3, 4}}
                 ], get_events())
         end
     ] end}.

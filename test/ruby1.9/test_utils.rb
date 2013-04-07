@@ -4,9 +4,33 @@ include ErlPort::ErlTerm
 def switch n
     result = 0
     for i in 0...n
-        result = Erlang.call :ruby19_tests, :test_callback, [result, i]
+        _, result = Erlang.call :ruby18_tests, :test_callback, \
+            [Tuple.new([result, i])]
     end
     n
+end
+
+def setup_message_handler
+    Erlang.set_message_handler {|message|
+        Erlang.call :ruby18_tests, :test_callback, \
+            [Tuple.new([:message, message])]
+    }
+    :ok
+end
+
+def setup_faulty_message_handler
+    Erlang.set_message_handler {|message|
+        raise ValueError, message
+    }
+    :ok
+end
+
+def recurse ruby, n
+    if n <= 0
+        :done
+    else
+        Erlang.call :ruby18_tests, :recurse, [ruby, n - 1]
+    end
 end
 
 def identity v

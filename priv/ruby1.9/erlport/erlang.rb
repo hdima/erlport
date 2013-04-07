@@ -26,6 +26,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 require "thread"
+require "set"
 
 require "erlport/erlterms"
 require "erlport/stdio"
@@ -42,6 +43,15 @@ module Erlang
     end
 
     class UnknownMessage < ErlPortError
+    end
+
+    class UnexpectedMessage < ErlPortError
+    end
+
+    class UnexpectedResponses < UnexpectedMessage
+    end
+
+    class DuplicateMessageId < ErlPortError
     end
 
     class CallError < ErlPortError
@@ -106,12 +116,23 @@ module Erlang
     end
 
     module_function
+    def set_default_message_handler
+        @@handler = lambda {|v| v}
+    end
+
+    module_function
+    def set_message_handler &handler
+        check_handler handler
+        @@handler = handler
+    end
+
+    module_function
     def start port
         setup port
         # Remove ErlPort::Erlang::start function
         Erlang.instance_eval {undef :start}
         begin
-            self.loop
+            self._receive
         rescue EOFError
         end
     end
@@ -122,10 +143,12 @@ module Erlang
     def setup port
         @@port = port
         @@self = nil
-        @@call_lock = Mutex.new
+        @@responses = Responses.new
+        @@message_id = MessageId.new
         ErlPort::StdIO::redirect port
         set_default_encoder
         set_default_decoder
+        set_default_message_handler
     end
 
     module_function
@@ -136,11 +159,10 @@ module Erlang
 
     module_function
     def _call mod, function, args, context
-        response = @@call_lock.synchronize {
-            # TODO: Message ID hardcoded to 1 for now
-            @@port.write(Tuple.new([:C, 1, mod, function,
+        response = @@message_id.generate {|mid|
+            @@port.write(Tuple.new([:C, mid, mod, function,
                 args.map(&@@encoder), context]))
-            @@port.read
+            _receive(mid, false)
         }
         raise InvalidMessage, response if not response.is_a? Tuple \
             or response.length != 3
@@ -154,40 +176,121 @@ module Erlang
     end
 
     module_function
-    def loop
+    def _receive expect_id=nil, expect_message=false
+        marker = Object.new
         while true
+            expected = @@responses.get(expect_id, marker)
+            return expected if expected != marker
             message = @@port.read
             raise InvalidMessage, message \
-                if not message.is_a? Tuple or message.length != 5
-            mtype, mid, mod, function, args = message
-
-            raise UnknownMessage, message if mtype != :C
-
-            @@port.write(self.call_with_error_handler(mid, mod, function, args))
+                if not message.is_a? Tuple or message.length < 2
+            case message[0]
+                when :C
+                    raise InvalidMessage, message if message.length != 5
+                    mid, mod, function, args = message[1..-1]
+                    call_with_error_handler(mid) {
+                        incoming_call mid, mod, function, args
+                    }
+                when :M
+                    return message if expect_message
+                    raise InvalidMessage, message if message.length != 2
+                    payload = message[1]
+                    call_with_error_handler(nil) {
+                        @@handler.call payload
+                    }
+                when :r, :e
+                    expected = @@responses.put(expect_id, message, marker)
+                    return expected if expected != marker
+                else
+                    raise UnknwonMessage, message
+            end
         end
     end
 
     module_function
-    def call_with_error_handler mid, mod, function, args
+    def incoming_call mid, mod, function, args
+        m = mod.to_s
+        args = args.map(&@@decoder)
+        f = function.to_s
+        require m if m != ""
+        idx = f.rindex("::")
+        if idx == nil
+            r = send(f, *args)
+        else
+            container = eval f[0...idx]
+            fun = f[idx + 2..-1]
+            r = container.send(fun, *args)
+        end
+        result = Tuple.new([:r, mid, @@encoder.call(r)])
+        @@port.write(result)
+    end
+
+    module_function
+    def call_with_error_handler mid
         begin
-            m = mod.to_s
-            args = args.map(&@@decoder)
-            f = function.to_s
-            require m if m != ""
-            idx = f.rindex("::")
-            if idx == nil
-                r = send(f, *args)
-            else
-                container = eval f[0...idx]
-                fun = f[idx + 2..-1]
-                r = container.send(fun, *args)
-            end
-            Tuple.new([:r, mid, @@encoder.call(r)])
+            yield
         rescue Exception => why
             exc = why.class.to_s.to_sym
             exc_tb = why.backtrace.reverse
-            value = Tuple.new([:ruby, exc, why.message, exc_tb])
-            Tuple.new([:e, mid, value])
+            error = Tuple.new([:ruby, exc, why.message, exc_tb])
+            if mid != nil
+                result = Tuple.new([:e, mid, error])
+            else
+                result = Tuple.new([:e, error])
+            end
+            @@port.write(result)
+        end
+    end
+
+    class Responses
+        def initialize
+            @responses = Hash.new
+            @lock = Mutex.new
+        end
+
+        def get response_id, default=nil
+            @lock.synchronize {
+                if response_id == nil
+                    raise UnexpectedResponses(@responses) \
+                        if not @responses.empty?
+                elsif @responses.member? response_id
+                    return @responses.delete response_id
+                end
+            }
+            default
+        end
+
+        def put response_id, message, default=nil
+            raise UnexpectedMessage, message if response_id == nil
+            @lock.synchronize {
+                raise DuplicateMessageId, message \
+                    if @responses.member? response_id
+                raise InvalidMessage, message if not message.is_a? Tuple \
+                    or message.length < 2
+                return message if response_id == message[1]
+                @responses[response_id] = message
+            }
+            default
+        end
+    end
+
+    class MessageId
+        def initialize
+            @ids = Set.new
+            @lock = Mutex.new
+        end
+
+        def generate &code
+            mid = @lock.synchronize {
+                mid = (not @ids.empty?)? @ids.max + 1: 1
+                @ids.add(mid)
+                mid
+            }
+            begin
+                code.call mid
+            ensure
+                @ids.delete(mid)
+            end
         end
     end
 end
