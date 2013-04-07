@@ -4,7 +4,7 @@ include ErlPort::ErlTerm
 def switch n
     result = 0
     for i in 0...n
-        _, result = Erlang.call :ruby18_tests, :test_callback, \
+        _, result = Erlang.call :ruby19_tests, :test_callback, \
             [Tuple.new([result, i])]
     end
     n
@@ -12,7 +12,7 @@ end
 
 def setup_message_handler
     Erlang.set_message_handler {|message|
-        Erlang.call :ruby18_tests, :test_callback, \
+        Erlang.call :ruby19_tests, :test_callback, \
             [Tuple.new([:message, message])]
     }
     :ok
@@ -29,7 +29,7 @@ def recurse ruby, n
     if n <= 0
         :done
     else
-        Erlang.call :ruby18_tests, :recurse, [ruby, n - 1]
+        Erlang.call :ruby19_tests, :recurse, [ruby, n - 1]
     end
 end
 
