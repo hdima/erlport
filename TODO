@@ -8,6 +8,11 @@
 - On error in the message handler we should shutdown the port by sending the
   special 'error_exit' message.
 
+- How erlang.receive() should work with threads? Can we just wait for calls in
+  different threads with erlang.receive() (probably it should be an
+  erlang.wait_for_calls_here() call which calls erlang._receive() without any
+  arguments)?
+
 - Do we really need erlang.make_ref() function?
 
 - Split erlport_utils:send_request into send_call_request and send_request?
