@@ -1,9 +1,9 @@
-python2_tests.erl:198: The variable _ can never match since previous clauses completely covered the type 'false'
 python2_tests.erl:200: The variable _ can never match since previous clauses completely covered the type 'false'
-python2_tests.erl:201: The variable _ can never match since previous clauses completely covered the type 'false'
-python3_tests.erl:199: The variable _ can never match since previous clauses completely covered the type 'false'
+python2_tests.erl:202: The variable _ can never match since previous clauses completely covered the type 'false'
+python2_tests.erl:203: The variable _ can never match since previous clauses completely covered the type 'false'
 python3_tests.erl:201: The variable _ can never match since previous clauses completely covered the type 'false'
-python3_tests.erl:202: The variable _ can never match since previous clauses completely covered the type 'false'
+python3_tests.erl:203: The variable _ can never match since previous clauses completely covered the type 'false'
+python3_tests.erl:204: The variable _ can never match since previous clauses completely covered the type 'false'
 python_options_tests.erl:56: The created fun has no local return
 python_options_tests.erl:56: The created fun has no local return
 python_options_tests.erl:57: The call python_options:parse([{'buffer_size','invalid'},...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
@@ -34,9 +34,9 @@ python_options_tests.erl:362: The created fun has no local return
 python_options_tests.erl:377: The created fun has no local return
 python_options_tests.erl:377: The created fun has no local return
 python_options_tests.erl:378: The call python_options:parse(['unknown',...]) breaks the contract (Options::options()) -> {'ok',#python_options{}} | {'error',Reason::term()}
-ruby18_tests.erl:116: The variable _ can never match since previous clauses completely covered the type 'false'
-ruby18_tests.erl:119: The variable _ can never match since previous clauses completely covered the type 'false'
-ruby18_tests.erl:120: The variable _ can never match since previous clauses completely covered the type 'false'
+ruby18_tests.erl:203: The variable _ can never match since previous clauses completely covered the type 'false'
+ruby18_tests.erl:206: The variable _ can never match since previous clauses completely covered the type 'false'
+ruby18_tests.erl:207: The variable _ can never match since previous clauses completely covered the type 'false'
 ruby19_tests.erl:116: The variable _ can never match since previous clauses completely covered the type 'false'
 ruby19_tests.erl:119: The variable _ can never match since previous clauses completely covered the type 'false'
 ruby19_tests.erl:120: The variable _ can never match since previous clauses completely covered the type 'false'
