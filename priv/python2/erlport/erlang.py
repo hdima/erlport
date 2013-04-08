@@ -104,7 +104,8 @@ class MessageId(object):
         try:
             yield mid
         finally:
-            self.__ids.remove(mid)
+            with self.__lock:
+                self.__ids.remove(mid)
 
 class MessageHandler(object):
 

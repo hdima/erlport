@@ -289,7 +289,9 @@ module Erlang
             begin
                 code.call mid
             ensure
-                @ids.delete(mid)
+                @lock.synchronize {
+                    @ids.delete(mid)
+                }
             end
         end
     end
