@@ -1,9 +1,9 @@
 # Copyright (c) 2009-2013, Dmitry Vasiliev <dima@hlabs.org>
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 #  * Redistributions of source code must retain the above copyright notice,
 #    this list of conditions and the following disclaimer.
 #  * Redistributions in binary form must reproduce the above copyright notice,
@@ -11,8 +11,8 @@
 #    and/or other materials provided with the distribution.
 #  * Neither the name of the copyright holders nor the names of its
 #    contributors may be used to endorse or promote products derived from this
-#    software without specific prior written permission. 
-# 
+#    software without specific prior written permission.
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -36,18 +36,18 @@ TESTBEAMS = $(patsubst src/%.erl,$(TESTDIR)/%.beam,$(SOURCES)) \
     $(patsubst test/%.erl,$(TESTDIR)/%.beam,$(TESTSOURCES))
 ERLC = erlc -Wall +warnings_as_errors -I include -I src
 ERL = erl -noinput -pa ../erlport
- 
- 
+
+
 compile: $(BEAMS)
 
 compile-test: $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
- 
+
 $(RELDIR)/%.beam: src/%.erl $(HEADERS)
 	$(ERLC) -o $(RELDIR) $<
- 
+
 $(TESTDIR)/%.beam: test/%.erl
 	$(ERLC) +debug_info -o $(TESTDIR) $<
- 
+
 $(TESTDIR)/%.beam: src/%.erl $(HEADERS)
 	$(ERLC) +debug_info -o $(TESTDIR) $<
 
