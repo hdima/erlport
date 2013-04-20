@@ -1,3 +1,11 @@
 {% extends "base.html" %}
 {% block title %}{{title}}{% endblock %}
-{% block content %}{{content}}{% endblock %}
+{% block headers %}
+<link rel="shortcut icon" href="/favicon.ico" />
+<meta name="keywords" content="erlport erlang python ruby" />
+{% endblock %}
+{% block content %}
+{% include "github.html" %}
+{{content}}
+{% include "analytics.html" %}
+{% endblock %}
