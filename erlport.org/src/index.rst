@@ -1,36 +1,51 @@
 .. class:: sidebar
 
-Installation
-------------
+Downloads
+---------
 
-Easiest method to install **ErlPort** is to use ``easy_install`` tool from
-`setuptools <http://pypi.python.org/pypi/setuptools>`_ package::
+Prerequisites:
 
-    $ easy_install erlport
+- `Erlang <http://erlang.org>`__ >= R13
 
-Main prerequisites:
+And also one of the following:
 
-- `Erlang <http://erlang.org>`_ >= R11B-4
-- `Python <http://python.org>`_ >= 2.4
+- `Python <http://python.org>`__ >= 2.5
+- `Ruby <http://ruby-lang.org>`__ >= 1.8
 
 Also source code of the library can be obtained from `GitHub
-<http://github.com/hdima/erlport>`_ or `PyPi
-<http://pypi.python.org/pypi/erlport>`_.
+<http://github.com/hdima/erlport>`__
 
 About
 -----
 
-**ErlPort** is a `Python <http://python.org>`_ library which implements `Erlang
-external term format <http://www.erlang.org/doc/apps/erts/erl_ext_dist.html>`_
-and `Erlang port protocol <http://erlang.org/doc/man/erlang.html#open_port-2>`_
-for easier integration of `Erlang <http://erlang.org>`_ and `Python
-<http://python.org>`_.
+ErlPort is a library for Erlang which can easily connect Erlang and a number of
+other programming languages (currently supported: `Python <python.html>`__ and
+`Ruby <ruby.html>`__). The library use `Erlang external term format
+<http://erlang.org/doc/apps/erts/erl_ext_dist.html>`__ and `Erlang port
+protocol <http://erlang.org/doc/man/erlang.html#open_port-2>`__ to simplify
+connection between Erlang and external programming languages.
 
-Check out the following topics:
+Check the corresponding language pages for details:
 
-- `Internals <internals.html>`_ - How Erlang and Python integration works
-- `Recipes <recipes.html>`_ - **ErlPort** recipes
-- `Contributors <contributors.html>`_ - **ErlPort** contributors
+- `Python <python.html>`__ - Erlang and Python connection
+- `Ruby <ruby.html>`__ - Erlang and Ruby connection
+
+Example
+-------
+
+.. sourcecode:: erlang
+
+    1> {ok, P} = python:start().
+    {ok, <0.34.0>}
+    2> {ok, R} = ruby:start().
+    {ok, <0.35.0>}
+    3> python:call(P, os, getpid, [])
+    8878
+    4> ruby:call(R, '', 'Process::pid', []).
+    8882
+    5> python:call(P, 'erlport.erlang', call,
+    5>             [ruby, call, [R, '', 'Process::pid', []]]).
+    8882
 
 Feedback
 --------
@@ -38,72 +53,11 @@ Feedback
 Please report bugs, offer suggestions or feedback at:
 
 - Report bugs at `GitHub issue tracker
-  <http://github.com/hdima/erlport/issues>`_
+  <http://github.com/hdima/erlport/issues>`__
 
-- `Email me <mailto:dima%20at%20hlabs.org>`_
+- `Email me <mailto:dima%20at%20hlabs.org>`__
 
-- Write or follow me at `@hdima <http://twitter.com/hdima>`_
-
-Example
--------
-
-Erlang module (hello.erl):
-
-.. sourcecode:: erlang
-
-    -module(hello).
-    -export([hello/1]).
-
-
-    hello(Name) ->
-        % Spawn hello.py script and open communication channels
-        Port = open_port({spawn, "python -u hello.py"},
-            [{packet, 1}, binary, use_stdio]),
-        % Convert tuple {hello, Name} to external term format
-        ReqData = term_to_binary({hello, Name}),
-        % Send binary data to hello.py script
-        port_command(Port, ReqData),
-        % Wait for reply from hello.py script
-        receive
-            {Port, {data, RespData}} ->
-                % Convert binary data to term
-                {ok, binary_to_term(RespData)}
-        after
-            5000 ->
-                {error, timeout}
-        end.
-
-Python module (hello.py):
-
-.. sourcecode:: python
-
-    from erlport import Port, Protocol, String
-
-
-    # Inherit custom protocol from erlport.Protocol
-    class HelloProtocol(Protocol):
-
-        # Function handle_NAME will be called for incoming tuple {NAME, ...}
-        def handle_hello(self, name):
-            # String wrapper forces name to be a string instead of a list
-            return "Hello, %s" % String(name)
-
-
-    if __name__ == "__main__":
-        proto = HelloProtocol()
-        # Run protocol with port open on STDIO
-        proto.run(Port(use_stdio=True))
-
-Test the modules above in the Erlang shell:
-
-.. sourcecode:: erlang
-
-    1> % Compile hello.erl module
-    1> c(hello).
-    {ok,hello}
-    2> % Call hello:hello() -> HelloProtocol.handle_hello()
-    2> hello:hello("Bob").
-    {ok,"Hello, Bob"}
+- Write or follow me at `@hdima <http://twitter.com/hdima>`__
 
 .. |date| date::
 .. container:: date

@@ -25,36 +25,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-RST2HTML = ./rst2html
-R2HOPTIONS = --template template.txt --link-stylesheet \
-			 --stylesheet default.css --cloak-email-addresses \
-			 --traceback
-
 DEST ?= html
-HTML = $(patsubst src/%.rst,$(DEST)/%.html,$(wildcard src/*.rst))
-HTML_README = $(DEST)/README.html
-HTML_TESTS = $(patsubst ../src/erlport/tests/%.txt,$(DEST)/%_test.html,\
-	$(wildcard ../src/erlport/tests/*.txt))
-DATA_SOURCES = src/default.css src/robots.txt src/favicon.ico $(wildcard src/*.png)
-DATA = $(patsubst src/%,$(DEST)/%,$(DATA_SOURCES))
 
 
-build: $(DEST) $(DATA) $(HTML) $(HTML_TESTS) $(HTML_README)
-
-$(DEST):
-	mkdir -p $(DEST)
-
-$(DEST)/README.html: ../README.rst
-	$(RST2HTML) $(R2HOPTIONS) $< $@
-
-$(DEST)/%.html: src/%.rst 
-	$(RST2HTML) $(R2HOPTIONS) $< $@
-
-$(DEST)/%_test.html: ../src/erlport/tests/%.txt
-	$(RST2HTML) $(R2HOPTIONS) $< $@
-
-$(DEST)/%: src/%
-	cp $< $@
+generate: clean
+	./generate src $(DEST)
 
 clean:
-	rm -r $(DEST)
+	rm -fr $(DEST)
+
+.PHONY: generate clean

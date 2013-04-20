@@ -1,0 +1,102 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import shutil
+import StringIO
+
+from jinja2 import Environment, FileSystemLoader, Template
+from pygments import lexers, util, highlight, formatters
+from docutils import nodes
+from docutils.core import publish_parts
+from docutils.parsers.rst import directives
+
+
+def attribute(name, value):
+    def decorator(obj):
+        setattr(obj, name, value)
+        return obj
+    return decorator
+
+class CodeBlockHighlighter(object):
+
+    def register(self):
+        directives.register_directive("sourcecode", self.sourcecode)
+
+    def get_highlighter(self, language):
+        try:
+            lexer = lexers.get_lexer_by_name(language)
+        except util.ClassNotFound:
+            return None
+
+        formatter = formatters.get_formatter_by_name("html")
+        def _highlighter(code):
+            outfile = StringIO.StringIO()
+            highlight(code, lexer, formatter, outfile)
+            return outfile.getvalue()
+        return _highlighter
+
+    @attribute("arguments", (1, 0, 0))
+    @attribute("options", {"language": directives.unchanged})
+    @attribute("content", 1)
+    def sourcecode(self, name, arguments, options, content, lineno,
+            content_offset, block_text, state, state_machine):
+        if not content:
+            error = state_machine.reporter.error(
+                "The '%s' block is empty; content required." % (name),
+                nodes.literal_block(block_text, block_text), line=lineno)
+            return [error]
+
+        language = arguments[0]
+        highlighter = self.get_highlighter(language)
+        if highlighter is None:
+            error = state_machine.reporter.error(
+                "The '%s' directive does not support language '%s'." %
+                (name, language),
+                nodes.literal_block(block_text, block_text), line=lineno)
+            return [error]
+
+        text = highlighter("\n".join(content))
+        html = '<div class="sourcecode %s">\n%s\n</div>\n' % (language, text)
+        return [nodes.raw("", html, format="html")]
+
+def generate(src, dest):
+    env = Environment(loader=FileSystemLoader("templates"))
+    template = env.get_template("page.html")
+
+    mode = 0755
+    if not os.path.isdir(dest):
+        os.mkdir(dest, mode)
+    for path, dirnames, filenames in os.walk(src):
+        ln = len(os.path.commonprefix([src, path]))
+        destpath = dest + path[ln:]
+        for name in dirnames:
+            os.mkdir(os.path.join(destpath, name), mode)
+        for name in filenames:
+            base, ext = os.path.splitext(name)
+            if ext.lower() == ".rst":
+                data = open(os.path.join(path, name), "rb").read()
+                parts = publish_parts(data, writer_name="html")
+                html = template.render(content=parts["html_body"],
+                    title=parts["title"])
+                open(os.path.join(destpath, base + ".html"), "wb").write(html)
+            else:
+                shutil.copyfile(os.path.join(path, name),
+                    os.path.join(destpath, name))
+
+def setup():
+    highlighter = CodeBlockHighlighter()
+    highlighter.register()
+
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
+    if len(args) != 2:
+        print >>sys.stderr, "Usage: generate SOURCE DESTINATION"
+    src, dest = args
+    setup()
+    generate(src, dest)
+    #publish_cmdline(writer_name="html")
+
+if __name__ == "__main__":
+    main()
