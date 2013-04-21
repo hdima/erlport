@@ -1,10 +1,21 @@
 {% extends "base.html" %}
-{% block title %}{{title}}{% endblock %}
+{% block title %}{{title|default("ErlPort - connect Erlang and other languages", true)}}{% endblock %}
 {% block headers %}
 <link rel="shortcut icon" href="/favicon.ico" />
 <meta name="keywords" content="erlport erlang python ruby" />
 {% endblock %}
 {% block content %}
+<header id="header">
+  <h1><span id="title-erl">Erl</span><span id="title-port">Port</span>
+    <span id="title-desc">- connect Erlang and other languages</span></h1>
+  <nav>
+    <ul>
+      <li><a href="/">home</a></li>
+      <li><a href="/python.html">python</a></li>
+      <li><a href="/ruby.html">ruby</a></li>
+    </ul>
+  </nav>
+</header>
 {% include "github.html" %}
 {{content}}
 {% include "analytics.html" %}
