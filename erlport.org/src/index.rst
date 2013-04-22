@@ -3,17 +3,37 @@
 Downloads
 ---------
 
-Also source code of the library can be obtained from `GitHub
-<http://github.com/hdima/erlport>`__
+- Download `ErlPort 1.0.0alpha <downloads/erlport-1.0.0alpha.zip>`__.
+
+- Download old `ErlPort 0.7 <downloads/erlport-0.7.zip>`__.
+
+ErlPort source code can be obtained from `GitHub
+<http://github.com/hdima/erlport>`__.
 
 About
 -----
 
-ErlPort is a library for Erlang which can easily connect Erlang and a number of
-other programming languages. The library use `Erlang external term format
+ErlPort is a library for `Erlang <http://erlang.org>`__ which can easily
+connect Erlang and a number of other programming languages. The library use
+`Erlang external term format
 <http://erlang.org/doc/apps/erts/erl_ext_dist.html>`__ and `Erlang port
 protocol <http://erlang.org/doc/man/erlang.html#open_port-2>`__ to simplify
-connection between programming languages.
+connection between the languages.
+
+Example usage in Erlang shell:
+
+.. sourcecode:: erl
+
+    1> {ok, P} = python:start().
+    {ok, <0.34.0>}
+    2> python:call(P, operator, add, [2, 2]).
+    4
+    3> python:call(P, '__builtin__', len, [processes()]).
+    26
+    4> python:stop(P)
+    ok
+
+Check more examples at the `Examples <examples/>`__ page.
 
 Supported language versions:
 
@@ -32,23 +52,6 @@ Use cases
 ---------
 
 .. class:: sidebar
-
-Example
--------
-
-.. sourcecode:: erl
-
-    1> {ok, P} = python:start().
-    {ok, <0.34.0>}
-    2> {ok, R} = ruby:start().
-    {ok, <0.35.0>}
-    3> python:call(P, os, getpid, []).
-    8878
-    4> ruby:call(R, '', 'Process::pid', []).
-    8882
-    5> python:call(P, 'erlport.erlang', call,
-    5>             [ruby, call, [R, '', 'Process::pid', []]]).
-    8882
 
 Feedback
 --------

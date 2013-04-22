@@ -1,0 +1,3 @@
+- We can add meta.info file to every directory with meta information about the
+  directory. For example we can generate top level and local menus based on
+  this meta infromation.
