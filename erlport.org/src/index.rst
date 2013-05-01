@@ -33,25 +33,14 @@ Example usage in Erlang shell:
     4> python:stop(P)
     ok
 
-Check more examples at the `Examples <examples/>`__ page.
-
-Supported language versions:
-
-+---------------------------------+--------+
-| `Erlang <http://erlang.org>`__  | >= R13 |
-+---------------------------------+--------+
-| `Python <python.html>`__        | >= 2.5 |
-+---------------------------------+--------+
-| `Ruby <ruby.html>`__            | >= 1.8 |
-+---------------------------------+--------+
+Check `Documentation <documentation>`_ for more examples.
 
 Features
 --------
 
-Use cases
----------
-
-.. class:: sidebar
+- Function calls between Erlang, Python and Ruby
+- Message sending between Erlang, Python and Ruby
+- STDOUT redirection
 
 Feedback
 --------
