@@ -60,29 +60,66 @@ class CodeBlockHighlighter(object):
         html = '<div class="sourcecode %s">\n%s\n</div>\n' % (language, text)
         return [nodes.raw("", html, format="html")]
 
-def generate(src, dest):
-    env = Environment(loader=FileSystemLoader("templates"))
-    template = env.get_template("page.html")
+class Site(object):
 
+    def __init__(self):
+        self.pages = {}
+
+    def add_page(self, page):
+        self.pages[page.path] = page
+
+    def save(self, destination):
+        for page in self.pages.values():
+            page.save(destination)
+
+class Page(object):
+
+    def __init__(self, site, source, path):
+        self.site = site
+        self.path = path
+        self.source = source
+        self.load()
+
+    def load(self):
+        data = open(self.source, "rb").read()
+        parts = publish_parts(data, writer_name="html")
+        self.title = parts["title"]
+        self.body = parts["html_body"]
+
+    def render(self):
+        env = Environment(loader=FileSystemLoader("templates"))
+        template = env.get_template("page.html")
+        return template.render(content=self.body, title=self.title)
+
+    def save(self, destination):
+        html = self.render()
+        open(os.path.join(destination, self.path), "wb").write(html)
+
+def process_input_files(src, dest):
+    site = Site()
     mode = 0755
     if not os.path.isdir(dest):
         os.mkdir(dest, mode)
     for path, dirnames, filenames in os.walk(src):
         ln = len(os.path.commonprefix([src, path]))
-        destpath = dest + path[ln:]
+        basepath = path[ln:]
+        destpath = dest + basepath
         for name in dirnames:
             os.mkdir(os.path.join(destpath, name), mode)
         for name in filenames:
             base, ext = os.path.splitext(name)
             if ext.lower() == ".rst":
-                data = open(os.path.join(path, name), "rb").read()
-                parts = publish_parts(data, writer_name="html")
-                html = template.render(content=parts["html_body"],
-                    title=parts["title"])
-                open(os.path.join(destpath, base + ".html"), "wb").write(html)
+                page = Page(site, os.path.join(path, name),
+                    os.path.join(basepath, base + ".html"))
+                site.add_page(page)
             else:
                 shutil.copyfile(os.path.join(path, name),
                     os.path.join(destpath, name))
+    return site
+
+def generate(src, dest):
+    site = process_input_files(src, dest)
+    site.save(dest)
 
 def setup():
     highlighter = CodeBlockHighlighter()

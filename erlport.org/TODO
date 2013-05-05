@@ -1,3 +1,7 @@
+- For pages we should create Page objects with title, body and url (something
+  else?). And all the Page objects should have access to a Site object
+  with methods like get_global_menu_items and get_local_menu_items.
+
 - We can add meta.info file to every directory with meta information about the
   directory. For example we can generate top level and local menus based on
   this meta infromation.
