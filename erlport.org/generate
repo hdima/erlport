@@ -93,7 +93,8 @@ class Page(object):
 
     def save(self, destination):
         html = self.render()
-        open(os.path.join(destination, self.path), "wb").write(html)
+        path = self.path.lstrip("/")
+        open(os.path.join(destination, path), "wb").write(html)
 
 def process_input_files(src, dest):
     site = Site()
@@ -133,7 +134,6 @@ def main(args=None):
     src, dest = args
     setup()
     generate(src, dest)
-    #publish_cmdline(writer_name="html")
 
 if __name__ == "__main__":
     main()
