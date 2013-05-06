@@ -33,7 +33,7 @@ Example usage in Erlang shell:
     4> python:stop(P)
     ok
 
-Check `Documentation <documentation>`_ for more examples.
+Check `Documentation <docs>`_ for more examples.
 
 Features
 --------
