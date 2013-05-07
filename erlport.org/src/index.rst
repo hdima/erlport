@@ -3,9 +3,8 @@
 Downloads
 ---------
 
-- Download `ErlPort 1.0.0alpha <downloads/erlport-1.0.0alpha.zip>`__.
+- Download `ErlPort 1.0.0alpha <downloads/erlport-1.0.0alpha.tar.gz>`__.
 
-- Download old `ErlPort 0.7 <downloads/erlport-0.7.zip>`__.
 
 ErlPort source code can be obtained from `GitHub
 <http://github.com/hdima/erlport>`__.
@@ -38,9 +37,18 @@ Check `Documentation <docs>`_ for more examples.
 Features
 --------
 
-- Function calls between Erlang, Python and Ruby
-- Message sending between Erlang, Python and Ruby
+- Call Python and Ruby functions from Erlang
+- Call Erlang functions from Python and Ruby
+- Send messages from Erlang to Python and Ruby
+- Send messages from Python and Ruby to Erlang
 - STDOUT redirection
+- TODO
+
+News
+----
+
+:2013-MM-DD: Released `ErlPort 1.0.0alpha
+             <downloads/erlport-1.0.0alpha.tar.gz>`__
 
 Feedback
 --------
