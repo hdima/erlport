@@ -1,4 +1,0 @@
-Downloads
----------
-
-TODO: Prerequisites etc.
