@@ -25,6 +25,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import with_statement
+
+__author__ = "Dmitry Vasiliev <dima@hlabs.org>"
+
 import sys
 from sys import exc_info
 from traceback import extract_tb
