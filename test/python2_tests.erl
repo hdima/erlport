@@ -211,7 +211,7 @@ error_test_() ->
             python:call(P, unknown, unknown, [])),
         ?_assertError({python, 'erlport.erlang.CallError',
                 "(Atom('erlang'), Atom('error'), Atom('undef'), "
-                "List([(Atom('unknown'), Atom('unknown'), List([]))," ++ _,
+                "List([(Atom('unknown'), Atom('unknown'), List([])" ++ _,
                 [_|_]},
             python:call(P, 'erlport.erlang', call, [unknown, unknown, []])),
         fun () ->

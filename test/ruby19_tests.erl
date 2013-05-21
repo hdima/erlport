@@ -216,7 +216,7 @@ error_test_() ->
             ruby:call(P, unknown, unknown, [])),
         ?_assertError({ruby, 'ErlPort::Erlang::CallError',
                 <<"Tuple([:erlang, :error, :undef, "
-                    "[Tuple([:unknown, :unknown, []]), ", _/binary>>, [_|_]},
+                    "[Tuple([:unknown, :unknown, []", _/binary>>, [_|_]},
             ruby:call(P, 'erlport/erlang', 'ErlPort::Erlang::call',
                 [unknown, unknown, []])),
         fun () ->
