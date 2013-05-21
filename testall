@@ -7,6 +7,7 @@ ERLANG=" \
     $SANDBOX/otp_src_R13B04/bin \
     $SANDBOX/otp_src_R14B04/bin \
     $SANDBOX/otp_src_R15B01/bin \
+    $SANDBOX/otp_src_R16B/bin \
     "
 
 PYTHON=" \
@@ -22,55 +23,65 @@ PYTHON3=" \
     $SANDBOX/Python-3.3.0 \
     "
 
-#RUBY=" \
-#    $SANDBOX/ruby-1.8.6 \
-#    $SANDBOX/ruby-1.8.7 \
-#    $SANDBOX/ruby-1.9.1 \
-#    $SANDBOX/ruby-1.9.2 \
-#    $SANDBOX/ruby-1.9.3 \
-#"
-
 RUBY=" \
+    $SANDBOX/ruby-1.8.6 \
     $SANDBOX/ruby-1.8.7 \
+    $SANDBOX/ruby-1.9.1 \
     $SANDBOX/ruby-1.9.2 \
     $SANDBOX/ruby-1.9.3 \
 "
+
+#RUBY=" \
+#    $SANDBOX/ruby-1.8.7 \
+#    $SANDBOX/ruby-1.9.2 \
+#    $SANDBOX/ruby-1.9.3 \
+#"
 testall()
 {
+    testerlang
     testpython
     testruby
     make clean || exit
 }
 
-testpython()
+testerlang()
 {
     for erlang in $ERLANG; do
-        for python in $PYTHON $PYTHON3; do
-            echo
-            echo "***********************************************************"
-            echo "Test $erlang and $python"
-            echo "***********************************************************"
-            echo
-            make clean || exit
-            (export PATH="$erlang:$python:$PATH"; make test) || exit
-        done
+        echo
+        echo "***********************************************************"
+        echo "Test $erlang"
+        echo "***********************************************************"
+        echo
+        make clean || exit
+        (export PATH="$erlang:$PATH"; make test) || exit
+    done
+}
+
+testpython()
+{
+    for python in $PYTHON $PYTHON3; do
+        echo
+        echo "***********************************************************"
+        echo "Test $python"
+        echo "***********************************************************"
+        echo
+        make clean || exit
+        (export PATH="$python:$PATH"; make test) || exit
     done
 }
 
 testruby()
 {
-    for erlang in $ERLANG; do
-        for ruby in $RUBY; do
-            echo
-            echo "***********************************************************"
-            echo "Test $erlang and $ruby"
-            echo "***********************************************************"
-            echo
-            make clean || exit
-            (export PATH="$erlang:$ruby:$PATH" \
-                RUBYLIB="$ruby/lib:$ruby/.ext/x86_64-linux"
-                make test) || exit
-        done
+    for ruby in $RUBY; do
+        echo
+        echo "***********************************************************"
+        echo "Test $ruby"
+        echo "***********************************************************"
+        echo
+        make clean || exit
+        (export PATH="$ruby:$PATH" \
+            RUBYLIB="$ruby/lib:$ruby/.ext/x86_64-linux"
+            make test) || exit
     done
 }
 
