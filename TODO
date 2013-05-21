@@ -3,6 +3,10 @@ Now
 
 - Add 'make release' command
 
+- Python 3.1.5 'unsupported STDOUT operation'
+
+- Install properly sandboxed Ruby
+
 - Test all language versions
 
 Before 1.0
