@@ -53,10 +53,13 @@ class RedirectedStdout(object):
                 raise TypeError("expected a character buffer object")
         return self.write("".join(lst))
 
+    def flush(self):
+        pass
+
     def __getattr__(self, name):
         def unsupported(*args, **kwargs):
             raise RuntimeError("unsupported STDOUT operation for ErlPort"
-                " connected process")
+                " connected process: %r", (name,))
         return unsupported
 
 
