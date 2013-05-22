@@ -3,9 +3,9 @@ Now
 
 - Add 'make release' command
 
-- Install properly sandboxed Ruby
+- Test ruby 1.8.6 - 1.9.2
 
-- Test all language versions
+- Test on Windows
 
 Before 1.0
 ==========
@@ -60,10 +60,6 @@ Before 1.0
 - erlport:server_name/0 and erlport:server_instances() types should be moved to
   some utils module? Maybe move types to a header file because -export_type
   seems doesn't work as expected in Erlang R13
-
-- Test with R16
-
-- Ruby 2.0 support
 
 Later
 =====

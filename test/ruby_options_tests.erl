@@ -147,7 +147,7 @@ ruby_option_test_() -> {setup,
         UnsupportedRuby = erlport_test_utils:create_mock_script(
             "ruby 1.7.0", TmpDir, "unsupported"),
         UnsupportedRuby2 = erlport_test_utils:create_mock_script(
-            "ruby 2.0.0b1", TmpDir, "unsupported2"),
+            "ruby 2.1.0b1", TmpDir, "unsupported2"),
         InvalidRuby = erlport_test_utils:create_mock_script(
             "ruby INVALID", TmpDir, "invalid"),
         {TmpDir, GoodRuby, GoodRuby19, BadName, UnknownName,
@@ -217,7 +217,7 @@ ruby_option_test_() -> {setup,
         end,
         ?_assertEqual({error, {unsupported_ruby_version, "ruby 1.7.0"}},
             ruby_options:parse([{ruby, UnsupportedRuby}])),
-        ?_assertEqual({error, {unsupported_ruby_version, "ruby 2.0.0b1"}},
+        ?_assertEqual({error, {unsupported_ruby_version, "ruby 2.1.0b1"}},
             ruby_options:parse([{ruby, UnsupportedRuby2}])),
         ?_assertEqual({error, {invalid_ruby,
                 erlport_test_utils:script(InvalidRuby)}},

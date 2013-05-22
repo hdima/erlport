@@ -23,19 +23,15 @@ PYTHON3=" \
     $SANDBOX/Python-3.3.0 \
     "
 
-RUBY=" \
-    $SANDBOX/ruby-1.8.6 \
-    $SANDBOX/ruby-1.8.7 \
-    $SANDBOX/ruby-1.9.1 \
-    $SANDBOX/ruby-1.9.2 \
-    $SANDBOX/ruby-1.9.3 \
+RUBY18=" \
 "
 
-#RUBY=" \
-#    $SANDBOX/ruby-1.8.7 \
-#    $SANDBOX/ruby-1.9.2 \
-#    $SANDBOX/ruby-1.9.3 \
-#"
+RUBY19=" \
+    $SANDBOX/ruby-1.9.2/bin \
+    $SANDBOX/ruby-1.9.3/bin \
+    $SANDBOX/ruby-2.0.0/bin \
+"
+
 testall()
 {
     testerlang
@@ -72,16 +68,14 @@ testpython()
 
 testruby()
 {
-    for ruby in $RUBY; do
+    for ruby in $RUBY18 $RUBY19; do
         echo
         echo "***********************************************************"
         echo "Test $ruby"
         echo "***********************************************************"
         echo
         make clean || exit
-        (export PATH="$ruby:$PATH" \
-            RUBYLIB="$ruby/lib:$ruby/.ext/x86_64-linux"
-            make test) || exit
+        (export PATH="$ruby:$PATH"; make test) || exit
     done
 }
 

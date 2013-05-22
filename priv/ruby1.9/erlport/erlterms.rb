@@ -1,3 +1,4 @@
+# encoding: binary
 # Copyright (c) 2009-2013, Dmitry Vasiliev <dima@hlabs.org>
 # All rights reserved.
 #
@@ -163,7 +164,8 @@ module ErlTerm
     end
 
     module_function
-    def decode string
+    def decode s
+        string = s.dup.force_encoding("BINARY")
         raise IncompleteData, string if string == ""
         raise ValueError, "unknown protocol version: %s" % string[0] \
             if string[0] != "\x83"
