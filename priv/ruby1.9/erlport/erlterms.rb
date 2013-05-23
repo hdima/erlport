@@ -275,7 +275,10 @@ module ErlTerm
             when "b"
                 # INTEGER_EXT
                 raise IncompleteData, string if string.bytesize < 5
-                int = string[1,4].unpack("l>")[0]
+                # Ruby 1.9.[12] don't support "l>"
+                int = string[1,4].unpack("N")[0]
+                # Turn unsigned integer to signed integer
+                int -= 0x100000000 if int > 0x7fffffff
                 return int, string[5..-1]
             when "m"
                 # BINARY_EXT

@@ -139,6 +139,11 @@ message_handler_error_test_() -> {setup,
                     {'EXIT', P, {message_handler_error,
                             {ruby, 'ValueError', <<"test_message">>,
                                 [_|_]}}} ->
+                        ok;
+                    % Ruby 1.9.[12]
+                    {'EXIT', P, {message_handler_error,
+                            {ruby, 'ValueError', test_message,
+                                [_|_]}}} ->
                         ok
                 after
                     3000 ->
@@ -167,6 +172,12 @@ async_call_error_test_() -> {setup,
                     {'EXIT', P, {async_call_error,
                             {ruby, 'LoadError',
                                 <<"cannot load such file -- unknown">>,
+                                [_|_]}}} ->
+                        ok;
+                    % Ruby 1.9.[12]
+                    {'EXIT', P, {async_call_error,
+                            {ruby, 'LoadError',
+                                <<"no such file to load -- unknown">>,
                                 [_|_]}}} ->
                         ok
                 after
@@ -211,9 +222,17 @@ erlang_util_functions_test_() ->
 
 error_test_() ->
     ?SETUP([
-        ?_assertError({ruby, 'LoadError',
-                <<"cannot load such file -- unknown">>, [_|_]},
-            ruby:call(P, unknown, unknown, [])),
+        ?_assertEqual({error, ruby},
+            try ruby:call(P, unknown, unknown, [])
+            catch
+                error:{ruby, 'LoadError',
+                        <<"cannot load such file -- unknown">>, [_|_]} ->
+                    {error, ruby};
+                % Ruby 1.9.[12]
+                error:{ruby, 'LoadError',
+                        <<"no such file to load -- unknown">>, [_|_]} ->
+                    {error, ruby}
+            end),
         ?_assertError({ruby, 'ErlPort::Erlang::CallError',
                 <<"Tuple([:erlang, :error, :undef, "
                     "[Tuple([:unknown, :unknown, []", _/binary>>, [_|_]},
@@ -222,12 +241,22 @@ error_test_() ->
         fun () ->
             R2 = setup(),
             try
-                ?assertError({ruby, 'ErlPort::Erlang::CallError',
-                        <<"Tuple([:ruby, :LoadError, "
-                            "\"cannot load such file -- unknown\", ",
-                            _/binary>>, [_|_]},
-                    ruby:call(P, 'erlport/erlang', 'ErlPort::Erlang::call',
-                        [ruby, call, [R2, unknown, unknown, []]]))
+                ?assertEqual({error, ruby},
+                    try ruby:call(P, 'erlport/erlang', 'ErlPort::Erlang::call',
+                            [ruby, call, [R2, unknown, unknown, []]])
+                    catch
+                        error:{ruby, 'ErlPort::Erlang::CallError',
+                                <<"Tuple([:ruby, :LoadError, "
+                                "\"cannot load such file -- unknown\", ",
+                                _/binary>>, [_|_]} ->
+                            {error, ruby};
+                        % Ruby 1.9.[12]
+                        error:{ruby, 'ErlPort::Erlang::CallError',
+                                <<"Tuple([:ruby, :LoadError, "
+                                "\"no such file to load -- unknown\", ",
+                                _/binary>>, [_|_]} ->
+                            {error, ruby}
+                    end)
             after
                 cleanup(R2)
             end
