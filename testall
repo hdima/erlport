@@ -24,9 +24,12 @@ PYTHON3=" \
     "
 
 RUBY18=" \
+    $SANDBOX/ruby-1.8.6/bin \
+    $SANDBOX/ruby-1.8.7/bin \
 "
 
 RUBY19=" \
+    $SANDBOX/ruby-1.9.1/bin \
     $SANDBOX/ruby-1.9.2/bin \
     $SANDBOX/ruby-1.9.3/bin \
     $SANDBOX/ruby-2.0.0/bin \

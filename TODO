@@ -3,7 +3,7 @@ Now
 
 - Add 'make release' command
 
-- Test ruby 1.8.6 - 1.9.2
+- Fix ErlPort for Ruby 1.8.6, 1.9.1 and 1.9.2
 
 - Test on Windows
 
