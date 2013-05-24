@@ -1,9 +1,7 @@
 Now
 ===
 
-- Add 'make release' command
-
-- Test on Windows
+- Add 'make release' command. Add +debug_info?
 
 Before 1.0
 ==========

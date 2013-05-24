@@ -167,6 +167,10 @@ async_call_error_test_() -> {setup,
                     {'EXIT', P, {async_call_error,
                             {python, 'builtins.ImportError',
                                 "No module named unknown", [_|_]}}} ->
+                        ok;
+                    {'EXIT', P, {async_call_error,
+                            {python, 'builtins.ImportError',
+                                "No module named 'unknown'", [_|_]}}} ->
                         ok
                 after
                     3000 ->
@@ -207,9 +211,16 @@ erlang_util_functions_test_() ->
 
 error_test_() ->
     ?SETUP([
-        ?_assertError({python, 'builtins.ImportError',
-                "No module named unknown", [_|_]},
-            python:call(P, unknown, unknown, [])),
+        ?_assertEqual({error, python},
+            try python:call(P, unknown, unknown, [])
+            catch
+                error:{python, 'builtins.ImportError',
+                        "No module named unknown", [_|_]} ->
+                    {error, python};
+                error:{python, 'builtins.ImportError',
+                        "No module named 'unknown'", [_|_]} ->
+                    {error, python}
+            end),
         ?_assertError({python, 'erlport.erlang.CallError',
                 "(Atom(b'erlang'), Atom(b'error'), Atom(b'undef'), "
                 "List([(Atom(b'unknown'), Atom(b'unknown'), List([])" ++ _,
