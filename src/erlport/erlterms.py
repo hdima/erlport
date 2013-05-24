@@ -128,7 +128,7 @@ def decode_term(it,
         elif tag == 107:
             # STRING_EXT
             length, = unpack(">H", ''.join(islice(it, 0, 2)))
-            string = islice(it, 0, length)
+            string = ''.join(islice(it, 0, length))
             return [ord(i) for i in string]
         elif tag == 108:
             # LIST_EXT
@@ -142,11 +142,11 @@ def decode_term(it,
         elif tag == 109:
             # BINARY_EXT
             length, = unpack(">I", ''.join(islice(it, 0, 4)))
-            return islice(it, 0, length)
+            return ''.join(islice(it, 0, length))
         elif tag == 100:
             # ATOM_EXT
             length, = unpack(">H", ''.join(islice(it, 0, 2)))
-            name = islice(it, 0, length)
+            name = ''.join(islice(it, 0, length))
             if name == "true":
                 return True
             elif name == "false":
@@ -172,7 +172,7 @@ def decode_term(it,
             return term
         elif tag == 99:
             # FLOAT_EXT
-            return float(islice(it, 0, 31).split("\x00", 1)[0])
+            return float(''.join(islice(it, 0, 31)).split("\x00", 1)[0])
         elif tag == 110 or tag == 111:
             # SMALL_BIG_EXT, LARGE_BIG_EXT
             if tag == 110:
@@ -180,7 +180,7 @@ def decode_term(it,
             else:
                 length, sign = unpack(">IB", ''.join(islice(it, 0, 5)))
             n = 0
-            l = islice(it, 0, length-1)
+            l = ''.join(islice(it, 0, length-1))
             l.reverse()
             for i in array('B', l):
                 n = (n << 8) | i
@@ -190,7 +190,7 @@ def decode_term(it,
         elif tag == 77:
             # BIT_BINARY_EXT
             length, bits = unpack(">IB", ''.join(islice(it, 0, 5)))
-            return BitBinary(islice(it, 0, 5), bits)
+            return BitBinary(''.join(islice(it, 0, 5)), bits)
     except StopIteration :
         raise ValueError("unsupported data tag: %i" % list(it))
 
