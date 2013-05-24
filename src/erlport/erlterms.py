@@ -120,19 +120,19 @@ def decode_term(it,
             return ord(it.next())
         elif tag == 98:
             # INTEGER_EXT
-            i, = unpack(">i", islice(it, 0, 4))
+            i, = unpack(">i", ''.join(islice(it, 0, 4)))
             return i
         elif tag == 106:
             # NIL_EXT
             return []
         elif tag == 107:
             # STRING_EXT
-            length, = unpack(">H", islice(it, 0, 2))
+            length, = unpack(">H", ''.join(islice(it, 0, 2)))
             string = islice(it, 0, length)
             return [ord(i) for i in string]
         elif tag == 108:
             # LIST_EXT
-            length, = unpack(">I", islice(it, 0, 4))
+            length, = unpack(">I", ''.join(islice(it, 0, 4)))
             lst = []
             while length > 0:
                 term = decode_term(it)
@@ -141,11 +141,11 @@ def decode_term(it,
             return lst
         elif tag == 109:
             # BINARY_EXT
-            length, = unpack(">I", islice(it, 0, 4))
+            length, = unpack(">I", ''.join(islice(it, 0, 4)))
             return islice(it, 0, length)
         elif tag == 100:
             # ATOM_EXT
-            length, = unpack(">H", islice(it, 0, 2))
+            length, = unpack(">H", ''.join(islice(it, 0, 2)))
             name = islice(it, 0, length)
             if name == "true":
                 return True
@@ -159,7 +159,7 @@ def decode_term(it,
             if tag == 104:
                 arity = ord(it.next())
             else:
-                arity, = unpack(">I", islice(it, 0, 4))
+                arity, = unpack(">I", ''.join(islice(it, 0, 4)))
             lst = []
             while arity > 0:
                 term = decode_term(it)
@@ -168,7 +168,7 @@ def decode_term(it,
             return tuple(lst)
         elif tag == 70:
             # NEW_FLOAT_EXT
-            term, = unpack(">d", islice(it, 0, 8))
+            term, = unpack(">d", ''.join(islice(it, 0, 8)))
             return term
         elif tag == 99:
             # FLOAT_EXT
@@ -176,9 +176,9 @@ def decode_term(it,
         elif tag == 110 or tag == 111:
             # SMALL_BIG_EXT, LARGE_BIG_EXT
             if tag == 110:
-                length, sign = unpack(">BB", islice(it, 0, 2))
+                length, sign = unpack(">BB", ''.join(islice(it, 0, 2)))
             else:
-                length, sign = unpack(">IB", islice(it, 0, 5))
+                length, sign = unpack(">IB", ''.join(islice(it, 0, 5)))
             n = 0
             l = islice(it, 0, length-1)
             l.reverse()
@@ -189,7 +189,7 @@ def decode_term(it,
             return n
         elif tag == 77:
             # BIT_BINARY_EXT
-            length, bits = unpack(">IB", islice(it, 0, 5))
+            length, bits = unpack(">IB", ''.join(islice(it, 0, 5)))
             return BitBinary(islice(it, 0, 5), bits)
     except StopIteration :
         raise ValueError("unsupported data tag: %i" % list(it))
