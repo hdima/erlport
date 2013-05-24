@@ -138,6 +138,7 @@ def decode_term(it,
                 term = decode_term(it)
                 lst.append(term)
                 length -= 1
+            ignored = decode_term(it)
             return lst
         elif tag == 109:
             # BINARY_EXT
