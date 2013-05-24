@@ -153,7 +153,7 @@ def decode_term(it,
                 return False
             elif name == "none":
                 return None
-            return Atom(''.join(name))
+            return Atom(name)
         elif tag == 104 or tag == 105:
             # SMALL_TUPLE_EXT, LARGE_TUPLE_EXT
             if tag == 104:
