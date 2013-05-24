@@ -34,6 +34,7 @@ See Erlang External Term Format for details:
 __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 
 from struct import pack, unpack
+from itertools import islice
 from array import array
 from zlib import decompressobj, compress
 from datetime import datetime
@@ -102,134 +103,96 @@ def decode(string):
                 "invalid compressed tag, "
                 "%d bytes but got %d" % (uncompressed_size, len(term_string)))
         # tail data returned by decode_term() can be simple ignored
-        return decode_term(term_string)[0], d.unused_data
-    return decode_term(string[1:])
+        return decode_term(iter(term_string))
+    it = iter(string)
+    it.next()
+    return decode_term(it)
 
 
-def decode_term(string,
+def decode_term(it,
                 # Hack to turn globals into locals
                 len=len, ord=ord, unpack=unpack, tuple=tuple, float=float,
                 BitBinary=BitBinary, Atom=Atom):
-    if len(string) < 1:
-        raise IncompleteData("incomplete data: %r" % string)
-    tag = ord(string[0])
-    tail = string[1:]
-    if tag == 97:
-        # SMALL_INTEGER_EXT
-        if not tail:
-            raise IncompleteData("incomplete data: %r" % string)
-        return ord(tail[:1]), tail[1:]
-    elif tag == 98:
-        # INTEGER_EXT
-        if len(tail) < 4:
-            raise IncompleteData("incomplete data: %r" % string)
-        i, = unpack(">i", tail[:4])
-        return i, tail[4:]
-    elif tag == 106:
-        # NIL_EXT
-        return [], tail
-    elif tag == 107:
-        # STRING_EXT
-        if len(tail) < 2:
-            raise IncompleteData("incomplete data: %r" % string)
-        length, = unpack(">H", tail[:2])
-        tail = tail[2:]
-        if len(tail) < length:
-            raise IncompleteData("incomplete data: %r" % string)
-        return [ord(i) for i in tail[:length]], tail[length:]
-    elif tag == 108:
-        # LIST_EXT
-        if len(tail) < 4:
-            raise IncompleteData("incomplete data: %r" % string)
-        length, = unpack(">I", tail[:4])
-        tail = tail[4:]
-        lst = []
-        while length > 0:
-            term, tail = decode_term(tail)
-            lst.append(term)
-            length -= 1
-        ignored, tail = decode_term(tail)
-        return lst, tail
-    elif tag == 109:
-        # BINARY_EXT
-        if len(tail) < 4:
-            raise IncompleteData("incomplete data: %r" % string)
-        length, = unpack(">I", tail[:4])
-        tail = tail[4:]
-        if len(tail) < length:
-            raise IncompleteData("incomplete data: %r" % string)
-        return tail[:length], tail[length:]
-    elif tag == 100:
-        # ATOM_EXT
-        if len(tail) < 2:
-            raise IncompleteData("incomplete data: %r" % string)
-        length, = unpack(">H", tail[:2])
-        tail = tail[2:]
-        if len(tail) < length:
-            raise IncompleteData("incomplete data: %r" % string)
-        name = tail[:length]
-        tail = tail[length:]
-        if name == "true":
-            return True, tail
-        elif name == "false":
-            return False, tail
-        elif name == "none":
-            return None, tail
-        return Atom(name), tail
-    elif tag == 104 or tag == 105:
-        # SMALL_TUPLE_EXT, LARGE_TUPLE_EXT
-        if tag == 104:
-            if not tail:
-                raise IncompleteData("incomplete data: %r" % string)
-            arity = ord(tail[0])
-            tail = tail[1:]
-        else:
-            if len(tail) < 4:
-                raise IncompleteData("incomplete data: %r" % string)
-            arity, = unpack(">I", tail[:4])
-            tail = tail[4:]
-        lst = []
-        while arity > 0:
-            term, tail = decode_term(tail)
-            lst.append(term)
-            arity -= 1
-        return tuple(lst), tail
-    elif tag == 70:
-        # NEW_FLOAT_EXT
-        term, = unpack(">d", tail[:8])
-        return term, tail[8:]
-    elif tag == 99:
-        # FLOAT_EXT
-        return float(tail[:31].split("\x00", 1)[0]), tail[31:]
-    elif tag == 110 or tag == 111:
-        # SMALL_BIG_EXT, LARGE_BIG_EXT
-        if tag == 110:
-            if len(tail) < 2:
-                raise IncompleteData("incomplete data: %r" % string)
-            length, sign = unpack(">BB", tail[:2])
-            tail = tail[2:]
-        else:
-            if len(tail) < 5:
-                raise IncompleteData("incomplete data: %r" % string)
-            length, sign = unpack(">IB", tail[:5])
-            tail = tail[5:]
-        if len(tail) < length:
-            raise IncompleteData("incomplete data: %r" % string)
-        n = 0
-        for i in array('B', tail[length-1::-1]):
-            n = (n << 8) | i
-        if sign:
-            n = -n
-        return n, tail[length:]
-    elif tag == 77:
-        # BIT_BINARY_EXT
-        if len(tail) < 5:
-            raise IncompleteData("incomplete data: %r" % string)
-        length, bits = unpack(">IB", tail[:5])
-        tail = tail[5:]
-        if len(tail) < length:
-            raise IncompleteData("incomplete daata: %r" % string)
-        return BitBinary(tail[:length], bits), tail[length:]
+    try:
+        tag = ord(it.next())
+        if tag == 97:
+            # SMALL_INTEGER_EXT
+            return ord(it.next())
+        elif tag == 98:
+            # INTEGER_EXT
+            i, = unpack(">i", islice(it, 0, 4))
+            return i
+        elif tag == 106:
+            # NIL_EXT
+            return []
+        elif tag == 107:
+            # STRING_EXT
+            length, = unpack(">H", islice(it, 0, 2))
+            string = islice(it, 0, length)
+            return [ord(i) for i in string]
+        elif tag == 108:
+            # LIST_EXT
+            length, = unpack(">I", islice(it, 0, 4))
+            lst = []
+            while length > 0:
+                term = decode_term(it)
+                lst.append(term)
+                length -= 1
+            return lst
+        elif tag == 109:
+            # BINARY_EXT
+            length, = unpack(">I", islice(it, 0, 4))
+            return islice(it, 0, length)
+        elif tag == 100:
+            # ATOM_EXT
+            length, = unpack(">H", islice(it, 0, 2))
+            name = islice(it, 0, length)
+            if name == "true":
+                return True
+            elif name == "false":
+                return False
+            elif name == "none":
+                return None
+            return Atom(name)
+        elif tag == 104 or tag == 105:
+            # SMALL_TUPLE_EXT, LARGE_TUPLE_EXT
+            if tag == 104:
+                arity = ord(it.next())
+            else:
+                arity, = unpack(">I", islice(it, 0, 4))
+            lst = []
+            while arity > 0:
+                term = decode_term(it)
+                lst.append(term)
+                arity -= 1
+            return tuple(lst)
+        elif tag == 70:
+            # NEW_FLOAT_EXT
+            term, = unpack(">d", islice(it, 0, 8))
+            return term
+        elif tag == 99:
+            # FLOAT_EXT
+            return float(islice(it, 0, 31).split("\x00", 1)[0])
+        elif tag == 110 or tag == 111:
+            # SMALL_BIG_EXT, LARGE_BIG_EXT
+            if tag == 110:
+                length, sign = unpack(">BB", islice(it, 0, 2))
+            else:
+                length, sign = unpack(">IB", islice(it, 0, 5))
+            n = 0
+            l = islice(it, 0, length-1)
+            l.reverse()
+            for i in array('B', l):
+                n = (n << 8) | i
+            if sign:
+                n = -n
+            return n
+        elif tag == 77:
+            # BIT_BINARY_EXT
+            length, bits = unpack(">IB", islice(it, 0, 5))
+            return BitBinary(islice(it, 0, 5), bits)
+    except StopIteration :
+        raise ValueError("unsupported data tag: %i" % list(it))
 
     raise ValueError("unsupported data tag: %i" % tag)
 

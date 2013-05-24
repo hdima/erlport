@@ -127,7 +127,7 @@ class Port(object):
         data = self._read_data(self.packet)
         length, = unpack(self._format, data)
         data = self._read_data(length)
-        return decode(data)[0]
+        return decode(data)
 
     def write(self, message):
         """Write outgoing message."""
