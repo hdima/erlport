@@ -1,10 +1,10 @@
 Now
 ===
 
-- Add 'make release' command. Add +debug_info?
+- Update CHANGES
 
-Before 1.0
-==========
+Before 1.0.0
+============
 
 - We can add erlang.receive() function which waits for next message with
   optional timeout (timeouts can be implemented with select/etc. modules and

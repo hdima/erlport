@@ -26,6 +26,8 @@
 % POSSIBILITY OF SUCH DAMAGE.
 
 {application, erlport, [
+    {description, "Erlang port protocol"},
+    {vsn, "0.9.8"},
     {modules, [
         erlport,
         erlport_options,
@@ -35,7 +37,5 @@
         ruby,
         ruby_options
         ]},
-    {description, "Erlang port protocol"},
-    {vsn, "1.0.0b1"},
     {applications, [kernel, stdlib]}
     ]}.

@@ -43,7 +43,7 @@ compile: $(BEAMS)
 compile-test: $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
 
 $(RELDIR)/%.beam: src/%.erl $(HEADERS)
-	$(ERLC) -o $(RELDIR) $<
+	$(ERLC) +debug_info -o $(RELDIR) $<
 
 $(TESTDIR)/%.beam: test/%.erl
 	$(ERLC) +debug_info -o $(TESTDIR) $<
@@ -100,7 +100,10 @@ create-ignore-file: $(TESTDIR) $(TESTBEAMS)
 doc:
 	$(ERL) -eval 'edoc:application(erlport)' -s init stop
 
-clean: erlang-clean python-clean ruby-clean
+clean: erlang-clean python-clean ruby-clean doc-clean
+
+doc-clean:
+	rm -f doc/*.html doc/*.png doc/*.css doc/edoc-info
 
 erlang-clean:
 	rm -rf $(RELDIR)/*.beam $(TESTDIR)
@@ -122,6 +125,12 @@ ruby1.8-clean:
 ruby1.9-clean:
 	cd priv/ruby1.9; make clean
 
+release: clean compile
+	./release bin
+
+release-src: clean
+	./release src
+
 
 .PHONY: compile compile-test test test-verbose check doc clean python2-test
 .PHONY: python2-test-verbose create-ignore-file python3-test
@@ -130,3 +139,4 @@ ruby1.9-clean:
 .PHONY: ruby-test ruby1.8-test ruby1.9-test
 .PHONY: erlang-clean python-clean python2-clean python3-clean
 .PHONY: ruby-clean ruby1.8-clean ruby1.9-clean
+.PHONY: release release-src

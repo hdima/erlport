@@ -1,0 +1,17 @@
+#! /bin/sh
+
+SANDBOX="sandbox"
+RELEASE_DIR=packages
+ERLANG=" \
+    $SANDBOX/otp_src_R13B04/bin \
+    $SANDBOX/otp_src_R14B04/bin \
+    $SANDBOX/otp_src_R15B01/bin \
+    $SANDBOX/otp_src_R16B/bin \
+    "
+
+rm -rf $RELEASE_DIR
+for erlang in $ERLANG; do
+    (export PATH=$erlang:$PATH; make release)
+done
+
+set -e

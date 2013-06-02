@@ -39,7 +39,7 @@ testall()
     testerlang
     testpython
     testruby
-    make clean || exit
+    make clean
 }
 
 testerlang()
@@ -50,8 +50,8 @@ testerlang()
         echo "Test $erlang"
         echo "***********************************************************"
         echo
-        make clean || exit
-        (export PATH="$erlang:$PATH"; make test) || exit
+        make clean
+        (export PATH="$erlang:$PATH"; make test)
     done
 }
 
@@ -63,8 +63,8 @@ testpython()
         echo "Test $python"
         echo "***********************************************************"
         echo
-        make clean || exit
-        (export PATH="$python:$PATH"; make test) || exit
+        make clean
+        (export PATH="$python:$PATH"; make test)
     done
 }
 
@@ -76,11 +76,12 @@ testruby()
         echo "Test $ruby"
         echo "***********************************************************"
         echo
-        make clean || exit
-        (export PATH="$ruby:$PATH"; make test) || exit
+        make clean
+        (export PATH="$ruby:$PATH"; make test)
     done
 }
 
+set -e
 testall 2>&1 | tee $LOGFILE
 
 echo
