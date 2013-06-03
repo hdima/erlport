@@ -1,5 +1,5 @@
-ErlPort - connect Erlang and other languages
-============================================
+ErlPort - connect Erlang to other languages
+===========================================
 
 Check http://erlport.org for more information.
 
