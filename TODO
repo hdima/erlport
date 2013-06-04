@@ -1,6 +1,8 @@
 Now
 ===
 
+- All packages should be created from 'root' user
+
 - Update CHANGES
 
 Before 1.0.0
