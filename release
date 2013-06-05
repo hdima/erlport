@@ -10,7 +10,8 @@ bin_release()
 
     mkdir $root
     copy_files "$(bin_files)" "$root"
-    (cd $RELEASE_DIR && tar -c $name | gzip -9 > $arch_name.tar.gz)
+    (cd $RELEASE_DIR && tar --owner root --group root -c $name \
+                        | gzip -9 > $arch_name.tar.gz)
     (cd $RELEASE_DIR && zip -rq9 $arch_name.zip $name)
 }
 
@@ -22,7 +23,8 @@ src_release()
 
     mkdir $root
     copy_files "$(src_files)" "$root"
-    (cd $RELEASE_DIR && tar -c $name | gzip -9 > $arch_name.tar.gz)
+    (cd $RELEASE_DIR && tar --owner root --group root -c $name \
+                        | gzip -9 > $arch_name.tar.gz)
     (cd $RELEASE_DIR && zip -rq9 $arch_name.zip $name)
 }
 
