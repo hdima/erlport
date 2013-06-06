@@ -1,6 +1,8 @@
 Now
 ===
 
+- Convert str/unicode for Python's call() function to atoms?
+
 - Update CHANGES
 
 Before 1.0.0
