@@ -13,5 +13,6 @@ rm -rf $RELEASE_DIR
 for erlang in $ERLANG; do
     (export PATH=$erlang:$PATH; make release)
 done
+make release-src
 
 set -e
