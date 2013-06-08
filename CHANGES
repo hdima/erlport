@@ -1,5 +1,20 @@
 Version 0.7 (2011-MM-DD)
 
+    - Removed encoding of datetime.datetime() as {{Y, M, D}, {H, M, S}}.
+      It can be done in a high level code.
+
+    - Added encoding/decoding for fun M:F/A
+
+    - Added Port class and encoding/decoding for port() Erlang type
+
+    - Added python.erl Erlang module
+
+    - Added Reference class and encoding/decoding for reference() Erlang type
+
+    - Added Pid class and encoding/decoding for pid() Erlang type
+
+    - Updated Atom representation
+
     - Fixed "Port._read_data() may read excess data"
       (https://github.com/hdima/erlport/issues/2) (reported by Ivan Glushkov)
 

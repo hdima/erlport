@@ -1,0 +1,89 @@
+#! /bin/sh
+
+SANDBOX="sandbox"
+LOGFILE="testall.log"
+
+ERLANG=" \
+    $SANDBOX/otp_src_R13B04/bin \
+    $SANDBOX/otp_src_R14B04/bin \
+    $SANDBOX/otp_src_R15B01/bin \
+    $SANDBOX/otp_src_R16B/bin \
+    "
+
+PYTHON=" \
+    $SANDBOX/Python-2.5.6 \
+    $SANDBOX/Python-2.6.8 \
+    $SANDBOX/Python-2.7.3 \
+    "
+
+PYTHON3=" \
+    $SANDBOX/Python-3.0.1 \
+    $SANDBOX/Python-3.1.5 \
+    $SANDBOX/Python-3.2.3 \
+    $SANDBOX/Python-3.3.0 \
+    "
+
+RUBY18=" \
+    $SANDBOX/ruby-1.8.7/bin \
+"
+
+RUBY19=" \
+    $SANDBOX/ruby-1.9.1/bin \
+    $SANDBOX/ruby-1.9.2/bin \
+    $SANDBOX/ruby-1.9.3/bin \
+    $SANDBOX/ruby-2.0.0/bin \
+"
+
+testall()
+{
+    testerlang
+    testpython
+    testruby
+    make clean
+}
+
+testerlang()
+{
+    for erlang in $ERLANG; do
+        echo
+        echo "***********************************************************"
+        echo "Test $erlang"
+        echo "***********************************************************"
+        echo
+        make clean
+        (export PATH="$erlang:$PATH"; make test)
+    done
+}
+
+testpython()
+{
+    for python in $PYTHON $PYTHON3; do
+        echo
+        echo "***********************************************************"
+        echo "Test $python"
+        echo "***********************************************************"
+        echo
+        make clean
+        (export PATH="$python:$PATH"; make test)
+    done
+}
+
+testruby()
+{
+    for ruby in $RUBY18 $RUBY19; do
+        echo
+        echo "***********************************************************"
+        echo "Test $ruby"
+        echo "***********************************************************"
+        echo
+        make clean
+        (export PATH="$ruby:$PATH"; make test)
+    done
+}
+
+set -e
+testall 2>&1 | tee $LOGFILE
+
+echo
+echo "ALL TEST OK!"
+echo

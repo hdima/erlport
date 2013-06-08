@@ -1,0 +1,82 @@
+#! /usr/bin/env escript
+%% vim: ft=erlang
+%%! -pa ../erlport -pa .eunit
+
+main(Args) ->
+    Options = case Args of
+        [] ->
+            [];
+        ["verbose"] ->
+            [verbose];
+        _ ->
+            io:format("Usage: runtest [verbose]~n"),
+            halt(2)
+    end,
+    start_cover(),
+    eunit:test({application, erlport}, Options),
+    analyse().
+
+start_cover() ->
+    {ok, _} = cover:start(),
+    cover_compile_directory("src"),
+    cover_compile_directory("test").
+
+cover_compile_directory(Dir) ->
+    Result = cover:compile_directory(Dir, [{i, "include"}, {i, "src"}]),
+    lists:foreach(fun
+        ({ok, _}) ->
+            ok;
+        ({error, Reason}) ->
+            io:format("Cover compile error in ~p: ~p~n", [Dir, Reason]),
+            halt(1)
+        end, Result).
+
+analyse() ->
+    IndexName = filename:join(".eunit", "index.html"),
+    {ok, Index} = file:open(IndexName, [write, raw]),
+    ok = file:write(Index, "<html>\n<head>\n<title>Coverage report</title>\n"
+        "<body>\n<h1>Coverage report</h1>\n<table>\n<tr>"
+        "<th>Module</th><th>Statements</th><th>Missing</th>"
+        "<th>Coverage</th></tr>\n"),
+    io:format("~-30s~7s~7s~7s~n~s~n",
+        ["Name", "Stmts", "Miss", "Cover", lists:duplicate(51, "-")]),
+    {TotalCov, TotalNotCov} = lists:foldl(fun (Mod, {CovA, NotCovA}) ->
+        {Cov, NotCov} = cover_analyse(Mod, Index),
+        cover_analyse_to_file(Mod),
+        {CovA + Cov, NotCovA + NotCov}
+        end, {0, 0}, cover:modules()),
+    Stmts = TotalCov + TotalNotCov,
+    Cover = (TotalCov * 100) div Stmts,
+    ok = file:write(Index, io_lib:format("<tr><td>TOTAL</td>"
+        "<td>~b</td><td>~b</td><td>~b%</td></tr>\n</body>\n</html>\n",
+        [Stmts, TotalNotCov, Cover])),
+    ok = file:close(Index),
+    io:format("~s~n~-30s~7b~7b~6b%~n", [lists:duplicate(51, "-"),
+        "TOTAL", Stmts, TotalNotCov, Cover]).
+
+cover_analyse(Mod, Index) ->
+    case cover:analyse(Mod, coverage, module) of
+        {ok, {Mod, {Cov, NotCov}}} ->
+            Stmts = Cov + NotCov,
+            Cover = (Cov * 100) div Stmts,
+            ok = file:write(Index, io_lib:format(
+                "<tr><td><a href=\"~s\">~s</a>"
+                "</td><td>~b</td><td>~b</td><td>~b%</td></tr>\n",
+                [lists:concat([Mod, ".cover.html"]), Mod,
+                    Stmts, NotCov, Cover])),
+            io:format("~-30s~7b~7b~6b%~n", [Mod, Stmts, NotCov,Cover]),
+            {Cov, NotCov};
+        {error, Reason} ->
+            io:format("Coverage analyse error ~p: ~p~n", [Mod, Reason]),
+            halt(1)
+    end.
+
+cover_analyse_to_file(Mod) ->
+    Out = filename:join(".eunit", lists:concat([Mod, ".cover.html"])),
+    case cover:analyse_to_file(Mod, Out, [html]) of
+        {ok, _} ->
+            ok;
+        {error, Reason} ->
+            io:format("Coverage analyse error ~p: ~p~n", [Mod, Reason]),
+            halt(1)
+    end.

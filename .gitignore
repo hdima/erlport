@@ -1,6 +1,7 @@
 *.swp
 *.py[co]
 *.beam
-/src/*.egg-info
-/build
-/dist
+/.eunit
+/sandbox
+/packages
+/testall.log
