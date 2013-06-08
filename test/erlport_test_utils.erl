@@ -40,7 +40,8 @@
     match_path/2,
     local_path/1,
     create_mock_script/3,
-    assert_output/3
+    assert_output/3,
+    del_code_path/2
     ]).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -227,6 +228,24 @@ assert_output(Expected, Fun, Printer) when is_binary(Expected)
         true = group_leader(OldLeader, Printer)
     end,
     assert_expected_output(Expected).
+
+%%
+%% @doc Delete directory from the code path
+%% Directory can be added to the path more than one time
+%%
+
+-spec del_code_path(Path::atom(), N::pos_integer()) ->
+    ok | {error, unable_to_del_path}.
+
+del_code_path(_Path, 0) ->
+    {error, unable_to_del_path};
+del_code_path(Path, N) when N > 0 ->
+    case code:del_path(Path) of
+        true ->
+            del_code_path(Path, N - 1);
+        false ->
+            ok
+    end.
 
 %%
 %% Internal functions

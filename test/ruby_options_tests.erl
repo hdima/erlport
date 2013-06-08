@@ -369,7 +369,7 @@ ruby_lib_option_test_() -> {setup,
             ruby_options:parse([{ruby_lib, [$a, $b, invalid]}])),
         fun () ->
             Dir = code:lib_dir(erlport),
-            true = code:del_path(erlport),
+            ok = erlport_test_utils:del_code_path(erlport, 5),
             try ?assertEqual({error, {not_found, "erlport/priv"}},
                     ruby_options:parse([]))
             after
