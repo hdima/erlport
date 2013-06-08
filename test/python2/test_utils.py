@@ -52,7 +52,7 @@ def date_encoder(value):
     if isinstance(value, date):
         value = Atom("date"), (value.year, value.month, value.day)
     elif isinstance(value, timedelta):
-        value = Atom("days"), timedelta.days
+        value = Atom("days"), value.days
     return value
 
 def date_decoder(value):
