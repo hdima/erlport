@@ -1,4 +1,16 @@
-Version 0.7 (2011-MM-DD)
+Version 1.0.0alpha (2013-06-10)
+
+    - Redesigned as Erlang application
+
+    - Added support for all recent Python versions
+
+    - Added support for all recent Ruby versions
+
+    - Added support for custom data types
+
+    - Added STDOUT redirection to Erlang
+
+Version 0.7 (2011-MM-DD) ABANDONED
 
     - Removed encoding of datetime.datetime() as {{Y, M, D}, {H, M, S}}.
       It can be done in a high level code.
