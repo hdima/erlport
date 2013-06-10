@@ -31,7 +31,8 @@ Before 1.0.0
 
 - Add more API for middleware scenario (python, ruby). Reraise the language
   related exceptions in every module. And allow to start a language instance on
-  other nodes. Also language instances can be created with a pid.
+  other nodes. Also language instances can be created with a pid. We can also
+  create factory functions at module level.
 
 - Add custom encode/decode handlers in Erlang? Should it be a callback module?
   And tests.
