@@ -4,6 +4,9 @@ Now
 Before 1.0.0
 ============
 
+- Raise some special errors if language libraries are called without the
+  ErlPort connection
+
 - We can add erlang.receive() function which waits for next message with
   optional timeout (timeouts can be implemented with select/etc. modules and
   probably with msvcrt.kbhit() on Windows). What about Ruby?
