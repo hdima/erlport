@@ -1,3 +1,7 @@
+Version 1.0.0beta (YYYY-MM-DD)
+
+    - Added rebar.config. Patch by Chad DePue.
+
 Version 1.0.0alpha (2013-06-10)
 
     - Redesigned as Erlang application
