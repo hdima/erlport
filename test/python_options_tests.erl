@@ -248,13 +248,12 @@ python_path_option_test_() -> {setup,
         ok = file:make_dir(TestPath1),
         TestPath2 = filename:join(TmpDir, "path2"),
         ok = file:make_dir(TestPath2),
-        UnknownPath = filename:join(TmpDir, "unknown"),
-        {TmpDir, TestPath1, TestPath2, UnknownPath}
+        {TmpDir, TestPath1, TestPath2}
     end,
-    fun ({TmpDir, _, _, _}) ->
-        ok = erlport_test_utils:remove_object(TmpDir)
+    fun (Info) ->
+        ok = erlport_test_utils:remove_object(element(1, Info)) % TmpDir
     end,
-    fun ({_, TestPath1, TestPath2, UnknownPath}) -> [
+    fun ({_, TestPath1, TestPath2}) -> [
         fun () ->
             {ok, #python_options{python_path=PythonPath,
                 env=[{"PYTHONPATH", PythonPath}]=Env,
@@ -348,8 +347,6 @@ python_path_option_test_() -> {setup,
                     ["/priv/python[23]", TestPath1, TestPath2])
                 end, "PYTHONPATH", TestPath2)
         end,
-        ?_assertEqual({error, {not_dir, UnknownPath}},
-            python_options:parse([{python_path, [TestPath1, UnknownPath]}])),
         ?_assertEqual({error, {invalid_option, {python_path, invalid_path},
                 not_list}},
             python_options:parse([{python_path, invalid_path}])),

@@ -118,15 +118,11 @@ update_ruby_lib(Env0, RubyPath0, MajVersion) ->
             ErlPortPath = erlport_options:joinpath(PrivDir, RubyDir),
             {PathFromSetEnv, Env2} = extract_ruby_lib(Env0, "", []),
             PathFromEnv = erlport_options:getenv("RUBYLIB"),
-            case erlport_options:join_path([[ErlPortPath], RubyPath0,
-                    erlport_options:split_path(PathFromSetEnv),
-                    erlport_options:split_path(PathFromEnv)]) of
-                {ok, RubyPath} ->
-                    Env3 = [{"RUBYLIB", RubyPath} | Env2],
-                    {ok, RubyPath, Env3};
-                {error, _}=Error ->
-                    Error
-            end
+            RubyPath = erlport_options:join_path([[ErlPortPath], RubyPath0,
+                erlport_options:split_path(PathFromSetEnv),
+                erlport_options:split_path(PathFromEnv)]),
+            Env3 = [{"RUBYLIB", RubyPath} | Env2],
+            {ok, RubyPath, Env3}
     end.
 
 get_ruby(default) ->

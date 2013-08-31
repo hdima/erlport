@@ -144,20 +144,22 @@ ruby_option_test_() -> {setup,
             "ruby 1.8.7", TmpDir, "ruby"),
         GoodRuby19 = erlport_test_utils:create_mock_script(
             "ruby 1.9.3p0", TmpDir, "ruby1.9"),
+        GoodRuby2 = erlport_test_utils:create_mock_script(
+            "ruby 2.0.0", TmpDir, "ruby2.0"),
         UnsupportedRuby = erlport_test_utils:create_mock_script(
             "ruby 1.7.0", TmpDir, "unsupported"),
         UnsupportedRuby2 = erlport_test_utils:create_mock_script(
             "ruby 2.1.0b1", TmpDir, "unsupported2"),
         InvalidRuby = erlport_test_utils:create_mock_script(
             "ruby INVALID", TmpDir, "invalid"),
-        {TmpDir, GoodRuby, GoodRuby19, BadName, UnknownName,
+        {TmpDir, GoodRuby, GoodRuby19, GoodRuby2, BadName, UnknownName,
             UnsupportedRuby, UnsupportedRuby2, InvalidRuby}
     end,
     fun (Info) ->
         ok = erlport_test_utils:remove_object(element(1, Info)) % TmpDir
     end,
-    fun ({_, GoodRuby, GoodRuby19, BadName, UnknownName, UnsupportedRuby,
-            UnsupportedRuby2, InvalidRuby}) -> [
+    fun ({_, GoodRuby, GoodRuby19, GoodRuby2, BadName, UnknownName,
+            UnsupportedRuby, UnsupportedRuby2, InvalidRuby}) -> [
         fun () ->
             {ok, #ruby_options{ruby=Ruby}} = ruby_options:parse([]),
             ?assertPattern(Ruby, "/ruby(\\.exe)?$")
@@ -177,6 +179,12 @@ ruby_option_test_() -> {setup,
             Expected = erlport_test_utils:script(GoodRuby19),
             {ok, #ruby_options{ruby=Expected, ruby_lib=RubyPath}}
                 = ruby_options:parse([{ruby, GoodRuby19}]),
+            ?assertPattern(RubyPath, "/priv/ruby1\\.9")
+        end,
+        fun () ->
+            Expected = erlport_test_utils:script(GoodRuby2),
+            {ok, #ruby_options{ruby=Expected, ruby_lib=RubyPath}}
+                = ruby_options:parse([{ruby, GoodRuby2}]),
             ?assertPattern(RubyPath, "/priv/ruby1\\.9")
         end,
         fun () ->
@@ -253,13 +261,12 @@ ruby_lib_option_test_() -> {setup,
         ok = file:make_dir(TestPath1),
         TestPath2 = filename:join(TmpDir, "path2"),
         ok = file:make_dir(TestPath2),
-        UnknownPath = filename:join(TmpDir, "unknown"),
-        {TmpDir, TestPath1, TestPath2, UnknownPath}
+        {TmpDir, TestPath1, TestPath2}
     end,
-    fun ({TmpDir, _, _, _}) ->
-        ok = erlport_test_utils:remove_object(TmpDir)
+    fun (Info) ->
+        ok = erlport_test_utils:remove_object(element(1, Info)) % TmpDir
     end,
-    fun ({_, TestPath1, TestPath2, UnknownPath}) -> [
+    fun ({_, TestPath1, TestPath2}) -> [
         fun () ->
             {ok, #ruby_options{ruby_lib=RubyLib,
                 env=[{"RUBYLIB", RubyLib}]=Env,
@@ -353,8 +360,6 @@ ruby_lib_option_test_() -> {setup,
                     TestPath2])
                 end, "RUBYLIB", TestPath2)
         end,
-        ?_assertEqual({error, {not_dir, UnknownPath}},
-            ruby_options:parse([{ruby_lib, [TestPath1, UnknownPath]}])),
         ?_assertEqual({error, {invalid_option, {ruby_lib, invalid_path},
                 not_list}},
             ruby_options:parse([{ruby_lib, invalid_path}])),

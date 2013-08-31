@@ -186,8 +186,7 @@ update_port_options(PortOptions, Path, UseStdio) ->
 %% duplicate parts
 %%
 
--spec join_path(Parts::[Path::string() | [Path::string()]]) ->
-    {ok, Path::string()} | {error, term()}.
+-spec join_path(Parts::[Path::string() | [Path::string()]]) -> Path::string().
 
 join_path(Parts=[_|_]) ->
     remove_duplicate_path(lists:append(Parts), [], ordsets:new()).
@@ -292,22 +291,18 @@ remove_duplicate_path([P | Tail], Paths, Seen) ->
         "" ->
             remove_duplicate_path(Tail, Paths, Seen);
         P ->
-            case filelib:is_dir(P) of
-                true ->
-                    AP = absname(P),
-                    case ordsets:is_element(AP, Seen) of
-                        false ->
-                            Seen2 = ordsets:add_element(AP, Seen),
-                            remove_duplicate_path(Tail, [AP | Paths], Seen2);
-                        true ->
-                            remove_duplicate_path(Tail, Paths, Seen)
-                    end;
+            % Paths also can be virtual (for example a path inside an archive)
+            % so compare them as strings without any normalization
+            case ordsets:is_element(P, Seen) of
                 false ->
-                    {error, {not_dir, P}}
+                    Seen2 = ordsets:add_element(P, Seen),
+                    remove_duplicate_path(Tail, [P | Paths], Seen2);
+                true ->
+                    remove_duplicate_path(Tail, Paths, Seen)
             end
     end;
 remove_duplicate_path([], Paths, _Seen) ->
-    {ok, string:join(lists:reverse(Paths), pathsep())}.
+    string:join(lists:reverse(Paths), pathsep()).
 
 filter_invalid_env(Env) when is_list(Env) ->
     lists:filter(fun
