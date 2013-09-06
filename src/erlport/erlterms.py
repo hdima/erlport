@@ -181,7 +181,7 @@ def decode_term(it,
             else:
                 length, sign = unpack(">IB", ''.join(islice(it, 0, 5)))
             n = 0
-            l = ''.join(islice(it, 0, length-1))
+            l = ''.join(islice(it, 0, length))
             l = l[::-1]
             for i in array('B', l):
                 n = (n << 8) | i
