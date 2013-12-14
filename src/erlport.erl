@@ -245,7 +245,7 @@ print(Data, State) ->
 %% @doc Spawn a process to handle incoming call request
 %%
 spawn_call(Id, Module, Function, Args) ->
-    proc_lib:spawn_link(fun () ->
+    spawn_link(fun () ->
         exit({Id, call_mfa(Module, Function, Args)})
         end).
 

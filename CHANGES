@@ -1,5 +1,9 @@
 Version 1.0.0beta (YYYY-MM-DD)
 
+    - Replaced proc_lib:spawn_link/1 with just spawn_link/1 because the former
+      reports expected process exits as crashes if SASL is enabled. Reported by
+      Sonic Gao.
+
     - Fixed too restrictive checks for PYTHONPATH and RUBYLIB paths. Reported
       by willemdj at GitHub.
 
