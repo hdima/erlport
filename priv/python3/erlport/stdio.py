@@ -26,41 +26,89 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import sys
+import io
 
 from erlport import Atom
 
 
-class RedirectedStdin(object):
+class RedirectedStdin(io.TextIOBase):
 
-    def __getattr__(self, name):
-        def closed(*args, **kwargs):
-            raise RuntimeError("STDIN is closed for ErlPort connected process")
-        return closed
+    def __init__(self):
+        self.close()
 
-class RedirectedStdout(object):
+    def readable(self):
+        return True
+
+    def isatty(self):
+        return True
+
+    def fileno(self):
+        return 0
+
+    def seekable(self):
+        return False
+
+    def writable(self):
+        return False
+
+    @property
+    def encoding(self):
+        return "UTF-8"
+
+    @property
+    def mode(self):
+        return "r"
+
+    @property
+    def name(self):
+        return "<stdin>"
+
+class RedirectedStdout(io.TextIOBase):
 
     def __init__(self, port):
         self.__port = port
 
+    def readable(self):
+        return False
+
+    def isatty(self):
+        return True
+
+    def fileno(self):
+        return 1
+
+    def seekable(self):
+        return False
+
+    def writable(self):
+        return True
+
     def write(self, data):
+        if self.closed:
+            raise ValueError("I/O operation on closed file")
         if not isinstance(data, str):
             raise TypeError("must be str, not %s" % data.__class__.__name__)
         return self.__port.write((Atom(b"P"), data))
 
     def writelines(self, lst):
+        if self.closed:
+            raise ValueError("I/O operation on closed file")
         for data in lst:
             if not isinstance(data, str):
                 raise TypeError("must be str, not %s" % data.__class__.__name__)
         return self.write("".join(lst))
 
-    def flush(self):
-        pass
+    @property
+    def encoding(self):
+        return "UTF-8"
 
-    def __getattr__(self, name):
-        def unsupported(*args, **kwargs):
-            raise RuntimeError("unsupported STDOUT operation for ErlPort"
-                " connected process: %r" % (name,))
-        return unsupported
+    @property
+    def mode(self):
+        return "w"
+
+    @property
+    def name(self):
+        return "<stdout>"
 
 
 def redirect(port):

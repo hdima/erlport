@@ -38,9 +38,29 @@ class TestPort(object):
 
 class RedirectedStdinTestCase(unittest.TestCase):
 
-    def test_read(self):
+    def test_methods(self):
         stdin = RedirectedStdin()
-        self.assertRaises(RuntimeError, stdin.read)
+        self.assertEqual(0, stdin.fileno())
+        self.assertEqual(True, stdin.isatty())
+        self.assertEqual(None, stdin.close())
+        self.assertRaises(ValueError, stdin.flush)
+        self.assertRaises(ValueError, stdin.read)
+        self.assertRaises(ValueError, stdin.readline)
+        self.assertRaises(ValueError, stdin.readlines)
+        self.assertRaises(IOError, stdin.seek, 0)
+        self.assertRaises(IOError, stdin.tell)
+        self.assertRaises(IOError, stdin.truncate)
+        self.assertRaises(ValueError, stdin.write, "data")
+        self.assertRaises(ValueError, stdin.writelines, ["da", "ta"])
+
+    def test_attributes(self):
+        stdin = RedirectedStdin()
+        self.assertEqual(True, stdin.closed)
+        self.assertEqual("UTF-8", stdin.encoding)
+        self.assertEqual(None, stdin.errors)
+        self.assertEqual("r", stdin.mode)
+        self.assertEqual("<stdin>", stdin.name)
+        self.assertEqual(None, stdin.newlines)
 
 class RedirectedStdoutTestCase(unittest.TestCase):
 
@@ -54,9 +74,38 @@ class RedirectedStdoutTestCase(unittest.TestCase):
         self.assertEqual((Atom(b"P"), "data"), stdout.writelines(["da", "ta"]))
         self.assertRaises(TypeError, stdout.writelines, ["da", 1234])
 
-    def test_unsupported_methods(self):
+    def test_close(self):
         stdout = RedirectedStdout(TestPort())
-        self.assertRaises(RuntimeError, stdout.read)
+        self.assertEqual(False, stdout.closed)
+        self.assertEqual(None, stdout.close())
+        self.assertEqual(True, stdout.closed)
+        self.assertEqual(None, stdout.close())
+        self.assertRaises(ValueError, stdout.write, "data")
+        self.assertRaises(ValueError, stdout.writelines, ["da", "ta"])
+
+    def test_methods(self):
+        stdout = RedirectedStdout(TestPort())
+        self.assertEqual(1, stdout.fileno())
+        self.assertEqual(True, stdout.isatty())
+        self.assertEqual(None, stdout.flush())
+        self.assertEqual(False, stdout.readable())
+        self.assertEqual(False, stdout.seekable())
+        self.assertEqual(True, stdout.writable())
+        self.assertRaises(IOError, stdout.read)
+        self.assertRaises(IOError, stdout.readline)
+        self.assertRaises(IOError, stdout.readlines)
+        self.assertRaises(IOError, stdout.seek, 0)
+        self.assertRaises(IOError, stdout.tell)
+        self.assertRaises(IOError, stdout.truncate)
+
+    def test_attributes(self):
+        stdout = RedirectedStdout(TestPort())
+        self.assertEqual(False, stdout.closed)
+        self.assertEqual("UTF-8", stdout.encoding)
+        self.assertEqual(None, stdout.errors)
+        self.assertEqual("w", stdout.mode)
+        self.assertEqual("<stdout>", stdout.name)
+        self.assertEqual(None, stdout.newlines)
 
 
 def get_suite():

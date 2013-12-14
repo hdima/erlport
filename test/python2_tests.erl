@@ -239,8 +239,8 @@ stdin_stdout_test_() ->
             fun () -> undefined = python:call(P, test_utils, print_string,
                 [[16#41f, 16#440, 16#438, 16#432, 16#435, 16#442, $!]])
                 end, P)),
-        ?_assertError({python, 'exceptions.RuntimeError',
-            "STDIN is closed for ErlPort connected process", [_|_]},
+        ?_assertError({python, 'exceptions.ValueError',
+            "I/O operation on closed file", [_|_]},
             python:call(P, '__builtin__', raw_input, []))
     ]).
 

@@ -1,5 +1,8 @@
 Version 1.0.0beta (YYYY-MM-DD)
 
+    - STDIN/STDOUT redirectors for Python in erlport.stdio modules now
+      implements full file object interface. Reported by Francesco Mosconi.
+
     - Replaced proc_lib:spawn_link/1 with just spawn_link/1 because the former
       reports expected process exits as crashes if SASL is enabled. Reported by
       Sonic Gao.
