@@ -37,5 +37,6 @@
         ruby,
         ruby_options
         ]},
+    {registered, []},
     {applications, [kernel, stdlib]}
     ]}.
