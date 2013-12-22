@@ -37,8 +37,3 @@ feedback:
 - Email: dima at hlabs.org
 - Send a message or follow me for updates on Twitter: `@hdima
   <https://twitter.com/hdima>`_
-
-Contributors
-------------
-
-.. include:: CONTRIBUTORS
