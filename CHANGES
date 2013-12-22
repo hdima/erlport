@@ -1,5 +1,8 @@
 Version 1.0.0beta (YYYY-MM-DD)
 
+    - Added empty 'registered' option to erlport.app. This option can be needed
+      by some external tools. Patch by Daniel Kempkens.
+
     - STDIN/STDOUT redirectors for Python in erlport.stdio modules now
       implements full file object interface. Reported by Francesco Mosconi.
 
