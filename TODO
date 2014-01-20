@@ -16,7 +16,8 @@ Before 1.0.0
   erlang.wait_for_calls_here() call which calls erlang._receive() without any
   arguments)? What if someone call this function in main thread, does it block
   everything? Maybe it's better to create an erlang.start_receive_thread()
-  function?
+  function? If we run receive() from a thread main thread can be already in
+  receive mode so it will be UnexpectedMessage error in this case.
 
 - Should we exit in case of Python's SystemExit exception?
 
