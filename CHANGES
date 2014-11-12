@@ -1,5 +1,8 @@
 Version 1.0.0beta (YYYY-MM-DD)
 
+    - Added Erlang R17 support for release and test scripts.
+      Reported by Mark A. Sheldon. Patch by Alexander Shorin.
+
     - Added empty 'registered' option to erlport.app. This option can be needed
       by some external tools. Patch by Daniel Kempkens.
 

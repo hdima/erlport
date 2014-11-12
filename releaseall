@@ -7,11 +7,13 @@ ERLANG=" \
     $SANDBOX/otp_src_R14B04/bin \
     $SANDBOX/otp_src_R15B01/bin \
     $SANDBOX/otp_src_R16B/bin \
+    $SANDBOX/otp_src_17.3/bin \
     "
 
 rm -rf $RELEASE_DIR
 for erlang in $ERLANG; do
-    (export PATH=$erlang:$PATH; make release)
+    make clean
+    (export PATH="$erlang:$PATH"; make release)
 done
 make release-src
 

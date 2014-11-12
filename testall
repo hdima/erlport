@@ -8,6 +8,7 @@ ERLANG=" \
     $SANDBOX/otp_src_R14B04/bin \
     $SANDBOX/otp_src_R15B01/bin \
     $SANDBOX/otp_src_R16B/bin \
+    $SANDBOX/otp_src_17.3/bin \
     "
 
 PYTHON=" \
@@ -85,5 +86,5 @@ set -e
 testall 2>&1 | tee $LOGFILE
 
 echo
-echo "ALL TEST OK!"
+echo "ALL TESTS OK!"
 echo
