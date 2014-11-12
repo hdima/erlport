@@ -1,5 +1,8 @@
 Version 1.0.0beta (YYYY-MM-DD)
 
+    - More robust Python/Ruby version detection in case if ErlPort starts from
+      another process. Patch by Maxim V.
+
     - Added Erlang R17 support for release and test scripts.
       Reported by Mark A. Sheldon. Patch by Alexander Shorin.
 

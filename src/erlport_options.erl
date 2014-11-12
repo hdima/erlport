@@ -318,7 +318,9 @@ receive_version(Port) ->
     Out = receive
         {Port, {data, {eol, Version}}} ->
             Version;
-        _ ->
+        {Port, _} ->
+            "ERROR";
+        {'EXIT', Port, _Reason} ->
             "ERROR"
     after
         ?TIMEOUT ->
