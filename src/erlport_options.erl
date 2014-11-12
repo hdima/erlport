@@ -317,9 +317,7 @@ filter_invalid_env(_Env) ->
 receive_version(Port) ->
     Out = receive
         {Port, {data, {eol, Version}}} ->
-            Version;
-        _ ->
-            "ERROR"
+            Version
     after
         ?TIMEOUT ->
             "TIMEOUT"
