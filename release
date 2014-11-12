@@ -63,8 +63,14 @@ src_files()
 get_erl_version()
 {
     erl -noinput \
-        -eval 'ok = io:put_chars(erlang:system_info(system_version))' \
-        -s init stop | sed 's/^Erlang \(R[0-9]\+\).*/\1/'
+        -eval 'ok = io:put_chars(
+                 case erlang:system_info(otp_release) of 
+                   [H | T] when H =:= $R -> 
+                      [H | T]; 
+                   R -> 
+                      ["R" | R] 
+                 end). ' \
+        -s init stop | colrm 4
 }
 
 get_version()
