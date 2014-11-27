@@ -25,8 +25,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+RUBY_VERSION := $(shell ruby1.8 --version 2>/dev/null)
+
 test:
+ifdef RUBY_VERSION
 	ruby1.8 -I . test/tests.rb
+else
+	@echo "No ruby 1.8 installed. Ignore tests"
+endif
 
 clean:
 

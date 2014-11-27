@@ -25,15 +25,40 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-RUBY_VERSION := $(shell ruby1.9.1 --version 2>/dev/null)
+require "erlport/erlterms"
 
-test:
-ifdef RUBY_VERSION
-	ruby1.9.1 -I . test/tests.rb
-else
-	@echo "No ruby 1.9 installed. Ignore tests"
-endif
+include ErlPort::ErlTerm
 
-clean:
+module ErlPort
+module StdIO
 
-.PHONY: test clean
+    module_function
+    def redirect port
+        $stdin = RedirectedStdin.new
+        $stdout = RedirectedStdout.new port
+    end
+
+    private
+
+    class RedirectedStdin
+        def method_missing name, *args
+            raise IOError, "STDIN is closed for ErlPort connected process"
+        end
+    end
+
+    class RedirectedStdout
+        def initialize port
+            @port = port
+        end
+
+        def write string
+            @port.write(Tuple.new([:P, string]))
+        end
+
+        def method_missing name, *args
+            raise IOError, "unsupported STDOUT operation for ErlPort"
+                " connected process"
+        end
+    end
+end
+end

@@ -25,15 +25,5 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-RUBY_VERSION := $(shell ruby1.9.1 --version 2>/dev/null)
-
-test:
-ifdef RUBY_VERSION
-	ruby1.9.1 -I . test/tests.rb
-else
-	@echo "No ruby 1.9 installed. Ignore tests"
-endif
-
-clean:
-
-.PHONY: test clean
+class ValueError < Exception
+end
