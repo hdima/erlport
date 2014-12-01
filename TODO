@@ -4,6 +4,9 @@ Now
 Before 1.0.0
 ============
 
+- Don't import modules on every call. We probably should catch the exception
+  and import only if needed
+
 - Raise some special errors if language libraries are called without the
   ErlPort connection
 
