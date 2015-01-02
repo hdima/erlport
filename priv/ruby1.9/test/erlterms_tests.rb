@@ -1,5 +1,5 @@
 # encoding: binary
-# Copyright (c) 2009-2013, Dmitry Vasiliev <dima@hlabs.org>
+# Copyright (c) 2009-2015, Dmitry Vasiliev <dima@hlabs.org>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
