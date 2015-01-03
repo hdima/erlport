@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2015, Dmitry Vasiliev <dima@hlabs.org>
+# Copyright (c) 2009-2013, Dmitry Vasiliev <dima@hlabs.org>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,15 +25,4 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-RUBY_VERSION := $(shell ruby1.8 --version 2>/dev/null)
-
-test:
-ifdef RUBY_VERSION
-	ruby1.8 -I . test/tests.rb
-else
-	@echo "No ruby 1.8 installed. Ignore tests"
-endif
-
-clean:
-
-.PHONY: test clean
+Dir.glob("test/*_tests.rb").each{|test| require test}

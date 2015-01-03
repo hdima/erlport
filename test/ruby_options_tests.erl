@@ -40,7 +40,7 @@ parse_test_() ->
             port_options=PortOptions,
             buffer_size=65536}} = ruby_options:parse([]),
         ?assertPattern(Ruby, "/ruby(\\.exe)?$"),
-        ?assertPattern(RubyLib, "/priv/ruby1\\.[89]"),
+        ?assertPattern(RubyLib, "/priv/ruby[12]\\.[189]"),
         ?assertEqual([{"RUBYLIB", RubyLib}], Env),
         ?assertEqual([{env, Env}, {packet, 4}, binary, hide, exit_status],
             PortOptions)
@@ -149,7 +149,7 @@ ruby_option_test_() -> {setup,
         UnsupportedRuby = erlport_test_utils:create_mock_script(
             "ruby 1.7.0", TmpDir, "unsupported"),
         UnsupportedRuby2 = erlport_test_utils:create_mock_script(
-            "ruby 2.1.0b1", TmpDir, "unsupported2"),
+            "ruby 2.2.0b1", TmpDir, "unsupported2"),
         InvalidRuby = erlport_test_utils:create_mock_script(
             "ruby INVALID", TmpDir, "invalid"),
         {TmpDir, GoodRuby, GoodRuby19, GoodRuby2, BadName, UnknownName,
@@ -225,7 +225,7 @@ ruby_option_test_() -> {setup,
         end,
         ?_assertEqual({error, {unsupported_ruby_version, "ruby 1.7.0"}},
             ruby_options:parse([{ruby, UnsupportedRuby}])),
-        ?_assertEqual({error, {unsupported_ruby_version, "ruby 2.1.0b1"}},
+        ?_assertEqual({error, {unsupported_ruby_version, "ruby 2.2.0b1"}},
             ruby_options:parse([{ruby, UnsupportedRuby2}])),
         ?_assertEqual({error, {invalid_ruby,
                 erlport_test_utils:script(InvalidRuby)}},
@@ -271,21 +271,21 @@ ruby_lib_option_test_() -> {setup,
             {ok, #ruby_options{ruby_lib=RubyLib,
                 env=[{"RUBYLIB", RubyLib}]=Env,
                 port_options=[{env, Env} | _]}} = ruby_options:parse([]),
-            ?assertPattern(RubyLib, "/priv/ruby1\\.[89]")
+            ?assertPattern(RubyLib, "/priv/ruby[12]\\.[189]")
         end,
         fun () ->
             {ok, #ruby_options{ruby_lib=RubyLib,
                 env=[{"RUBYLIB", RubyLib}]=Env,
                 port_options=[{env, Env} | _]}} = ruby_options:parse(
                     [{ruby_lib, [TestPath1]}]),
-            ?assertPattern(RubyLib, ["/priv/ruby1\\.[89]", TestPath1])
+            ?assertPattern(RubyLib, ["/priv/ruby[12]\\.[189]", TestPath1])
         end,
         fun () ->
             {ok, #ruby_options{ruby_lib=RubyLib,
                 env=[{"RUBYLIB", RubyLib}]=Env,
                 port_options=[{env, Env} | _]}} = ruby_options:parse(
                     [{ruby_lib, TestPath1}]),
-            ?assertPattern(RubyLib, ["/priv/ruby1\\.[89]", TestPath1])
+            ?assertPattern(RubyLib, ["/priv/ruby[12]\\.[189]", TestPath1])
         end,
         fun () ->
             {ok, #ruby_options{ruby_lib=RubyLib,
@@ -293,7 +293,7 @@ ruby_lib_option_test_() -> {setup,
                 port_options=[{env, Env} | _]}} = ruby_options:parse(
                     [{ruby_lib, erlport_test_utils:local_path(
                         [TestPath1, TestPath2])}]),
-            ?assertPattern(RubyLib, ["/priv/ruby1\\.[89]", TestPath1,
+            ?assertPattern(RubyLib, ["/priv/ruby[12]\\.[189]", TestPath1,
                 TestPath2])
         end,
         fun () ->
@@ -302,7 +302,7 @@ ruby_lib_option_test_() -> {setup,
                 port_options=[{env, Env} | _]}} = ruby_options:parse(
                     [{ruby_lib, [TestPath1]},
                     {env, [{"RUBYLIB", TestPath2}]}]),
-            ?assertPattern(RubyLib, ["/priv/ruby1\\.[89]", TestPath1,
+            ?assertPattern(RubyLib, ["/priv/ruby[12]\\.[189]", TestPath1,
                 TestPath2])
         end,
         fun () ->
@@ -311,7 +311,7 @@ ruby_lib_option_test_() -> {setup,
                 port_options=[{env, Env} | _]}} = ruby_options:parse(
                     [{env, [{"RUBYLIB", TestPath1},
                     {"RUBYLIB", TestPath2}]}]),
-            ?assertPattern(RubyLib, ["/priv/ruby1\\.[89]", TestPath1,
+            ?assertPattern(RubyLib, ["/priv/ruby[12]\\.[189]", TestPath1,
                 TestPath2])
         end,
         fun () ->
@@ -321,7 +321,7 @@ ruby_lib_option_test_() -> {setup,
                     [{ruby_lib, [TestPath1, TestPath2, ""]},
                     {env, [{"RUBYLIB", erlport_test_utils:local_path(
                         [TestPath2, TestPath1])}]}]),
-            ?assertPattern(RubyLib, ["/priv/ruby1\\.[89]", TestPath1,
+            ?assertPattern(RubyLib, ["/priv/ruby[12]\\.[189]", TestPath1,
                 TestPath2])
         end,
         fun () ->
@@ -329,7 +329,7 @@ ruby_lib_option_test_() -> {setup,
                 {ok, #ruby_options{ruby_lib=RubyLib,
                     env=[{"RUBYLIB", RubyLib}]=Env,
                     port_options=[{env, Env} | _]}} = ruby_options:parse([]),
-                ?assertPattern(RubyLib, "/priv/ruby1\\.[89]")
+                ?assertPattern(RubyLib, "/priv/ruby[12]\\.[189]")
                 end, "RUBYLIB", "")
         end,
         fun () ->
@@ -337,7 +337,7 @@ ruby_lib_option_test_() -> {setup,
                 {ok, #ruby_options{ruby_lib=RubyLib,
                     env=[{"RUBYLIB", RubyLib}]=Env,
                     port_options=[{env, Env} | _]}} = ruby_options:parse([]),
-                ?assertPattern(RubyLib, ["/priv/ruby1\\.[89]", TestPath1])
+                ?assertPattern(RubyLib, ["/priv/ruby[12]\\.[189]", TestPath1])
                 end, "RUBYLIB", TestPath1)
         end,
         fun () ->
@@ -345,7 +345,7 @@ ruby_lib_option_test_() -> {setup,
                 {ok, #ruby_options{ruby_lib=RubyLib,
                     env=[{"RUBYLIB", RubyLib}]=Env,
                     port_options=[{env, Env} | _]}} = ruby_options:parse([]),
-                ?assertPattern(RubyLib, ["/priv/ruby1\\.[89]", TestPath1,
+                ?assertPattern(RubyLib, ["/priv/ruby[12]\\.[189]", TestPath1,
                     TestPath2])
                 end, "RUBYLIB", erlport_test_utils:local_path(
                     [TestPath1, TestPath2]))
@@ -356,7 +356,7 @@ ruby_lib_option_test_() -> {setup,
                     env=[{"RUBYLIB", RubyLib}]=Env,
                     port_options=[{env, Env} | _]}} = ruby_options:parse(
                         [{ruby_lib, TestPath1}]),
-                ?assertPattern(RubyLib, ["/priv/ruby1\\.[89]", TestPath1,
+                ?assertPattern(RubyLib, ["/priv/ruby[12]\\.[189]", TestPath1,
                     TestPath2])
                 end, "RUBYLIB", TestPath2)
         end,

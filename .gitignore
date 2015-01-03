@@ -2,6 +2,7 @@
 *.py[co]
 *.beam
 /.eunit
+.rebar
 /sandbox
 /packages
 /testall.log
