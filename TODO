@@ -4,6 +4,10 @@ Now
 Before 1.0.0
 ============
 
+- `make test` should select Python/Ruby versions installed on the system
+
+- It seems Python 2 pickles don't work in Python 3 and crash ErlPort session.
+
 - Don't import modules on every call. We probably should catch the exception
   and import only if needed
 
