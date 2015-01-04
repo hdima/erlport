@@ -25,20 +25,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-test: cleanup-test
-	python3 -c 'from erlport.tests import main; main()'
+test: cleanup-test coverage-info
+	@python -c 'from erlport.tests import main; main()'
 
-test-verbose: cleanup-test
-	python3 -c 'from erlport.tests import main; main()' -v
+test-verbose: cleanup-test coverage-info
+	@python -c 'from erlport.tests import main; main()' -v
 
-cleanup-test:
+coverage-info:
 	#
 	# Tests coverage information will be written to .cover directory if coverage
 	# package is installed
 	#
-	rm -rf .cover
+
+cleanup-test:
+	@rm -rf .cover
 
 clean: cleanup-test
-	find . \( -name '*.py[co]' -o -name '__pycache__' \) -delete
+	@find . \( -name '*.py[co]' -o -name '__pycache__' \) -delete
 
-.PHONY: test test-verbose cleanup-test clean
+.PHONY: test test-verbose cleanup-test clean coverage-info

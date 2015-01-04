@@ -28,12 +28,16 @@
 RELDIR = ebin
 TESTDIR = .eunit
 
+VERSIONS := $(shell ./get_versions)
 HEADERS = $(wildcard src/*.hrl)
 SOURCES = $(wildcard src/*.erl)
 BEAMS = $(patsubst src/%.erl,$(RELDIR)/%.beam,$(SOURCES))
+LANGTESTDIRS = $(patsubst %,test/%,$(VERSIONS))
+LANGTESTSOURCES = $(foreach dir,$(LANGTESTDIRS),$(wildcard $(dir)/*.erl))
 TESTSOURCES = $(wildcard test/*.erl)
 TESTBEAMS = $(patsubst src/%.erl,$(TESTDIR)/%.beam,$(SOURCES)) \
-    $(patsubst test/%.erl,$(TESTDIR)/%.beam,$(TESTSOURCES))
+    $(patsubst test/%.erl,$(TESTDIR)/%.beam,$(TESTSOURCES)) \
+    $(patsubst %.erl,$(TESTDIR)/%.beam,$(notdir $(LANGTESTSOURCES)))
 ERLC = erlc -Wall +warnings_as_errors -I include -I src
 ERL = erl -noinput -pa ../erlport
 
@@ -48,95 +52,76 @@ $(RELDIR)/%.beam: src/%.erl $(HEADERS)
 $(TESTDIR)/%.beam: test/%.erl
 	$(ERLC) +debug_info -o $(TESTDIR) $<
 
+$(TESTDIR)/%.beam: test/*/%.erl
+	$(ERLC) +debug_info -o $(TESTDIR) $<
+
 $(TESTDIR)/%.beam: src/%.erl $(HEADERS)
 	$(ERLC) +debug_info -o $(TESTDIR) $<
 
 $(TESTDIR):
-	mkdir $@
+	@mkdir $@
 
 $(TESTDIR)/erlport.app:
-	cp -l ebin/erlport.app $(TESTDIR)
+	@cp -l ebin/erlport.app $(TESTDIR)
 
-test: python-test ruby-test erlang-test
+test: erlang-test
+	@for folder in $(VERSIONS); do \
+		echo; \
+		echo "====================== Test $$folder ========================="; \
+		(cd priv/$$folder; make test) \
+	done
 
-test-verbose: python-test-verbose ruby-test erlang-test-verbose
+test-verbose: erlang-test-verbose
+	@for folder in $(VERSIONS); do \
+		echo; \
+		echo "====================== Test $$folder ========================="; \
+		(cd priv/$$folder; make test-verbose) \
+	done
 
 erlang-test: compile-test
-	./runtest
+	@./print_versions
+	@echo
+	@echo "====================== Test erlang =========================="
+	@./runtest
 
 erlang-test-verbose: compile-test
-	./runtest verbose
-
-ruby-test: ruby1.8-test ruby1.9-test
-
-ruby1.8-test:
-	cd priv/ruby1.8; make test
-
-ruby1.9-test:
-	cd priv/ruby1.9; make test
-
-python-test: python2-test python3-test
-
-python-test-verbose: python2-test-verbose python3-test-verbose
-
-python2-test:
-	cd priv/python2; make test
-
-python2-test-verbose:
-	cd priv/python2; make test-verbose
-
-python3-test:
-	cd priv/python3; make test
-
-python3-test-verbose:
-	cd priv/python3; make test-verbose
+	@./print_versions
+	@echo
+	@echo "====================== Test erlang =========================="
+	@./runtest verbose
 
 check: $(TESTDIR) $(TESTBEAMS)
-	dialyzer $(TESTDIR) | fgrep -v -f dialyzer.ignore
+	@dialyzer $(TESTDIR) | fgrep -v -f dialyzer.ignore
 
 create-ignore-file: $(TESTDIR) $(TESTBEAMS)
-	dialyzer $(TESTDIR) | egrep '^[^:]+:[0-9]+: ' > dialyzer.ignore; exit 0
+	@dialyzer $(TESTDIR) | egrep '^[^:]+:[0-9]+: ' > dialyzer.ignore; exit 0
 
 doc:
-	$(ERL) -eval 'edoc:application(erlport)' -s init stop
+	@$(ERL) -eval 'edoc:application(erlport)' -s init stop
 
-clean: erlang-clean python-clean ruby-clean doc-clean
+clean: erlang-clean priv-clean doc-clean
+
+priv-clean:
+	@for folder in $$(ls -1 priv); do \
+		(cd priv/$$folder; make clean) \
+	done
 
 doc-clean:
-	rm -f doc/*.html doc/*.png doc/*.css doc/edoc-info
+	@rm -f doc/*.html doc/*.png doc/*.css doc/edoc-info
 
 erlang-clean:
-	rm -rf $(RELDIR)/*.beam $(TESTDIR)
-	find test \( -name '*.py[co]' -o -name '__pycache__' \) -delete
-
-python-clean: python2-clean python3-clean
-
-python2-clean:
-	cd priv/python2; make clean
-
-python3-clean:
-	cd priv/python3; make clean
-
-ruby-clean: ruby1.8-clean ruby1.9-clean
-
-ruby1.8-clean:
-	cd priv/ruby1.8; make clean
-
-ruby1.9-clean:
-	cd priv/ruby1.9; make clean
+	@rm -rf $(RELDIR)/*.beam $(TESTDIR)
+	@find test \( -name '*.py[co]' -o -name '__pycache__' \) -delete
 
 release: clean compile
-	./release bin
+	@./release bin
 
 release-src: clean
-	./release src
+	@./release src
 
 
-.PHONY: compile compile-test test test-verbose check doc clean python2-test
-.PHONY: python2-test-verbose create-ignore-file python3-test
-.PHONY: python3-test-verbose python-test python-test-verbose
+.PHONY: compile compile-test test test-verbose check doc clean
+.PHONY: create-ignore-file priv-clean
 .PHONY: erlang-test erlang-test-verbose
-.PHONY: ruby-test ruby1.8-test ruby1.9-test
-.PHONY: erlang-clean python-clean python2-clean python3-clean
-.PHONY: ruby-clean ruby1.8-clean ruby1.9-clean
+.PHONY: erlang-clean
 .PHONY: release release-src

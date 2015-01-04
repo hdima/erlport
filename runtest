@@ -13,16 +13,30 @@ main(Args) ->
             halt(2)
     end,
     start_cover(),
-    eunit:test({application, erlport}, Options),
-    analyse().
+    eunit:test(get_modules(".eunit"), Options),
+    analyse(proplists:get_bool(verbose, Options)).
+
+get_modules(Dir) ->
+    case file:list_dir(Dir) of
+        {ok, Filenames} ->
+            [list_to_existing_atom(filename:basename(F, ".beam"))
+             || F <- Filenames, filename:extension(F) =:= ".beam"];
+        {error, Reason} ->
+            io:format("Can't list files in ~p: ~p", [Dir, Reason]),
+            halt(1)
+    end.
 
 start_cover() ->
     {ok, _} = cover:start(),
-    cover_compile_directory("src"),
-    cover_compile_directory("test").
+    cover_compile_beam_directory(".eunit").
 
-cover_compile_directory(Dir) ->
-    Result = cover:compile_directory(Dir, [{i, "include"}, {i, "src"}]),
+cover_compile_beam_directory(Dir) ->
+    Result = case cover:compile_beam_directory(Dir) of
+                {error, Reason} ->
+                    io:format("Cover compile error in ~p: ~p~n", [Dir, Reason]),
+                    halt(1);
+                R -> R
+             end,
     lists:foreach(fun
         ({ok, _}) ->
             ok;
@@ -31,7 +45,7 @@ cover_compile_directory(Dir) ->
             halt(1)
         end, Result).
 
-analyse() ->
+analyse(Verbose) ->
     IndexName = filename:join(".eunit", "index.html"),
     {ok, Index} = file:open(IndexName, [write, raw]),
     ok = file:write(Index, "<html>\n<head>\n<title>Coverage report</title>\n"
@@ -42,7 +56,7 @@ analyse() ->
         ["Name", "Stmts", "Miss", "Cover", lists:duplicate(51, "-")]),
     {TotalCov, TotalNotCov} = lists:foldl(fun (Mod, {CovA, NotCovA}) ->
         {Cov, NotCov} = cover_analyse(Mod, Index),
-        cover_analyse_to_file(Mod),
+        cover_analyse_to_file(Mod, Verbose),
         {CovA + Cov, NotCovA + NotCov}
         end, {0, 0}, cover:modules()),
     Stmts = TotalCov + TotalNotCov,
@@ -71,7 +85,7 @@ cover_analyse(Mod, Index) ->
             halt(1)
     end.
 
-cover_analyse_to_file(Mod) ->
+cover_analyse_to_file(Mod, true) ->
     Out = filename:join(".eunit", lists:concat([Mod, ".cover.html"])),
     case cover:analyse_to_file(Mod, Out, [html]) of
         {ok, _} ->
@@ -79,4 +93,6 @@ cover_analyse_to_file(Mod) ->
         {error, Reason} ->
             io:format("Coverage analyse error ~p: ~p~n", [Mod, Reason]),
             halt(1)
-    end.
+    end;
+cover_analyse_to_file(_Mod, false) ->
+    ok.

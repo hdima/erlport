@@ -26,8 +26,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 test:
-	ruby1.9.1 -I . test/tests.rb
+	@ruby -I . test/tests.rb
+
+test-verbose:
+	@ruby -I . test/tests.rb
 
 clean:
 
-.PHONY: test clean
+.PHONY: test test-verbose clean
