@@ -146,18 +146,16 @@ python_option_test_() -> {setup,
             "Python 3.0.0p1", TmpDir, "python3"),
         UnsupportedPython = erlport_test_utils:create_mock_script(
             "Python 2.4.6", TmpDir, "unsupported"),
-        UnsupportedPython2 = erlport_test_utils:create_mock_script(
-            "Python 4.0.0", TmpDir, "unsupported2"),
         InvalidPython = erlport_test_utils:create_mock_script(
             "Python INVALID", TmpDir, "invalid"),
         {TmpDir, GoodPython, GoodPython3, BadName, UnknownName,
-            UnsupportedPython, UnsupportedPython2, InvalidPython}
+            UnsupportedPython, InvalidPython}
     end,
     fun (Info) ->
         ok = erlport_test_utils:remove_object(element(1, Info)) % TmpDir
     end,
     fun ({_, GoodPython, GoodPython3, BadName, UnknownName, UnsupportedPython,
-            UnsupportedPython2, InvalidPython}) -> [
+            InvalidPython}) -> [
         fun () ->
             {ok, #python_options{python=Python}} = python_options:parse([]),
             ?assertPattern(Python, "/python(\\.exe)?$")
@@ -212,8 +210,6 @@ python_option_test_() -> {setup,
         end,
         ?_assertEqual({error, {unsupported_python_version, "Python 2.4.6"}},
             python_options:parse([{python, UnsupportedPython}])),
-        ?_assertEqual({error, {unsupported_python_version, "Python 4.0.0"}},
-            python_options:parse([{python, UnsupportedPython2}])),
         ?_assertEqual({error, {invalid_python,
                 erlport_test_utils:script(InvalidPython)}},
             python_options:parse([{python, InvalidPython}]))

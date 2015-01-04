@@ -182,7 +182,7 @@ check_ruby_version(Ruby) ->
             if
                 Version >= {1, 8, 6} andalso Version < {2, 0, 0} ->
                     {ok, Version};
-                Version >= {2, 0, 0} andalso Version < {2, 1, 0} ->
+                Version >= {2, 0, 0} ->
                     {ok, {1, 9, 0}};
                 true ->
                     {error, {unsupported_ruby_version, Out}}

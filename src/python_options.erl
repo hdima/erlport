@@ -180,7 +180,7 @@ check_python_version(Python) ->
         {match, StrVersion} ->
             Version = list_to_tuple([list_to_integer(N) || N <- StrVersion]),
             if
-                Version >= {2, 5, 0} andalso Version < {4, 0, 0} ->
+                Version >= {2, 5, 0} ->
                     {ok, Version};
                 true ->
                     {error, {unsupported_python_version, Out}}

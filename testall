@@ -20,6 +20,7 @@ PATHS=" \
     $SANDBOX/ruby-1.9.2/bin \
     $SANDBOX/ruby-1.9.3/bin \
     $SANDBOX/ruby-2.0.0/bin \
+    $SANDBOX/ruby-2.1.5/bin \
 "
 
 testall()
