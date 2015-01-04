@@ -369,8 +369,7 @@ setup() ->
 
 setup_factory(Options) ->
     fun () ->
-        {ok, P} = ruby:start_link([{ruby_lib, "test/ruby1.8"},
-            {ruby, "ruby1.8"} | Options]),
+        {ok, P} = ruby:start_link([{ruby_lib, "test/ruby1.8"} | Options]),
         P
     end.
 

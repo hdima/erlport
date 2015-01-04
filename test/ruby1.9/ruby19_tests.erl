@@ -399,8 +399,7 @@ setup() ->
 
 setup_factory(Options) ->
     fun () ->
-        {ok, P} = ruby:start_link([{ruby_lib, "test/ruby1.9"},
-            {ruby, "ruby1.9.1"} | Options]),
+        {ok, P} = ruby:start_link([{ruby_lib, "test/ruby1.9"} | Options]),
         P
     end.
 
