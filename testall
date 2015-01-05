@@ -1,6 +1,6 @@
 #! /bin/sh
 
-SANDBOX="sandbox"
+SANDBOX="$(pwd)/sandbox"
 LOGFILE="testall.log"
 
 PATHS=" \
@@ -29,9 +29,9 @@ testall()
 {
     for path in $PATHS; do
         echo
-        echo "***********************************************************"
-        echo "Test $path"
-        echo "***********************************************************"
+        echo "================================================================="
+        echo "Test with $path"
+        echo "================================================================="
         echo
         make -s clean
         (export PATH="$path:$PATH"; make -s test)
