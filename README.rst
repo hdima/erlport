@@ -25,7 +25,16 @@ The following is an example ErlPort session for Python:
     4> python:stop(P).
     ok
 
-Check http://erlport.org for more information.
+Check http://erlport.org for more information:
+
+- `ErlPort documentation <http://erlport.org/docs/>`_
+
+  + `Connect Erlang to Python <http://erlport.org/docs/python.html>`_
+  + `Connect Erlang to Ruby <http://erlport.org/docs/ruby.html>`_
+- `ErlPort downloads <http://erlport.org/downloads/>`_
+
+  + `ErlPort binary packages <http://erlport.org/downloads/#binary-packages>`_
+  + `ErlPort source packages <http://erlport.org/downloads/#source-packages>`_
 
 Feedback
 --------
