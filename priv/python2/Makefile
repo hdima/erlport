@@ -43,6 +43,6 @@ cleanup-test:
 	@rm -rf .cover
 
 clean: cleanup-test
-	@find . -name '*.py[co]' -delete
+	@find . \( -name '*.py[co]' -o -name '__pycache__' \) -delete
 
 .PHONY: compile test test-verbose cleanup-test clean coverage-info

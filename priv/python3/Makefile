@@ -25,7 +25,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-compile:
+DUPLICATES = \
+	erlport/__init__.py \
+	erlport/cli.py
+
+compile: $(DUPLICATES)
+
+erlport/%.py: ../python2/erlport/%.py
+	@cp $< $@
+
+test/%.py: ../python2/test/%.py
+	@cp $< $@
 
 test: cleanup-test coverage-info
 	@python -c 'from erlport.tests import main; main()'
@@ -43,6 +53,7 @@ cleanup-test:
 	@rm -rf .cover
 
 clean: cleanup-test
+	@rm -f $(DUPLICATES)
 	@find . \( -name '*.py[co]' -o -name '__pycache__' \) -delete
 
 .PHONY: compile test test-verbose cleanup-test clean coverage-info
