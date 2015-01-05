@@ -15,6 +15,7 @@ PATHS=" \
     $SANDBOX/Python-3.1.5 \
     $SANDBOX/Python-3.2.3 \
     $SANDBOX/Python-3.3.0 \
+    $SANDBOX/Python-3.4.2 \
     $SANDBOX/ruby-1.8.7/bin \
     $SANDBOX/ruby-1.9.1/bin \
     $SANDBOX/ruby-1.9.2/bin \

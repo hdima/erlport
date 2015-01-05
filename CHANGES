@@ -1,5 +1,10 @@
 Version 1.0.0beta (YYYY-MM-DD)
 
+    - Removed upper version limits for Python/Ruby. It seems Python versions up
+      to 3.4.2 and Ruby up to 2.2.0 work without any other changes.
+
+    - `make test` now uses Python/Ruby installed on the system.
+
     - More robust Python/Ruby version detection in case if ErlPort starts from
       another process. Patch by Maxim V.
 
