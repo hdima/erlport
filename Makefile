@@ -48,7 +48,7 @@ compile-test: compile-priv $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
 
 compile-priv:
 	@for folder in $$(ls -1 priv); do \
-		(cd priv/$$folder; make) \
+		(cd priv/$$folder; $(MAKE)) \
 	done
 
 $(RELDIR)/%.beam: src/%.erl $(HEADERS)
@@ -73,14 +73,14 @@ test: erlang-test
 	@for folder in $(VERSIONS); do \
 		echo; \
 		echo "====================== Test $$folder ========================="; \
-		(cd priv/$$folder; make test) \
+		(cd priv/$$folder; $(MAKE) test) \
 	done
 
 test-verbose: erlang-test-verbose
 	@for folder in $(VERSIONS); do \
 		echo; \
 		echo "====================== Test $$folder ========================="; \
-		(cd priv/$$folder; make test-verbose) \
+		(cd priv/$$folder; $(MAKE) test-verbose) \
 	done
 
 erlang-test: compile-test
@@ -108,7 +108,7 @@ clean: erlang-clean priv-clean doc-clean
 
 priv-clean:
 	@for folder in $$(ls -1 priv); do \
-		(cd priv/$$folder; make clean) \
+		(cd priv/$$folder; $(MAKE) clean) \
 	done
 
 doc-clean:
