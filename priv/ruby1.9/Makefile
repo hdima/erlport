@@ -25,12 +25,29 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-test:
+DUPLICATES = \
+	erlport/stdio.rb \
+	erlport/errors.rb \
+	erlport/erlang.rb \
+	erlport/cli.rb \
+	erlport/erlproto.rb \
+	test/tests.rb
+
+compile: $(DUPLICATES)
+
+erlport/%.rb: ../ruby1.8/erlport/%.rb
+	@cp $< $@
+
+test/%.rb: ../ruby1.8/test/%.rb
+	@cp $< $@
+
+test: compile
 	@ruby -I . test/tests.rb
 
-test-verbose:
+test-verbose: compile
 	@ruby -I . test/tests.rb
 
 clean:
+	@rm -f $(DUPLICATES)
 
-.PHONY: test test-verbose clean
+.PHONY: compile test test-verbose clean

@@ -42,9 +42,14 @@ ERLC = erlc -Wall +warnings_as_errors -I include -I src
 ERL = erl -noinput -pa ../erlport
 
 
-compile: $(BEAMS)
+compile: compile-priv $(BEAMS)
 
-compile-test: $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
+compile-test: compile-priv $(TESTDIR) $(TESTDIR)/erlport.app $(TESTBEAMS)
+
+compile-priv:
+	@for folder in $$(ls -1 priv); do \
+		(cd priv/$$folder; make) \
+	done
 
 $(RELDIR)/%.beam: src/%.erl $(HEADERS)
 	$(ERLC) +debug_info -o $(RELDIR) $<
@@ -120,8 +125,6 @@ release-src: clean
 	@./release src
 
 
-.PHONY: compile compile-test test test-verbose check doc clean
-.PHONY: create-ignore-file priv-clean
-.PHONY: erlang-test erlang-test-verbose
-.PHONY: erlang-clean
-.PHONY: release release-src
+.PHONY: compile compile-test test test-verbose check doc clean compile-priv
+.PHONY: create-ignore-file priv-clean erlang-test erlang-test-verbose
+.PHONY: erlang-clean release release-src
