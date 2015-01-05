@@ -1,3 +1,4 @@
+# encoding: binary
 # Copyright (c) 2009-2015, Dmitry Vasiliev <dima@hlabs.org>
 # All rights reserved.
 #

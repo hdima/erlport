@@ -31,7 +31,8 @@ DUPLICATES = \
 	erlport/erlang.rb \
 	erlport/cli.rb \
 	erlport/erlproto.rb \
-	test/tests.rb
+	test/tests.rb \
+	test/erlproto_tests.rb
 
 compile: $(DUPLICATES)
 
