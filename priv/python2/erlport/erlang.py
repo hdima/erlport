@@ -29,14 +29,16 @@ from __future__ import with_statement
 
 __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 
+from contextlib import contextmanager
+from inspect import getargspec
 import sys
 from sys import exc_info
 from traceback import extract_tb
-from inspect import getargspec
 from threading import Lock
-from contextlib import contextmanager
+import uuid
 
 from erlport import Atom
+
 
 class Error(Exception):
     """ErlPort Error."""
@@ -96,20 +98,9 @@ class Responses(object):
 
 class MessageId(object):
 
-    def __init__(self):
-        self.__ids = set()
-        self.__lock = Lock()
-
     @contextmanager
     def __call__(self):
-        with self.__lock:
-            mid = max(self.__ids) + 1 if self.__ids else 1
-            self.__ids.add(mid)
-        try:
-            yield mid
-        finally:
-            with self.__lock:
-                self.__ids.remove(mid)
+        yield uuid.uuid4().int
 
 class MessageHandler(object):
 
