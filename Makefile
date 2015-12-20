@@ -67,7 +67,7 @@ $(TESTDIR):
 	@mkdir $@
 
 $(TESTDIR)/erlport.app:
-	@cp -l ebin/erlport.app $(TESTDIR)
+	@ln ebin/erlport.app $(TESTDIR)
 
 test: erlang-test
 	@for folder in $(VERSIONS); do \
