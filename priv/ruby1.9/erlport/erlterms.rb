@@ -342,7 +342,7 @@ module ErlTerm
                 if term.empty?
                     return "j"
                 elsif length <= 65535
-                    if term.index{|i| not i.is_a? Integer or i > 255} == nil
+                    if term.index{|i| not i.is_a? Integer or i > 255 or i < 0} == nil
                         return [107, length].pack("Cn") + term.pack("C*")
                     end
                 elsif length > 4294967295
