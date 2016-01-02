@@ -56,7 +56,7 @@ atom_types() ->
     ['', test, 'TEST', true, false, undefined].
 
 list_types() ->
-    [[], [0], [1, 2, 3], [[]], [[], [], []], lists:seq(1, 10000)].
+    [[], [0], [1, 2, 3], [[]], [[], [], []], lists:seq(1, 10000), lists:seq(-10,10)].
 
 improper_list_types() ->
     [[0 | 1], [1, 2, 3 | 4], [head | tail]].
