@@ -29,7 +29,6 @@ from __future__ import with_statement
 
 __author__ = "Dmitry Vasiliev <dima@hlabs.org>"
 
-from contextlib import contextmanager
 from inspect import getargspec
 import sys
 from sys import exc_info
@@ -39,6 +38,9 @@ import uuid
 
 from erlport import Atom
 
+
+def new_message_id():
+    return uuid.uuid4().int
 
 class Error(Exception):
     """ErlPort Error."""
@@ -96,11 +98,6 @@ class Responses(object):
             self.__responses[response_id] = message
         return default
 
-class MessageId(object):
-
-    @contextmanager
-    def __call__(self):
-        yield uuid.uuid4().int
 
 class MessageHandler(object):
 
@@ -111,7 +108,6 @@ class MessageHandler(object):
         self.set_default_message_handler()
         self._self = None
         self.responses = Responses()
-        self.message_id = MessageId()
 
     def set_default_encoder(self):
         self.encoder = lambda o: o
@@ -207,10 +203,12 @@ class MessageHandler(object):
         return self._call(Atom('erlang'), Atom('make_ref'), [], Atom('L'))
 
     def _call(self, module, function, args, context):
-        with self.message_id() as mid:
-            self.port.write((Atom('C'), mid, module, function,
-                map(self.encoder, args), context))
-            response = self._receive(expect_id=mid)
+        mid = new_message_id()
+        self.port.write((Atom('C'), mid, module, function,
+                         map(self.encoder, args), context))
+
+        response = self._receive(expect_id=mid)
+
         try:
             mtype, _mid, value = response
         except ValueError:
