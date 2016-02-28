@@ -39,9 +39,6 @@ import uuid
 from erlport import Atom
 
 
-def new_message_id():
-    return uuid.uuid4().int
-
 class Error(Exception):
     """ErlPort Error."""
 
@@ -108,6 +105,9 @@ class MessageHandler(object):
         self.set_default_message_handler()
         self._self = None
         self.responses = Responses()
+
+    def new_message_id(self):
+        return uuid.uuid4().int
 
     def set_default_encoder(self):
         self.encoder = lambda o: o
@@ -203,7 +203,7 @@ class MessageHandler(object):
         return self._call(Atom('erlang'), Atom('make_ref'), [], Atom('L'))
 
     def _call(self, module, function, args, context):
-        mid = new_message_id()
+        mid = self.new_message_id()
         self.port.write((Atom('C'), mid, module, function,
                          map(self.encoder, args), context))
 

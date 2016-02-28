@@ -279,7 +279,7 @@ module Erlang
 
     class MessageId
         def generate &code
-            code.call SecureRandom.random_number(2 << 128)
+            code.call SecureRandom.random_number(1 << 128)
         end
     end
 end
