@@ -1,5 +1,11 @@
 Version 1.0.0beta (YYYY-MM-DD)
 
+    - Fixed `make test` on OSX by replacing `cp -l` with `ln`. Patch by
+      Johnlin.
+
+    - Fixed handling of arrays of integers by Ruby's `encode_term` function.
+      Patch by Johnlin.
+
     - Removed upper version limits for Python/Ruby. It seems Python versions up
       to 3.4.2 and Ruby up to 2.2.0 work without any other changes.
 
