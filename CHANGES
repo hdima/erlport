@@ -1,5 +1,7 @@
 Version 1.0.0beta (YYYY-MM-DD)
 
+    - More robust message ID generation. Patch by Steve Cohen.
+
     - Fixed `make test` on OSX by replacing `cp -l` with `ln`. Patch by
       Johnlin.
 
