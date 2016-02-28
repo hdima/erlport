@@ -33,6 +33,9 @@ require "erlport/stdio"
 
 include ErlPort::ErlTerm
 
+require 'securerandom'
+
+
 module ErlPort
 module Erlang
 
@@ -275,24 +278,8 @@ module Erlang
     end
 
     class MessageId
-        def initialize
-            @ids = Set.new
-            @lock = Mutex.new
-        end
-
         def generate &code
-            mid = @lock.synchronize {
-                mid = (not @ids.empty?)? @ids.max + 1: 1
-                @ids.add(mid)
-                mid
-            }
-            begin
-                code.call mid
-            ensure
-                @lock.synchronize {
-                    @ids.delete(mid)
-                }
-            end
+            code.call SecureRandom.random_number(2 << 128)
         end
     end
 end

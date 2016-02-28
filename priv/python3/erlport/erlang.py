@@ -25,14 +25,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from inspect import getargspec
 import sys
 from sys import exc_info
 from traceback import extract_tb
-from inspect import getargspec
 from threading import Lock
-from contextlib import contextmanager
+import uuid
 
 from erlport import Atom
+
+
+def new_message_id():
+    return uuid.uuid4().int
 
 class Error(Exception):
     """ErlPort Error."""
@@ -90,22 +94,6 @@ class Responses(object):
             self.__responses[response_id] = message
         return default
 
-class MessageId(object):
-
-    def __init__(self):
-        self.__ids = set()
-        self.__lock = Lock()
-
-    @contextmanager
-    def __call__(self):
-        with self.__lock:
-            mid = max(self.__ids) + 1 if self.__ids else 1
-            self.__ids.add(mid)
-        try:
-            yield mid
-        finally:
-            with self.__lock:
-                self.__ids.remove(mid)
 
 class MessageHandler(object):
 
@@ -116,7 +104,6 @@ class MessageHandler(object):
         self.set_default_message_handler()
         self._self = None
         self.responses = Responses()
-        self.message_id = MessageId()
 
     def set_default_encoder(self):
         self.encoder = lambda o: o
@@ -213,11 +200,14 @@ class MessageHandler(object):
         return self._call(Atom(b'erlang'), Atom(b'make_ref'), [], Atom(b'L'))
 
     def _call(self, module, function, args, context):
-        with self.message_id() as mid:
-            self.port.write((Atom(b'C'), mid, module, function,
-                # TODO: Optimize list(map())
-                list(map(self.encoder, args)), context))
-            response = self._receive(expect_id=mid)
+        mid = new_message_id()
+
+        self.port.write((Atom(b'C'), mid, module, function,
+                         # TODO: Optimize list(map())
+                         list(map(self.encoder, args)), context))
+
+        response = self._receive(expect_id=mid)
+
         try:
             mtype, _mid, value = response
         except ValueError:
@@ -226,6 +216,7 @@ class MessageHandler(object):
             if mtype == b"e":
                 raise CallError(value)
             raise UnknownMessage(response)
+
         return self.decoder(value)
 
     def _incoming_call(self, mid, module, function, args):
