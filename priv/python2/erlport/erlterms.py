@@ -200,15 +200,23 @@ def decode_term(string,
     if not string:
         raise IncompleteData(string)
     tag = string[0]
-    if tag == "d":
-        # ATOM_EXT
+    if tag == "d" or tag == "w":
+        # ATOM_EXT, SMALL_ATOM_UTF8_EXT
         ln = len(string)
-        if ln < 3:
-            raise IncompleteData(string)
-        length = int2_unpack(string[1:3])[0] + 3
-        if ln < length:
-            raise IncompleteData(string)
-        name = string[3:length]
+        if tag == "d":
+            if ln < 3:
+                raise IncompleteData(string)
+            length = int2_unpack(string[1:3])[0] + 3
+            if ln < length:
+                raise IncompleteData(string)
+            name = string[3:length]
+        else:
+            if ln < 2:
+                raise IncompleteData(string)
+            length = ord(string[1]) + 2
+            if ln < length:
+                raise IncompleteData(string)
+            name = string[2:length]
         if name == "true":
             return True, string[length:]
         elif name == "false":

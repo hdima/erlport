@@ -45,6 +45,8 @@ class AtomTestCase(unittest.TestCase):
         self.assertFalse(atom is Atom("test2"))
         self.assertTrue(atom is Atom("test"))
         self.assertEqual("X" * 255, Atom("X" * 255))
+        self.assertEqual("\xc3\xa4", Atom("\xc3\xa4"))
+        self.assertEqual("\xe4", Atom("\xe4"))
 
     def test_invalid_atom(self):
         self.assertRaises(ValueError, Atom, "X" * 256)
@@ -139,6 +141,7 @@ class DecodeTestCase(unittest.TestCase):
         self.assertRaises(ValueError, decode, "\x83z")
 
     def test_decode_atom(self):
+        # ATOM_EXT:
         self.assertRaises(IncompleteData, decode, "\x83d")
         self.assertRaises(IncompleteData, decode, "\x83d\0")
         self.assertRaises(IncompleteData, decode, "\x83d\0\1")
@@ -146,14 +149,31 @@ class DecodeTestCase(unittest.TestCase):
         self.assertEqual((Atom(""), "tail"), decode("\x83d\0\0tail"))
         self.assertEqual((Atom("test"), ""), decode("\x83d\0\4test"))
         self.assertEqual((Atom("test"), "tail"), decode("\x83d\0\4testtail"))
+        self.assertEqual((Atom("\xe4"), ""), decode("\x83d\0\1\xe4"))
+        # SMALL_ATOM_UTF8_EXT:
+        self.assertRaises(IncompleteData, decode, "\x83w")
+        self.assertRaises(IncompleteData, decode, "\x83w\1")
+        self.assertEqual((Atom(""), ""), decode("\x83w\0"))
+        self.assertEqual((Atom(""), "tail"), decode("\x83w\0tail"))
+        self.assertEqual((Atom("test"), ""), decode("\x83w\4test"))
+        self.assertEqual((Atom("test"), "tail"), decode("\x83w\4testtail"))
+        self.assertEqual((Atom("\xc3\xa4"), ""), decode("\x83w\2\xc3\xa4"))
 
     def test_decode_predefined_atoms(self):
+        # ATOM_EXT:
         self.assertEqual((True, ""), decode("\x83d\0\4true"))
         self.assertEqual((True, "tail"), decode("\x83d\0\4truetail"))
         self.assertEqual((False, ""), decode("\x83d\0\5false"))
         self.assertEqual((False, "tail"), decode("\x83d\0\5falsetail"))
         self.assertEqual((None, ""), decode("\x83d\0\11undefined"))
         self.assertEqual((None, "tail"), decode("\x83d\0\11undefinedtail"))
+        # SMALL_ATOM_UTF8_EXT:
+        self.assertEqual((True, ""), decode("\x83w\4true"))
+        self.assertEqual((True, "tail"), decode("\x83w\4truetail"))
+        self.assertEqual((False, ""), decode("\x83w\5false"))
+        self.assertEqual((False, "tail"), decode("\x83w\5falsetail"))
+        self.assertEqual((None, ""), decode("\x83w\11undefined"))
+        self.assertEqual((None, "tail"), decode("\x83w\11undefinedtail"))
 
     def test_decode_empty_list(self):
         self.assertEqual(([], ""), decode("\x83j"))
