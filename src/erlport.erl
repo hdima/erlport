@@ -381,17 +381,32 @@ next_message_id(#state{sent=Sent}) ->
 %%
 %% @doc Call with module, function and args
 %%
+-ifdef(OTP_RELEASE).
+%% OTP 21 or higher
 call_mfa(Module, Function, Args) ->
-    try {ok, apply(Module, Function, Args)}
-    catch
-        error:{Language, Type, _Val, Trace}=Error
-                when is_atom(Language) andalso is_atom(Type)
-                andalso is_list(Trace) ->
-            {error, Error};
-        Type:Reason ->
-            Trace = erlang:get_stacktrace(),
-            {error, {erlang, Type, Reason, Trace}}
-    end.
+        try {ok, apply(Module, Function, Args)}
+        catch
+            error:{Language, Type, _Val, Trace}=Error
+                    when is_atom(Language) andalso is_atom(Type)
+                    andalso is_list(Trace) ->
+                {error, Error};
+            Type:Reason:Trace ->
+                {error, {erlang, Type, Reason, Trace}}
+        end.
+-else.
+%% OTP 20 or lower
+call_mfa(Module, Function, Args) ->
+        try {ok, apply(Module, Function, Args)}
+        catch
+            error:{Language, Type, _Val, Trace}=Error
+                    when is_atom(Language) andalso is_atom(Type)
+                    andalso is_list(Trace) ->
+                {error, Error};
+            Type:Reason ->
+                Trace = erlang:get_stacktrace(),
+                {error, {erlang, Type, Reason, Trace}}
+        end.
+-endif.
 
 %%
 %% @doc Handle incoming call request
