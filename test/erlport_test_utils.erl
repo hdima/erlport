@@ -270,7 +270,7 @@ random_name(0) ->
     [];
 random_name(N) ->
     Chars = ?CHARS,
-    I = crypto:rand_uniform(1, tuple_size(Chars) + 1),
+    I = rand:uniform(tuple_size(Chars)),
     [element(I, Chars) | random_name(N - 1)].
 
 get_base_dir() ->
