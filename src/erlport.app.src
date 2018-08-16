@@ -1,0 +1,9 @@
+{application,erlport,
+             [{description,"Erlang port protocol"},
+              {vsn,"0.10.0"},
+              {modules,[]},
+              {registered,[]},
+              {applications,[kernel,stdlib]},
+              {maintainers,["Dmitry Vasiliev"]},
+              {licenses,["BSD-3-Clause"]},
+              {links,[{"Github","https://github.com/hdima/erlport"}]}]}.

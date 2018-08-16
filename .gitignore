@@ -5,3 +5,9 @@
 /sandbox
 /packages
 /testall.log
+.idea/
+_build/
+.rebar3/
+.rebar/
+ebin/
+*.iml
