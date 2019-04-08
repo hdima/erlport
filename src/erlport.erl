@@ -388,8 +388,7 @@ call_mfa(Module, Function, Args) ->
                 when is_atom(Language) andalso is_atom(Type)
                 andalso is_list(Trace) ->
             {error, Error};
-        Type:Reason ->
-            Trace = erlang:get_stacktrace(),
+        Type:Reason:Trace ->
             {error, {erlang, Type, Reason, Trace}}
     end.
 
