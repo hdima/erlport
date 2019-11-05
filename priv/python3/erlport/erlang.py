@@ -28,7 +28,7 @@
 from inspect import getargspec
 import sys
 from sys import exc_info
-from traceback import extract_tb
+from traceback import extract_tb, format_list
 from threading import Lock
 import uuid
 
@@ -236,12 +236,16 @@ class MessageHandler(object):
             exc = Atom(bytes("%s.%s" % (t.__module__, t.__name__), "utf-8"))
             exc_tb = extract_tb(tb)
             exc_tb.reverse()
-            error = Atom(b"python"), exc, str(val), exc_tb
+            decoded_tb = self._decode_traceback(exc_tb)
+            error = Atom(b"python"), exc, str(val), decoded_tb
             if mid is not None:
                 result = Atom(b"e"), mid, error
             else:
                 result = Atom(b"e"), error
             self.port.write(result)
+            
+    def _decode_traceback(self, stack_summary):
+        return bytes(''.join(format_list(stack_summary)), "utf-8")
 
 def setup_api_functions(handler):
     global call, cast, self, make_ref
