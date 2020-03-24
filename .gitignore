@@ -5,3 +5,5 @@
 /sandbox
 /packages
 /testall.log
+_build
+rebar.lock
