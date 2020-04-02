@@ -28,15 +28,10 @@
 {application, erlport, [
     {description, "Erlang port protocol"},
     {vsn, "0.9.8"},
-    {modules, [
-        erlport,
-        erlport_options,
-        erlport_utils,
-        python,
-        python_options,
-        ruby,
-        ruby_options
-        ]},
+    {modules, []},
     {registered, []},
-    {applications, [kernel, stdlib]}
-    ]}.
+    {applications, [kernel, stdlib]},
+    {maintainers, ["Dmitry Vasiliev"]},
+    {licenses, ["BSD-3-Clause"]},
+    {links,[{"Github", "https://github.com/hdima/erlport"}]}
+]}.

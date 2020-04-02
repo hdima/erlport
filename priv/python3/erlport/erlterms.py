@@ -199,15 +199,23 @@ def decode_term(string,
     if not string:
         raise IncompleteData(string)
     tag = string[0]
-    if tag == 100:
-        # ATOM_EXT
+    if tag == 100 or tag == 119:
+        # ATOM_EXT, SMALL_ATOM_UTF8_EXT
         ln = len(string)
-        if ln < 3:
-            raise IncompleteData(string)
-        length = int2_unpack(string[1:3])[0] + 3
-        if ln < length:
-            raise IncompleteData(string)
-        name = string[3:length]
+        if tag == 100:
+            if ln < 3:
+                raise IncompleteData(string)
+            length = int2_unpack(string[1:3])[0] + 3
+            if ln < length:
+                raise IncompleteData(string)
+            name = string[3:length]
+        else:
+            if ln < 2:
+                raise IncompleteData(string)
+            length = string[1] + 2
+            if ln < length:
+                raise IncompleteData(string)
+            name = string[2:length]
         if name == b"true":
             return True, string[length:]
         elif name == b"false":

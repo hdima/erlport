@@ -7,3 +7,8 @@
 /testall.log
 _build
 rebar.lock
+.idea/
+.rebar3/
+.rebar/
+ebin/
+*.iml
