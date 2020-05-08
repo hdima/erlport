@@ -248,7 +248,12 @@ pathsep() ->
 -spec absname(Filename::string()) -> Path::string().
 
 absname(Filename) ->
-    filename:nativename(filename:absname(Filename)).
+    Nativename = filename:nativename(filename:absname(Filename)),
+    case os:type() of
+        {win32, _} ->
+            lists:concat(["\"", Nativename, "\""]);
+        _ -> Nativename
+    end.
 
 %%
 %% @doc Join directory and filename components

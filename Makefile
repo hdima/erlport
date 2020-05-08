@@ -50,6 +50,7 @@ compile-priv:
 	@for folder in $$(ls -1 priv); do \
 		(cd priv/$$folder; $(MAKE)) \
 	done
+	@mkdir -p ebin
 
 $(RELDIR)/%.beam: src/%.erl $(HEADERS)
 	$(ERLC) +debug_info -o $(RELDIR) $<

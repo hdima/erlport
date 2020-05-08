@@ -12,3 +12,6 @@ rebar.lock
 .rebar/
 ebin/
 *.iml
+classes/
+.DS_Store
+rebar3.crashdump
