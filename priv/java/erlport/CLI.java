@@ -1,21 +1,22 @@
 package erlport;
 
-import java.io.*;
-import java.util.*;
-import java.lang.*;
-import java.lang.reflect.*;
-import java.nio.ByteBuffer;
+import java.io.EOFException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
-import erlport.terms.*;
+import erlport.terms.Atom;
+import erlport.terms.Binary;
 
 public class CLI {
 
     public static void main(final String[] args) {
-
+    	
+    		Map<Class<?>, Object> classInstances = new HashMap<>();
+    		
         Options opts = new Options(args);
 
         Port port = new Port(opts);
-
         while(true) {
             try {
                 Request req = port.read();
@@ -23,16 +24,22 @@ public class CLI {
                 try {
                     if (req.type == RequestType.CALL) {
                         Class<?> clazz = Class.forName(req.classname.value);
-                        Class[] classArg = new Class[req.args.length];
-                        for(int i=0; i<req.args.length; i++) {
-                            classArg[i] = Object.class;
+                        Object instance = classInstances.get(clazz);
+                        if (instance == null) {
+                        		instance = clazz.newInstance();
+                        		classInstances.put(clazz, instance);
                         }
-                        Method method = clazz.getMethod(req.functname.value, classArg);
-                        Object result = method.invoke(null, req.args);
+                        Class<?>[] classArgs = new Class[req.args.length];
+                        for (int i=0; i<classArgs.length; i++) {
+                        		classArgs[i] = Object.class;
+                        }
+                        Method method = clazz.getMethod(req.functname.value, classArgs);
+                        Object result = method.invoke(instance, req.args);
 
                         if (result == null) {
                             result = new Atom("ok");
                         }
+                        //System.err.printf("Result: %s\n", result);
 
                         // back to response
                         port.write(Response.success(req.requestId, result));
