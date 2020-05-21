@@ -3,6 +3,7 @@ package erlport;
 import java.util.*;
 import java.lang.*;
 import java.nio.*;
+import java.math.*;
 
 import erlport.terms.*;
 
@@ -68,6 +69,35 @@ class Response extends Object {
                 bb.putInt(i);
                 return bb.array();
             }
+        }
+
+        // SMALL_BIG | LARGE_BIG
+        if (obj instanceof BigInteger) {
+            BigInteger bi = (BigInteger) obj;
+            Integer sign = 0;
+            if (bi.signum() == -1) {
+                sign = 1;
+                bi = bi.abs();
+            }
+            byte[] src = bi.toByteArray();  // big-endian
+            Integer len = src.length;
+
+            byte[] dest = new byte[len];    // little-endian
+
+            for(Integer i=0; i<len; i++) {
+                dest[len-i-1] = src[i];
+            }
+
+            byte[] lenBytes = pack_unsigned(len, 4);
+            byte[] signBytes = pack_unsigned(sign, 1);
+
+            ByteBuffer bb = ByteBuffer.allocate(6+len);
+            bb.put((byte) 111);
+            bb.put(lenBytes);
+            bb.put(signBytes);
+            bb.put(dest);
+
+            return bb.array();
         }
 
         // FLOAT ?? 31 String?
