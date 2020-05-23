@@ -28,7 +28,7 @@ vpath %.java src
 
 $(JAR_PKG):
 ifeq (,$(wildcard $(JAR_PKG)))
-	@make build
+	@$(MAKE) build
 	@jar cf $(JAR_PKG) -C classes .
 	@rm -rf classes
 	@echo "Successfully packing erlport.jar"
